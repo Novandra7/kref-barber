@@ -6,4 +6,16 @@
 @theme {
     --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
         'Segoe UI Symbol', 'Noto Color Emoji';
+    --font-montserrat: "Montserrat", sans-serif;
+    --font-league: "League Gothic", sans-serif;
+    --font-dosis: "Dosis", sans-serif;
+    --color-primary: #C83E3E;
+    --color-base: #FFFFFF;
+    --color-neutral: #000000;
+}
+
+@layer base {
+    [x-cloak] {
+        display: none !important;
+    }
 }

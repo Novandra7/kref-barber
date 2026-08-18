@@ -20,6 +20,7 @@ class Product extends Model
     protected function casts(): array
     {
         return [
+            'price' => 'integer',
             'is_active' => 'boolean',
         ];
     }

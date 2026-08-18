@@ -21,6 +21,8 @@ class Service extends Model
     protected function casts(): array
     {
         return [
+            'price' => 'integer',
+            'duration_minutes' => 'integer',
             'is_active' => 'boolean',
         ];
     }

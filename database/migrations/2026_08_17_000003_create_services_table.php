@@ -12,8 +12,6 @@ return new class extends Migration
             $table->id();
             $table->string('name');
             $table->unsignedInteger('price');
-            $table->unsignedInteger('duration_minutes');
-            $table->string('photo')->nullable();
             $table->boolean('is_active')->default(true);
             $table->timestamps();
         });

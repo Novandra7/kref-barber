@@ -12,7 +12,7 @@ return new class extends Migration
             $table->id();
             $table->string('name');
             $table->string('photo')->nullable();
-            $table->string('specialty')->nullable();
+            $table->string('phone');
             $table->boolean('is_active')->default(true);
             $table->timestamps();
         });

@@ -28,4 +28,14 @@ class Barber extends Model
     {
         return $this->hasMany(Booking::class);
     }
+
+    public function schedules(): HasMany
+    {
+        return $this->hasMany(Schedule::class);
+    }
+
+    public function blockedSlots(): HasMany
+    {
+        return $this->hasMany(BlockedSlot::class);
+    }
 }

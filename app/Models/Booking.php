@@ -24,12 +24,16 @@ class Booking extends Model
         'total_amount',
         'outstanding_amount',
         'scheduled_at',
+        'ends_at',
     ];
 
     protected function casts(): array
     {
         return [
             'scheduled_at' => 'datetime',
+            'ends_at' => 'datetime',
+            'total_amount' => 'integer',
+            'outstanding_amount' => 'integer',
         ];
     }
 

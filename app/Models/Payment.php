@@ -20,6 +20,13 @@ class Payment extends Model
         'recorded_by',
     ];
 
+    protected function casts(): array
+    {
+        return [
+            'amount' => 'integer',
+        ];
+    }
+
     public function booking(): BelongsTo
     {
         return $this->belongsTo(Booking::class);

@@ -23,6 +23,15 @@ class BookingItem extends Model
         'added_by',
     ];
 
+    protected function casts(): array
+    {
+        return [
+            'qty' => 'integer',
+            'price_snapshot' => 'integer',
+            'duration_snapshot' => 'integer',
+        ];
+    }
+
     public function booking(): BelongsTo
     {
         return $this->belongsTo(Booking::class);
