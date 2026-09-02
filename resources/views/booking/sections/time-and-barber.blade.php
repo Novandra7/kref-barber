@@ -158,7 +158,7 @@
 
     {{-- Bottom Action Button --}}
     <div class="flex items-center md:justify-between mt-6 w-full">
-        <button type="button" class="btn rounded-xl border border-gray-200 hover:bg-gray-100" @click="currentStep = 'guest'">
+        <button x-show="guests.length > 0" type="button" class="btn rounded-xl border border-gray-200 hover:bg-gray-100" @click="currentStep = 'guest'">
             <svg class="size-[1.4em]" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <path d="M12 22C6.477 22 2 17.523 2 12C2 6.477 6.477 2 12 2C17.523 2 22 6.477 22 12C22 17.523 17.523 22 12 22Z" stroke="black" stroke-width="2" stroke-linejoin="round"/>
                 <path d="M13.5 16.5L9 12L13.5 7.5" stroke="black" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
@@ -167,7 +167,7 @@
         </button>
         <button 
             type="button" 
-            class="btn btn-primary w-full md:w-auto rounded-xl flex items-center justify-center gap-2 px-6 py-3 font-semibold transition-all duration-200" 
+            class="btn btn-primary w-full md:w-auto ml-auto rounded-xl flex items-center justify-center gap-2 px-6 py-3 font-semibold transition-all duration-200"
             @click="validateStep1()"
         >
             <span class="text-base md:text-sm">Next : Your Detail & Service</span>
