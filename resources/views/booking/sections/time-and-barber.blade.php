@@ -69,7 +69,17 @@
         <div class="w-full lg:w-1/2 rounded-xl bg-white border border-gray-200 p-6">
             <span class="block pb-4 text-xl font-montserrat font-bold tracking-tight text-primary">CHOOSE DATE & TIME *</span>
             
-            <div class="flex flex-col sm:flex-row gap-6 items-start">
+            <div x-show="!currentGuest.barber" class="h-full flex flex-col items-center justify-center pb-14 pt-10 md:pb-12 md:pt-0 text-center">
+                <div class="flex h-12 w-12 items-center justify-center rounded-full bg-red-50 text-primary">
+                    <svg class="size-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                    </svg>
+                </div>
+                <p class="text-base font-semibold">Please select a barber first</p>
+                <p class="text-xs text-gray-500 mt-1">Available dates and times will appear here after choosing a barber.</p>
+            </div>
+            
+            <div x-show="currentGuest.barber" class="flex flex-col sm:flex-row gap-6 items-start">
                 
                 <!-- Datepicker Container -->
                 <div class="w-full sm:w-1/2">
@@ -83,18 +93,13 @@
                                 </svg>
                             </div>
                             <input 
-                                datepicker 
                                 id="mobile-datepicker" 
                                 type="text" 
-                                :data-date="currentGuest.date"
                                 :value="currentGuest.date"
                                 class="block w-full ps-10 pe-3 py-2.5 bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-xl focus:ring-primary focus:border-primary cursor-pointer" 
                                 placeholder="Select date"
-                                x-init="$nextTick(() => {
-                                    $el.addEventListener('changeDate', (event) => {
-                                        currentGuest.date = event.detail.date;
-                                    });
-                                })"
+                                readonly
+                                x-init="$nextTick(() => initDatepicker($el))"
                             >
                         </div>
                     </div>
@@ -104,34 +109,33 @@
                         <div class="rounded-xl w-full max-w-[320px]">
                             <div
                                 id="datepicker-inline"
-                                inline-datepicker
-                                :data-date="currentGuest.date"
-                                x-init="$nextTick(() => {
-                                    $el.addEventListener('changeDate', (event) => {
-                                        currentGuest.date = event.detail.date;
-                                    });
-                                })"
+                                x-init="$nextTick(() => initDatepicker($el, true))"
                             ></div>
                         </div>
                     </div>
                 </div>
 
-                <!-- Available Time Grid -->
+                <!-- Available Time Grid / Time Picker-->
                 <div class="w-full sm:w-1/2">
                     <p class="mb-3 text-sm font-semibold text-gray-700">Available time</p>
                     <div class="grid grid-cols-3 gap-2.5">
-                        @foreach (['09:00', '10:00', '11:00', '12:00', '13:00', '14:00', '17:00'] as $time)
+                        <template x-for="schedule in getSelectedSchedules()" :key="schedule.id">
                             <button 
                                 type="button"
-                                class="rounded-xl border px-2.5 py-2 text-sm font-semibold transition-colors"
-                                :class="currentGuest.time === '{{ $time }}'
+                                class="rounded-xl border px-2.5 py-2 text-sm font-semibold transition-colors disabled:bg-gray-100 disabled:text-gray-400 disabled:border-gray-200 disabled:cursor-not-allowed disabled:opacity-60"
+                                :disabled="!schedule.is_available || isScheduleTaken(schedule)"
+                                :class="currentGuest.time === schedule.slot_time
                                     ? 'border-primary bg-primary text-white'
-                                    : 'border-gray-200 bg-white text-gray-700 hover:border-primary hover:text-primary'"
-                                @click="currentGuest.time = '{{ $time }}'"
+                                    : 'border-gray-200 bg-white text-gray-700 enabled:hover:border-primary enabled:hover:text-primary'"
+                                @click="currentGuest.time = schedule.slot_time"
                             >
-                                {{ $time }}
+                                <span x-text="schedule.slot_time"></span>
                             </button>
-                        @endforeach
+                        </template>
+                        <p x-show="currentGuest.barber && currentGuest.date && getSelectedSchedules().length === 0"
+                           class="col-span-3 text-sm text-gray-500">
+                            No schedules available for this barber on the selected date.
+                        </p>
                     </div>
                     
                     {{-- Timezone Info --}}

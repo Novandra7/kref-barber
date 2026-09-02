@@ -1,29 +1,99 @@
+import Datepicker from 'flowbite-datepicker/Datepicker';
+
 export default (
     initialServices = [],
     initialBarbers = [],
     initialDate = "",
+    initialSchedules = [],
+    initialAvailableDates = [],
 ) => ({
-    currentStep: 'guest',
+    currentStep: 1,
     guests: [
-        {
-        barber: 1,
-        date: initialDate,
-        time: "09.00",
+    //     {
+    //     barber: 1,
+    //     date: initialDate,
+    //     time: "09.00",
 
-        name: "novan",
-        phone: "08123456789",
-        notes: "Test notes",
+    //     name: "novan",
+    //     phone: "08123456789",
+    //     notes: "Test notes",
 
-        selectedHaircut: 'Regular Haircut',
-        selectedChemical: null,
-        selectedTreatments: [],
-    }
+    //     selectedHaircut: 'Regular Haircut',
+    //     selectedChemical: null,
+    //     selectedTreatments: [],
+    // }
 ],
     currentGuest: null,
     paymentType: "",
     services: initialServices,
     barbers: initialBarbers, 
+    schedules: initialSchedules,
+    availableDates: initialAvailableDates,
     validationAttempted: false,
+
+    initDatepicker(element, inline = false) {
+        const availableDates = this.availableDates.map((date) => new Date(`${date}T00:00:00`));
+        const disabledDates = [];
+
+        if (availableDates.length > 0) {
+            const firstDate = availableDates[0];
+            const lastDate = availableDates[availableDates.length - 1];
+
+            for (
+                const date = new Date(firstDate);
+                date <= lastDate;
+                date.setDate(date.getDate() + 1)
+            ) {
+                const dateValue = this.toDateValue(date);
+
+                if (!this.availableDates.includes(dateValue)) {
+                    disabledDates.push(dateValue);
+                }
+            }
+        }
+
+        const datepicker = new Datepicker(element, {
+            format: 'yyyy-mm-dd',
+            minDate: this.availableDates[0] ?? null,
+            maxDate: this.availableDates[this.availableDates.length - 1] ?? null,
+            datesDisabled: disabledDates,
+            autohide: !inline,
+        });
+
+        element.addEventListener('changeDate', (event) => {
+            const date = event.detail.date;
+            this.currentGuest.date = this.toDateValue(date);
+            this.currentGuest.time = "";
+        });
+
+        if (this.currentGuest.date) {
+            datepicker.setDate(this.currentGuest.date);
+        }
+    },
+
+    toDateValue(date) {
+        return date instanceof Date
+            ? `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`
+            : date;
+    },
+
+    getSelectedSchedules() {
+        if (!this.currentGuest?.date || !this.currentGuest?.barber) return [];
+
+        return this.schedules.filter((schedule) =>
+            schedule.date === this.currentGuest.date &&
+            schedule.barber_id == this.currentGuest.barber
+        );
+    },
+
+    isScheduleTaken(schedule) {
+        return this.guests.some((guest, index) =>
+            index !== this.editingIndex &&
+            guest.barber == schedule.barber_id &&
+            guest.date === schedule.date &&
+            guest.time === schedule.slot_time
+        );
+    },
 
     createGuest() {
         return {

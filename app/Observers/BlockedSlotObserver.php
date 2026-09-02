@@ -3,6 +3,7 @@
 namespace App\Observers;
 
 use App\Models\BlockedSlot;
+use App\Models\Schedule;
 
 class BlockedSlotObserver
 {

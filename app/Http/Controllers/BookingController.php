@@ -14,12 +14,24 @@ class BookingController extends Controller
     {
         $services = Service::where('is_active', true)->get();
         $barbers = Barber::where('is_active', true)->get();
-        $selectedDate = $request->input('date', now()->toDateString());
-        $schedules = Schedule::where('date', $selectedDate)
+        $selectedDate = $request->input('date');
+        $schedules = Schedule::orderBy('date')
             ->orderBy('slot_time')
-            ->get()
-            ->groupBy('barber_id');
+            ->get();
+        $scheduleData = $schedules->map(fn (Schedule $schedule) => [
+            'id' => $schedule->id,
+            'barber_id' => $schedule->barber_id,
+            'date' => $schedule->date->format('Y-m-d'),
+            'slot_time' => $schedule->slot_time->format('H:i'),
+            'is_available' => $schedule->is_available,
+        ])->values();
+        $availableDates = $scheduleData->pluck('date')
+            ->unique()
+            ->values();
+        if (!$selectedDate || !$availableDates->contains($selectedDate)) {
+            $selectedDate = $availableDates->first() ?? now()->toDateString();
+        }
 
-        return view('booking', compact('services', 'barbers', 'schedules'));
+        return view('booking', compact('services', 'barbers', 'scheduleData', 'availableDates', 'selectedDate'));
     }
 }
