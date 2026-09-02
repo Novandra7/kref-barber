@@ -13,8 +13,8 @@
                     <span class="underline underline-offset-2">back home</span>
                 </a>
 
-                <div class="flex items-center justify-center font-league text-primary">
-                    <span class="inline-block">BOOKING PAGE</span>
+                <div class="flex items-center justify-center font-league text-brand">
+                    <span class="text-2xl inline-block">BOOKING PAGE</span>
                     <img src="{{ asset('storage/Logo2.svg') }}" alt="Logo" class="w-7 h-7 object-contain shrink-0">
                 </div>
 

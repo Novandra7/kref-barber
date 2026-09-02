@@ -13,8 +13,7 @@ class BlockedSlot extends Model
     protected $fillable = [
         'barber_id',
         'date',
-        'start_time',
-        'end_time',
+        'slot_time',
         'reason',
     ];
 
@@ -22,6 +21,7 @@ class BlockedSlot extends Model
     {
         return [
             'date' => 'date',
+            'slot_time' => 'datetime:H:i',
         ];
     }
 

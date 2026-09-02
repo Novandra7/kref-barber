@@ -12,10 +12,12 @@ return new class extends Migration
             $table->id();
             $table->foreignId('barber_id')->constrained()->cascadeOnDelete();
             $table->date('date');
-            $table->time('start_time');
-            $table->time('end_time');
+            $table->time('slot_time');
             $table->string('reason')->nullable();
             $table->timestamps();
+
+            // Memastikan tidak ada duplikasi pemblokiran slot jam yang sama
+            $table->unique(['barber_id', 'date', 'slot_time']);
         });
     }
 

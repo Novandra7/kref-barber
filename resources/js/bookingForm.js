@@ -3,21 +3,21 @@ export default (
     initialBarbers = [],
     initialDate = "",
 ) => ({
-    currentStep: 1,
+    currentStep: 'guest',
     guests: [
-    //     {
-    //     barber: 1,
-    //     date: initialDate,
-    //     time: "09.00",
+        {
+        barber: 1,
+        date: initialDate,
+        time: "09.00",
 
-    //     name: "novan",
-    //     phone: "08123456789",
-    //     notes: "Test notes",
+        name: "novan",
+        phone: "08123456789",
+        notes: "Test notes",
 
-    //     selectedHaircut: 'Regular Haircut',
-    //     selectedChemical: null,
-    //     selectedTreatments: [],
-    // }
+        selectedHaircut: 'Regular Haircut',
+        selectedChemical: null,
+        selectedTreatments: [],
+    }
 ],
     currentGuest: null,
     paymentType: "",
