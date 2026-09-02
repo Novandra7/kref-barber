@@ -23,13 +23,13 @@
 
         <!-- Navigasi Desktop -->
         <nav class="hidden md:flex items-center gap-8">
-            <a href="#" class="font-dosis text-lg font-bold hover:text-primary transition-colors">Home</a>
-            <a href="#" class="font-dosis text-lg font-bold hover:text-primary transition-colors">About</a>
-            <a href="#" class="font-dosis text-lg font-bold hover:text-primary transition-colors">Services</a>
-            <a href="#" class="font-dosis text-lg font-bold hover:text-primary transition-colors">Barbers</a>
-            <a href="#" class="font-dosis text-lg font-bold hover:text-primary transition-colors">Gallery</a>
-            <a href="#" class="font-dosis text-lg font-bold hover:text-primary transition-colors">Testimonial</a>
-            <a href="#" class="font-dosis text-lg font-bold hover:text-primary transition-colors">Location</a>
+            <a href="#hero" class="font-dosis text-lg font-bold hover:text-primary transition-colors">Home</a>
+            <a href="#about" class="font-dosis text-lg font-bold hover:text-primary transition-colors">About</a>
+            <a href="#services" class="font-dosis text-lg font-bold hover:text-primary transition-colors">Services</a>
+            <a href="#barbers" class="font-dosis text-lg font-bold hover:text-primary transition-colors">Barbers</a>
+            <a href="#gallery" class="font-dosis text-lg font-bold hover:text-primary transition-colors">Gallery</a>
+            <a href="#testimonial" class="font-dosis text-lg font-bold hover:text-primary transition-colors">Testimonial</a>
+            <a href="#location" class="font-dosis text-lg font-bold hover:text-primary transition-colors">Location</a>
         </nav>
     </div>
 
@@ -59,12 +59,12 @@
         x-transition:leave-end="opacity-0 -translate-y-2"
         class="absolute left-0 right-0 top-full mt-2 bg-white z-40 md:hidden px-4 py-4 flex flex-col gap-3 text-left rounded-2xl shadow-xl border border-black/10"
     >
-        <a @click="open = false" href="#" class="block w-full rounded-lg font-dosis text-lg font-bold text-black hover:text-primary">Home</a>
-        <a @click="open = false" href="#" class="block w-full rounded-lg font-dosis text-lg font-bold text-black hover:text-primary">About</a>
-        <a @click="open = false" href="#" class="block w-full rounded-lg font-dosis text-lg font-bold text-black hover:text-primary">Services</a>
-        <a @click="open = false" href="#" class="block w-full rounded-lg font-dosis text-lg font-bold text-black hover:text-primary">Barbers</a>
-        <a @click="open = false" href="#" class="block w-full rounded-lg font-dosis text-lg font-bold text-black hover:text-primary">Gallery</a>
-        <a @click="open = false" href="#" class="block w-full rounded-lg font-dosis text-lg font-bold text-black hover:text-primary">Testimonial</a>
-        <a @click="open = false" href="#" class="block w-full rounded-lg font-dosis text-lg font-bold text-black hover:text-primary">Location</a>
+        <a @click="open = false" href="#hero" class="block w-full rounded-lg font-dosis text-lg font-bold text-black hover:text-primary">Home</a>
+        <a @click="open = false" href="#about" class="block w-full rounded-lg font-dosis text-lg font-bold text-black hover:text-primary">About</a>
+        <a @click="open = false" href="#services" class="block w-full rounded-lg font-dosis text-lg font-bold text-black hover:text-primary">Services</a>
+        <a @click="open = false" href="#barbers" class="block w-full rounded-lg font-dosis text-lg font-bold text-black hover:text-primary">Barbers</a>
+        <a @click="open = false" href="#gallery" class="block w-full rounded-lg font-dosis text-lg font-bold text-black hover:text-primary">Gallery</a>
+        <a @click="open = false" href="#testimonial" class="block w-full rounded-lg font-dosis text-lg font-bold text-black hover:text-primary">Testimonial</a>
+        <a @click="open = false" href="#location" class="block w-full rounded-lg font-dosis text-lg font-bold text-black hover:text-primary">Location</a>
     </nav>
 </header>
