@@ -4,23 +4,23 @@
         <div class="w-full lg:w-full flex flex-col gap-4">
             <!-- Foto Atas (Utama) -->
             <div class="w-full h-64 sm:h-80 md:h-96 rounded-2xl overflow-hidden shadow-sm">
-                <img src="{{ asset('storage/hero1.jpg') }}" alt="Barber Cutting Hair" class="w-full h-full object-cover">
+                <img src="{{ asset('images/hero1.jpg') }}" alt="Barber Cutting Hair" class="w-full h-full object-cover">
             </div>
     
             <!-- Foto Bawah (Grid 2 Kolom) -->
             <div class="grid grid-cols-2 gap-4">
                 <!-- Foto Kiri Bawah (Logo Overlay / Red Tint) -->
                 <div class="relative w-full h-40 sm:h-52 rounded-2xl overflow-hidden shadow-sm">
-                    <img src="{{ asset('storage/hero2.jpg') }}" alt="Kref Barber Interior" class="w-full h-full object-cover">
+                    <img src="{{ asset('images/hero2.jpg') }}" alt="Kref Barber Interior" class="w-full h-full object-cover">
                     <!-- Overlay Merah Datar/Transparan -->
                     <div class="absolute inset-0 bg-[#A64545]/80 flex flex-col items-center justify-center p-4">
-                        <img src="{{ asset('storage/Logo.svg') }}" alt="Kref Barber Logo" class="w-24 sm:w-28 h-auto object-contain">
+                        <img src="{{ asset('images/Logo.svg') }}" alt="Kref Barber Logo" class="w-24 sm:w-28 h-auto object-contain">
                     </div>
                 </div>
     
                 <!-- Foto Kanan Bawah (Detail Haircut) -->
                 <div class="w-full h-40 sm:h-52 rounded-2xl overflow-hidden shadow-sm">
-                    <img src="{{ asset('storage/hero3.jpg') }}" alt="Hair Styling Detail" class="w-full h-full object-cover">
+                    <img src="{{ asset('images/hero3.jpg') }}" alt="Hair Styling Detail" class="w-full h-full object-cover">
                 </div>
             </div>
         </div>
@@ -34,7 +34,7 @@
                 <div class="flex items-center gap-3 text-8xl sm:text-7xl md:text-[180px] font-black text-black">
                     <span>CUT</span>
                     <span>&</span>
-                    <img src="{{ asset('storage/Logo2.svg') }}" alt="Kref Barber Icon" class="h-[1.1em] w-auto object-contain shrink-0">
+                    <img src="{{ asset('images/Logo2.svg') }}" alt="Kref Barber Icon" class="h-[1.1em] w-auto object-contain shrink-0">
                 </div>
     
                 <!-- Baris 2: REFRESH -->

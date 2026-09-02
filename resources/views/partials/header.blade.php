@@ -32,7 +32,7 @@
             <!-- Logo (Desktop Only - Pojok Kiri) -->
             <a href="#hero" class="hidden md:block z-20 shrink-0">
                 <img 
-                    src="{{ asset('storage/logo.svg') }}" 
+                    src="{{ asset('images/Logo.svg') }}"
                     alt="Logo Barbershop" 
                     class="h-9 w-auto object-contain"
                 />
@@ -85,7 +85,7 @@
         <div class="pb-2 border-b border-gray-100">
             <a @click="open = false" href="#hero" class="inline-block">
                 <img 
-                    src="{{ asset('storage/logo.svg') }}" 
+                    src="{{ asset('images/Logo.svg') }}"
                     alt="Logo Barbershop" 
                     class="h-8 w-auto object-contain"
                 />

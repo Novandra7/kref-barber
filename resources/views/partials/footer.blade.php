@@ -3,7 +3,7 @@
         <div class="md:flex md:justify-between md:gap-8">
             <div class="mb-6 md:mb-0 md:max-w-md">
                 <a href="#" class="flex flex-col items-start gap-4">
-                    <img src="{{ asset('storage/logo.svg') }}" class="h-22.5" alt="Kref Logo" />
+                    <img src="{{ asset('images/Logo.svg') }}" class="h-22.5" alt="Kref Logo" />
                     <p class="text-sm font-semibold text-white/80">A place for good cuts, good vibes, and a style that feels like you.</p>
                 </a>
             </div>

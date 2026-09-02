@@ -2,7 +2,7 @@
     <div class="relative z-10 flex w-full flex-col items-center justify-center gap-3 overflow-hidden rounded-lg bg-primary p-8">
         <div
             class="absolute inset-0 bg-cover bg-center opacity-20"
-            style="background-image: url('{{ asset('storage/services-overlay.png') }}')">
+            style="background-image: url('{{ asset('images/services-overlay.png') }}')">
         </div>
         
         {{-- Title --}}

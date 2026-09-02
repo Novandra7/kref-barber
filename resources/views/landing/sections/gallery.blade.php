@@ -10,7 +10,7 @@
             <div class="flex flex-col gap-4">
                 <div class="h-48 md:h-52 overflow-hidden rounded-2xl">
                     <img 
-                        src={{ asset("storage/hero1.jpg") }} 
+                        src={{ asset("images/hero1.jpg") }}
                         alt="Barber chair" 
                         class="w-full h-full object-cover"
                     />
@@ -19,7 +19,7 @@
                 <!-- Gambar 2 (Bawah Kiri - Haircut Process) -->
                 <div class="h-64 md:h-72 overflow-hidden rounded-2xl">
                     <img 
-                        src={{ asset("storage/hero2.jpg") }} 
+                        src={{ asset("images/hero2.jpg") }}
                         alt="Hairdresser styling hair" 
                         class="w-full h-full object-cover"
                     />
@@ -29,7 +29,7 @@
                 <!-- Gambar 3 (Atas Kanan - Haircut Result) -->
                 <div class="h-64 md:h-72 overflow-hidden rounded-2xl">
                     <img 
-                        src={{ asset("storage/hero3.jpg") }} 
+                        src={{ asset("images/hero3.jpg") }}
                         alt="Man with a fresh haircut" 
                         class="w-full h-full object-cover"
                     />
@@ -38,7 +38,7 @@
                     <!-- Gambar 4 (Bawah Kanan Kiri - Close-up Clipper) -->
                     <div class="h-48 md:h-52 overflow-hidden rounded-2xl">
                         <img 
-                            src={{ asset("storage/hero1.jpg") }} 
+                            src={{ asset("images/hero1.jpg") }}
                             alt="Hair trimmer close up" 
                             class="w-full h-full object-cover"
                         />
@@ -47,7 +47,7 @@
                     <!-- Gambar 5 (Bawah Kanan Kanan - Hair Spray) -->
                     <div class="h-48 md:h-52 overflow-hidden rounded-2xl">
                         <img 
-                            src={{ asset("storage/hero2.jpg") }} 
+                            src={{ asset("images/hero2.jpg") }}
                             alt="Barber applying hair spray" 
                             class="w-full h-full object-cover"
                         />

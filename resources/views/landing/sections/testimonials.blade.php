@@ -12,7 +12,7 @@ $testimonials = [
 <section id="testimonial" x-data="carousel()" class="mt-10 w-screen relative left-1/2 -translate-x-1/2 z-10 overflow-hidden bg-black p-8 md:px-15 md:py-31">
     <div
         class="absolute inset-0 bg-cover bg-center opacity-20 rotate-180 pointer-events-none"
-        style="background-image: url('{{ asset('storage/services-overlay.png') }}')">
+        style="background-image: url('{{ asset('images/services-overlay.png') }}')">
     </div>
 
     <div class="flex flex-col items-center relative z-10">

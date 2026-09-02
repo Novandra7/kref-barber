@@ -1,6 +1,6 @@
 <div class="bg-neutral-primary-soft w-full overflow-hidden rounded-base border border-black/70">
     <a href="#">
-        <img class="w-full rounded-t-base" src="{{ asset('storage/rijal.jpeg') }}" alt="" />
+        <img class="w-full rounded-t-base" src="{{ asset('images/rijal.jpeg') }}" alt="" />
     </a>
     <div class="w-full flex flex-col min-w-0 gap-3 p-3 items-start text-start">
         {{-- Menambahkan class 'block' dan 'w-full' agar truncate bekerja presisi --}}
