@@ -91,11 +91,11 @@
 }
 </style>
 <section id="hero" class="w-full">
-    <div class="flex min-h-[calc(100svh-4.5rem)] flex-col items-center gap-2 py-2 sm:gap-4 sm:py-4 lg:min-h-0 lg:justify-between">
+    <div class="flex min-h-[calc(100svh-4.5rem)] flex-col items-center gap-2 lg:min-h-0 lg:justify-between">
         <div class="flex min-h-0 w-full flex-1 flex-col gap-3 sm:mt-4 sm:gap-4 lg:flex-row lg:items-center lg:justify-between lg:gap-8">
             
             <!-- Kolom Kiri: Galeri Foto -->
-            <div class="flex min-h-0 w-full flex-1 flex-col gap-2 sm:gap-4 lg:flex-none">
+            <div class="flex min-h-0 w-full flex-1 flex-col gap-2 sm:gap-4">
                 <!-- Foto Atas -->
                 <div class="h-[clamp(9rem,26svh,16rem)] w-full overflow-hidden rounded-xl shadow-sm sm:h-80 sm:aspect-auto md:h-96">
                     <img src="{{ asset('images/hero1.jpg') }}" alt="Barber Cutting Hair" class="h-full w-full object-cover">
@@ -135,7 +135,7 @@
                     Simple, sharp, and made to last.
                 </p>
         
-                <a href="{{ route('booking.index') }}" class="mt-3 inline-flex items-center gap-2 rounded-xl bg-primary px-6 py-2.5 font-dosis text-base font-semibold text-white shadow-md transition-colors hover:bg-[#963333] sm:mt-6 sm:px-7 sm:py-3 sm:text-lg">
+                <a href="{{ route('booking.index') }}" class="my-2 inline-flex items-center gap-2 rounded-xl bg-primary px-6 py-2.5 font-dosis text-base font-semibold text-white shadow-md transition-colors hover:bg-[#963333] sm:mt-6 sm:px-7 sm:py-3 sm:text-lg">
                     <span>booking now</span>
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="h-4 w-4 sm:h-5 sm:w-5">
                         <path stroke-linecap="round" stroke-linejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
@@ -145,6 +145,6 @@
     
             <!-- Barberpole Footer -->
         </div>
-        <div class="barberpole w-full shrink-0 border sm:mt-4"></div>
+        <div class="barberpole w-full shrink-0 border md:mt-2"></div>
     </div>
 </section>
