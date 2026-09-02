@@ -2,7 +2,7 @@
 
 @section('content')
     <!-- Wrapper khusus Above-the-Fold (Header + Hero = 1 Layar Penuh) -->
-    <div class="min-h-screen flex flex-col">
+    <div class="min-h-dvh flex flex-col">
         @include('partials.header')
         
         <div class="flex-1 flex">

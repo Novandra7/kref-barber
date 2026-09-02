@@ -64,7 +64,7 @@
 
 @media (max-width: 390px) and (max-height: 700px) {
     #hero > div {
-        min-height: calc(100svh - 4rem);
+        min-height: calc(100dvh - 4rem);
     }
 
     #hero .hero-main-image {
@@ -91,7 +91,7 @@
 }
 </style>
 <section id="hero" class="w-full">
-    <div class="flex min-h-[calc(100svh-4.5rem)] flex-col items-center gap-2 lg:min-h-0 lg:justify-between">
+    <div class="flex min-h-[calc(100dvh-4.5rem)] flex-col items-center gap-2 lg:min-h-0 lg:justify-between">
         <div class="flex min-h-0 w-full flex-1 flex-col gap-3 sm:mt-4 sm:gap-4 lg:flex-row lg:items-center lg:justify-between lg:gap-8">
             
             <!-- Kolom Kiri: Galeri Foto -->
