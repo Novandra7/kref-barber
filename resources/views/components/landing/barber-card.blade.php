@@ -1,16 +1,30 @@
 <div class="bg-neutral-primary-soft w-full overflow-hidden rounded-base border border-black/70">
     <a href="#">
-        <img class="w-full rounded-t-base" src="{{ asset('images/rijal.jpeg') }}" alt="" />
+        @if ($barber->photo)
+            <img class="w-full aspect-square rounded-t-base object-cover" src="{{ Storage::url($barber->photo) }}" alt="{{ $barber->name }}" />
+        @else
+            <div class="w-full aspect-square rounded-t-base bg-neutral-200 flex items-center justify-center">
+                <span class="text-6xl font-bold text-neutral-500">
+                    {{ strtoupper(substr($barber->name, 0, 1)) }}
+                </span>
+            </div>
+        @endif
     </a>
+
     <div class="w-full flex flex-col min-w-0 gap-3 p-3 items-start text-start">
-        {{-- Menambahkan class 'block' dan 'w-full' agar truncate bekerja presisi --}}
         <h5 class="w-full min-w-0 block text-lg font-semibold tracking-tight text-heading truncate">
             {{ $barber->name }}
         </h5>
-        <p class="text-sm font-semibold tracking-tight text-black/50">{{ $barber->role }}</p>
+
+        <p class="text-sm font-semibold tracking-tight text-black/50">
+            {{ $barber->role }}
+        </p>
+
         <a href="#" class="inline-flex items-center text-white bg-brand box-border border border-transparent hover:bg-brand-strong focus:ring-4 focus:ring-brand-medium shadow-xs font-medium leading-5 rounded-base text-sm px-4 py-2.5 focus:outline-none">
             Lihat Profil
-            <svg class="w-4 h-4 ms-1.5 rtl:rotate-180 -me-0.5" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24"><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 12H5m14 0-4 4m4-4-4-4"/></svg>
+            <svg class="w-4 h-4 ms-1.5 rtl:rotate-180 -me-0.5" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
+                <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m19 12-4 4m4-4-4-4M5 12h14"/>
+            </svg>
         </a>
     </div>
 </div>
