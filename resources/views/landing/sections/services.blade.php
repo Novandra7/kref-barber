@@ -35,9 +35,25 @@
 
                     {{-- List Layanan --}}
                     @foreach ($items as $item)
-                        <div class="flex justify-between">
-                            <p class="text-sm text-white">{{ $item['name'] }}</p>
-                            <p class="text-white">{{ $item->formattedPrice }}</p>
+                        @php
+                            $tooltipId = 'service-description-' . $item->id;
+                        @endphp
+                        <div class="relative flex items-center justify-between gap-3">
+                            <div class="flex min-w-0 items-center gap-1.5">
+                                <p class="truncate text-sm text-white">{{ $item->name }}</p>
+                                @if ($item->description)
+                                    <a
+                                        href="{{ $item->description }}"
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        aria-label="Lihat contoh {{ $item->name }} di Instagram"
+                                        class="inline-flex h-4 w-4 shrink-0 items-center justify-center rounded-full border border-white/80 text-2xs font-bold leading-none text-white transition-colors hover:bg-white hover:text-primary focus:outline-none focus:ring-2 focus:ring-white/60"
+                                    >
+                                        i
+                                    </a>
+                                @endif
+                            </div>
+                            <p class="shrink-0 text-white">{{ $item->formattedPrice }}</p>
                         </div>
                     @endforeach
 

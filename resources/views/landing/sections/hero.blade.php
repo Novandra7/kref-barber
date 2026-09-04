@@ -130,17 +130,17 @@
                     </span>
                 </div>
         
-                <p class="max-w-xs font-dosis text-sm leading-snug text-gray-700 sm:mt-4 sm:max-w-md sm:text-lg">
-                    Find a style that feels like you.<br class="hidden sm:inline">
-                    Simple, sharp, and made to last.
-                </p>
-        
                 <a href="{{ route('booking.index') }}" class="my-2 inline-flex items-center gap-2 rounded-xl bg-primary px-6 py-2.5 font-dosis text-base font-semibold text-white shadow-md transition-colors hover:bg-[#963333] sm:mt-6 sm:px-7 sm:py-3 sm:text-lg">
                     <span>booking now</span>
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="h-4 w-4 sm:h-5 sm:w-5">
                         <path stroke-linecap="round" stroke-linejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
                     </svg>
                 </a>
+                <p class="max-w-xs font-dosis text-sm leading-snug text-gray-700 sm:mt-4 sm:max-w-md sm:text-lg">
+                    Find a style that feels like you.<br class="hidden sm:inline">
+                    Simple, sharp, and made to last.
+                </p>
+        
             </div>
     
             <!-- Barberpole Footer -->

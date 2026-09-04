@@ -38,6 +38,31 @@
         </div>
         <div class="w-full md:w-1/3 rounded-xl bg-white border border-gray-200 p-6">
             <span class="block pb-4 text-xl font-montserrat font-bold tracking-tight text-primary">PAYMENT</span>
+            <div class="flex flex-col items-center gap-4 text-center">
+                <button
+                    type="button"
+                    class="btn btn-primary w-full rounded-xl"
+                    @click="createPayment()"
+                    :disabled="paymentState === 'loading' || !paymentType"
+                >
+                    <span x-show="paymentState !== 'loading'">Pay with QRIS</span>
+                    <span x-show="paymentState === 'loading'">Creating QRIS...</span>
+                </button>
+                <p x-show="paymentError" x-text="paymentError" class="text-sm text-red-600"></p>
+                <template x-if="paymentData?.qrContent">
+                    <div class="flex flex-col items-center gap-2">
+                        <canvas x-ref="qrisCanvas" aria-label="DOKU QRIS payment code" class="h-56 w-56"></canvas>
+                        <span class="text-sm text-gray-600">Scan this QRIS code to pay</span>
+                    </div>
+                </template>
+                <a
+                    x-show="paymentData?.paymentUrl"
+                    :href="paymentData?.paymentUrl"
+                    target="_blank"
+                    rel="noopener"
+                    class="text-sm font-semibold text-primary underline"
+                >Open DOKU payment</a>
+            </div>
         </div>
         <div class="w-full md:w-1/3 rounded-xl bg-base border border-gray-200 p-6">
             <h2 class="pb-4 text-xl font-montserrat font-bold tracking-tight text-brand">YOUR BOOKING</h2>

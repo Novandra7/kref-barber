@@ -14,9 +14,16 @@ class Payment extends Model
         'booking_id',
         'amount',
         'method',
+        'provider',
         'purpose',
         'status',
         'midtrans_transaction_id',
+        'provider_transaction_id',
+        'external_reference',
+        'payment_url',
+        'qr_content',
+        'expires_at',
+        'provider_payload',
         'recorded_by',
     ];
 
@@ -24,6 +31,8 @@ class Payment extends Model
     {
         return [
             'amount' => 'integer',
+            'expires_at' => 'datetime',
+            'provider_payload' => 'array',
         ];
     }
 

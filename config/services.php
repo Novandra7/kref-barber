@@ -34,5 +34,20 @@ return [
             'channel' => env('SLACK_BOT_USER_DEFAULT_CHANNEL'),
         ],
     ],
+    'waha' => [
+        'base_url' => env('WAHA_BASE_URL', 'http://localhost:3000'),
+        'session'  => env('WAHA_SESSION', 'default'),
+        'api_key'  => env('WAHA_API_KEY'),
+    ],
+    'doku' => [
+        'base_url' => env('DOKU_BASE_URL', 'https://api-sandbox.doku.com'),
+        'client_id' => env('DOKU_CLIENT_ID'),
+        'secret_key' => env('DOKU_SECRET_KEY'),
+        'private_key' => storage_path('app/private/private.key'),
+        'merchant_id' => env('DOKU_MERCHANT_ID'),
+        'terminal_id' => env('DOKU_TERMINAL_ID'),
+        'webhook_secret' => env('DOKU_WEBHOOK_SECRET'),
+        'postal_code' => env('DOKU_POSTAL_CODE', '75121'),
+    ],
 
 ];

@@ -13,6 +13,7 @@ return new class extends Migration
             $table->string('name');
             $table->unsignedInteger('price');
             $table->string('category');
+            $table->text('description')->nullable();
             $table->boolean('is_active')->default(true);
             $table->timestamps();
         });

@@ -1,4 +1,5 @@
 import Datepicker from 'flowbite-datepicker/Datepicker';
+import QRCode from 'qrcode';
 
 export default (
     initialServices = [],
@@ -25,6 +26,9 @@ export default (
 ],
     currentGuest: null,
     paymentType: "",
+    paymentState: "idle",
+    paymentError: "",
+    paymentData: null,
     services: initialServices,
     barbers: initialBarbers, 
     schedules: initialSchedules,
@@ -158,6 +162,45 @@ export default (
     finishGuests() {
         this.currentGuest = null;
         this.currentStep = 3;
+    },
+
+    async createPayment() {
+        this.paymentError = "";
+        this.paymentState = "loading";
+
+        try {
+            const response = await fetch("/booking/checkout", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    Accept: "application/json",
+                    "X-CSRF-TOKEN": document
+                        .querySelector('meta[name="csrf-token"]')
+                        ?.getAttribute("content"),
+                },
+                body: JSON.stringify({
+                    payment_type: this.paymentType,
+                    guests: this.guests,
+                }),
+            });
+
+            const payload = await response.json();
+            if (!response.ok) {
+                throw new Error(payload.message || "Unable to create payment.");
+            }
+
+            this.paymentData = payload;
+            if (payload.qrContent) {
+                await QRCode.toCanvas(this.$refs.qrisCanvas, payload.qrContent, {
+                    width: 220,
+                    margin: 2,
+                });
+            }
+            this.paymentState = "ready";
+        } catch (error) {
+            this.paymentState = "error";
+            this.paymentError = error.message;
+        }
     },
 
 

@@ -19,6 +19,7 @@
     },
     "dependencies": {
         "alpinejs": "^3.16.2",
-        "flowbite": "^4.0.2"
+        "flowbite": "^4.0.2",
+        "qrcode": "^1.5.4"
     }
 }
