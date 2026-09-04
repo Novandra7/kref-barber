@@ -35,22 +35,29 @@
 
                     {{-- List Layanan --}}
                     @foreach ($items as $item)
-                        @php
-                            $tooltipId = 'service-description-' . $item->id;
-                        @endphp
                         <div class="relative flex items-center justify-between gap-3">
                             <div class="flex min-w-0 items-center gap-1.5">
-                                <p class="truncate text-sm text-white">{{ $item->name }}</p>
                                 @if ($item->description)
+                                    {{-- Nama layanan + ikon 'i' dibungkus dalam satu tautan --}}
                                     <a
                                         href="{{ $item->description }}"
                                         target="_blank"
                                         rel="noopener noreferrer"
                                         aria-label="Lihat contoh {{ $item->name }} di Instagram"
-                                        class="inline-flex h-4 w-4 shrink-0 items-center justify-center rounded-full border border-white/80 text-2xs font-bold leading-none text-white transition-colors hover:bg-white hover:text-primary focus:outline-none focus:ring-2 focus:ring-white/60"
+                                        class="group flex min-w-0 items-center gap-1.5 focus:outline-none"
                                     >
-                                        i
+                                        <p class="truncate text-sm text-white transition-colors group-hover:underline">
+                                            {{ $item->name }}
+                                        </p>
+                                        <span
+                                            class="inline-flex h-4 w-4 shrink-0 items-center justify-center rounded-full border border-white/80 text-2xs font-bold leading-none text-white transition-colors group-hover:bg-white group-hover:text-primary group-focus:ring-2 group-focus:ring-white/60"
+                                        >
+                                            i
+                                        </span>
                                     </a>
+                                @else
+                                    {{-- Tampilan biasa jika tidak ada deskripsi/link --}}
+                                    <p class="truncate text-sm text-white">{{ $item->name }}</p>
                                 @endif
                             </div>
                             <p class="shrink-0 text-white">{{ $item->formattedPrice }}</p>
