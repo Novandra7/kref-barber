@@ -6,9 +6,9 @@
             <span class="block pb-4 text-xl font-montserrat font-bold tracking-tight text-primary">CHOOSE PAYMENT TYPE *</span>
             <div class="flex flex-col gap-3">
                 <!-- Opsi 1: DP (Down Payment) -->
-                <div @click="paymentType = 'DP'" :class="paymentType === 'DP' ? 'border-primary' : 'border-default bg-neutral-primary-soft'" class="border border-default rounded-2xl p-4">
+                <div @click="if (!paymentTypeConfirmed) paymentType = 'DP'" :class="paymentType === 'DP' ? 'border-primary' : 'border-default bg-neutral-primary-soft'" class="border border-default rounded-2xl p-4">
                     <div class="flex items-start">
-                        <input x-model="paymentType" id="bordered-radio-1" type="radio" value="DP" name="bordered-radio" class="w-4 h-4 text-neutral-primary bg-neutral-secondary-medium rounded-full checked:border-brand focus:ring-2 focus:outline-none focus:ring-brand-subtle border border-default appearance-none shrink-0">
+                        <input x-model="paymentType" :disabled="paymentTypeConfirmed" id="bordered-radio-1" type="radio" value="DP" name="bordered-radio" class="w-4 h-4 text-neutral-primary bg-neutral-secondary-medium rounded-full checked:border-brand focus:ring-2 focus:outline-none focus:ring-brand-subtle border border-default appearance-none shrink-0">
                         <label for="bordered-radio-1" class="w-full select-none ms-3 cursor-pointer flex flex-col">
                             <span class="text-lg font-bold text-black leading-none mb-2">DP (Down Payment)</span>
                             <span class="text-2xs text-gray-500 font-normal">Pay 40.000 now, the rest at shop</span>
@@ -21,9 +21,9 @@
                 </div>
 
                 <!-- Opsi 2: Full Payment (Sudah Disamakan Structurnya) -->
-                <div @click="paymentType = 'Full'" :class="paymentType === 'Full' ? 'border-primary' : 'border-default bg-neutral-primary-soft'" class="border border-default rounded-2xl p-4">
+                <div @click="if (!paymentTypeConfirmed) paymentType = 'Full'" :class="paymentType === 'Full' ? 'border-primary' : 'border-default bg-neutral-primary-soft'" class="border border-default rounded-2xl p-4">
                     <div class="flex items-start">
-                        <input x-model="paymentType" checked id="bordered-radio-2" type="radio" value="Full" name="bordered-radio" class="w-4 h-4 text-neutral-primary bg-neutral-secondary-medium rounded-full checked:border-brand focus:ring-2 focus:outline-none focus:ring-brand-subtle border border-default appearance-none shrink-0">
+                        <input x-model="paymentType" :disabled="paymentTypeConfirmed" checked id="bordered-radio-2" type="radio" value="Full" name="bordered-radio" class="w-4 h-4 text-neutral-primary bg-neutral-secondary-medium rounded-full checked:border-brand focus:ring-2 focus:outline-none focus:ring-brand-subtle border border-default appearance-none shrink-0">
                         <label for="bordered-radio-2" class="w-full select-none ms-3 cursor-pointer flex flex-col">
                             <span class="text-lg font-bold text-black leading-none mb-2">Full Payment</span>
                             <span class="text-2xs text-gray-500 font-normal">Pay the total amount now</span>
@@ -34,25 +34,32 @@
                         <span class="text-[20px] font-semibold text-black" x-text="formatPrice(getTotalPrice())"></span>
                     </div>
                 </div>
+               <button
+                    class="submit btn bg-brand w-full rounded-xl text-white py-3 font-semibold disabled:opacity-50 disabled:cursor-not-allowed flex justify-center items-center gap-2"
+                    @click="createPayment()"
+                    :disabled="!paymentType || paymentState === 'loading' || paymentState === 'ready'"
+                >
+                    <!-- Saat Belum Diklik / Idle -->
+                    <span x-show="paymentState !== 'loading' && paymentState !== 'ready'">Confirm Payment Type</span>
+
+                    <!-- Saat Proses Simpan Booking & Generate QRIS -->
+                    <span x-show="paymentState === 'loading'">Processing Booking...</span>
+
+                    <!-- Saat Berhasil & QRIS Sudah Siap -->
+                    <span x-show="paymentState === 'ready'">Payment Type Confirmed ✓</span>
+                </button>
             </div>
         </div>
         <div class="w-full md:w-1/3 rounded-xl bg-white border border-gray-200 p-6">
             <span class="block pb-4 text-xl font-montserrat font-bold tracking-tight text-primary">PAYMENT</span>
             <div class="flex flex-col items-center gap-4 text-center">
-                <button
-                    type="button"
-                    class="btn btn-primary w-full rounded-xl"
-                    @click="createPayment()"
-                    :disabled="paymentState === 'loading' || !paymentType"
-                >
-                    <span x-show="paymentState !== 'loading'">Pay with QRIS</span>
-                    <span x-show="paymentState === 'loading'">Creating QRIS...</span>
-                </button>
                 <p x-show="paymentError" x-text="paymentError" class="text-sm text-red-600"></p>
                 <template x-if="paymentData?.qrContent">
                     <div class="flex flex-col items-center gap-2">
                         <canvas x-ref="qrisCanvas" aria-label="DOKU QRIS payment code" class="h-56 w-56"></canvas>
                         <span class="text-sm text-gray-600">Scan this QRIS code to pay</span>
+                        <span class="text-xs text-gray-500">Reference: <strong x-text="paymentData?.reference"></strong></span>
+                        <span class="text-sm font-semibold text-brand" x-show="paymentData?.status === 'paid'">Payment received ✓</span>
                     </div>
                 </template>
                 <a
@@ -62,6 +69,13 @@
                     rel="noopener"
                     class="text-sm font-semibold text-primary underline"
                 >Open DOKU payment</a>
+                <a
+                    x-show="paymentData?.reference"
+                    :href="`/booking/payment/${encodeURIComponent(paymentData.reference)}`"
+                    target="_blank"
+                    rel="noopener"
+                    class="text-sm font-semibold text-primary underline"
+                >View booking payment page</a>
             </div>
         </div>
         <div class="w-full md:w-1/3 rounded-xl bg-base border border-gray-200 p-6">

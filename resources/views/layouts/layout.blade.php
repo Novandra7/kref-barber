@@ -3,6 +3,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="color-scheme" content="only light">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>@yield('title', config('app.name', 'Kref') . ' | Online Booking & Appointment')</title>
     <meta name="description" content="@yield('meta_description', 'Book haircut online di Kref Barber. Lihat service, barber, portfolio, lokasi, dan jam operasional dalam satu halaman.')">

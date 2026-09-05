@@ -17,13 +17,13 @@
             Dashboard
         </a>
         <a 
-            href="#"
+            href="{{ route('admin.bookings.index') }}"
             class="rounded-lg px-4 py-3 transition-colors {{ request()->routeIs('admin.booking.*', 'admin.bookings.*') ? 'bg-primary/10 text-primary' : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900' }}"
         >
             Bookings
         </a>
         <a 
-            href="#"
+            href="{{ route('admin.services.index') }}"
             class="rounded-lg px-4 py-3 transition-colors {{ request()->routeIs('admin.services.*') ? 'bg-primary/10 text-primary' : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900' }}"
         >
             Services

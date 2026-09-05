@@ -33,7 +33,15 @@ class WahaService
             ]);
 
         if ($response->failed()) {
-            Log::error('WAHA Send Message Failed: ' . $response->body());
+            Log::error('WAHA Send Message Failed.', [
+                'status' => $response->status(),
+                'body' => $response->json() ?? $response->body(),
+                'chat_id' => $chatId,
+            ]);
+
+            throw new \RuntimeException(
+                'WhatsApp gateway failed with HTTP ' . $response->status() . '.'
+            );
         }
 
         return $response->json();
@@ -47,9 +55,17 @@ class WahaService
         // Hapus karakter selain angka
         $number = preg_replace('/[^0-9]/', '', $phone);
 
-        // Ubah awalan 08 menjadi 628
+        if ($number === '') {
+            throw new \InvalidArgumentException('Nomor WhatsApp tidak boleh kosong.');
+        }
+
+        // Normalisasi nomor Indonesia: 08..., 8..., atau 62... menjadi 62... .
         if (str_starts_with($number, '0')) {
             $number = '62' . substr($number, 1);
+        } elseif (str_starts_with($number, '8')) {
+            $number = '62' . $number;
+        } elseif (! str_starts_with($number, '62')) {
+            throw new \InvalidArgumentException('Nomor WhatsApp harus menggunakan nomor Indonesia yang valid.');
         }
 
         // Jika belum ada suffix @c.us, tambahkan

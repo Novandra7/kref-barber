@@ -122,6 +122,7 @@ class DokuService
             ],
             'merchantId' => config('services.doku.merchant_id'),
             'terminalId' => config('services.doku.terminal_id'),
+            'validityPeriod' => now()->addHours(1)->toIso8601String(),
             'additionalInfo' => [
                 'postalCode' => config('services.doku.postal_code'),
                 'feeType'    => '1',

@@ -133,6 +133,7 @@
             type="button" 
             class="btn btn-primary w-full md:w-auto rounded-xl flex items-center justify-center gap-2 px-6 py-3 font-semibold transition-all duration-200" 
             @click="finishGuests()"
+            onclick="window.scrollTo({ top: 0, behavior: 'smooth' })"
         >
             <span class="text-base md:text-sm">Next : Payment</span>
             <svg class="w-5 h-5 shrink-0" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">

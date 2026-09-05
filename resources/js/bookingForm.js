@@ -10,30 +10,38 @@ export default (
 ) => ({
     currentStep: 1,
     guests: [
-    //     {
-    //     barber: 1,
-    //     date: initialDate,
-    //     time: "09.00",
+        // {
+        //     barber: 1,
+        //     date: initialDate,
+        //     time: "09:00",
 
-    //     name: "novan",
-    //     phone: "08123456789",
-    //     notes: "Test notes",
+        //     name: "novan",
+        //     phone: "08123456789",
+        //     notes: "Test notes",
 
-    //     selectedHaircut: 'Regular Haircut',
-    //     selectedChemical: null,
-    //     selectedTreatments: [],
-    // }
-],
+        //     selectedHaircut: 'Regular Haircut',
+        //     selectedChemical: null,
+        //     selectedTreatments: [],
+        // }
+    ],
     currentGuest: null,
-    paymentType: "",
-    paymentState: "idle",
-    paymentError: "",
-    paymentData: null,
+
     services: initialServices,
-    barbers: initialBarbers, 
+    barbers: initialBarbers,
     schedules: initialSchedules,
     availableDates: initialAvailableDates,
+
+    paymentType: "",
+    paymentTypeConfirmed: false,
+
+    paymentState: 'idle',
+    paymentData: null,
+    paymentError: null,
+
     validationAttempted: false,
+    isSubmittingBooking: false,
+
+    bookingId: null,
 
     initDatepicker(element, inline = false) {
         const availableDates = this.availableDates.map((date) => new Date(`${date}T00:00:00`));
@@ -190,6 +198,9 @@ export default (
             }
 
             this.paymentData = payload;
+            console.log("Payment data:", this.paymentData);
+            this.paymentTypeConfirmed = true;
+            await this.$nextTick();
             if (payload.qrContent) {
                 await QRCode.toCanvas(this.$refs.qrisCanvas, payload.qrContent, {
                     width: 220,
@@ -197,10 +208,35 @@ export default (
                 });
             }
             this.paymentState = "ready";
+            this.startPaymentPolling();
         } catch (error) {
             this.paymentState = "error";
             this.paymentError = error.message;
         }
+    },
+
+    startPaymentPolling() {
+        if (!this.paymentData?.reference || this.paymentPolling) return;
+
+        this.paymentPolling = window.setInterval(async () => {
+            try {
+                const response = await fetch(
+                    `/booking/payment/${encodeURIComponent(this.paymentData.reference)}/status`,
+                    { headers: { Accept: "application/json" } },
+                );
+                if (!response.ok) return;
+
+                const payload = await response.json();
+                this.paymentData.status = payload.status;
+
+                if (payload.status === "paid") {
+                    window.clearInterval(this.paymentPolling);
+                    this.paymentPolling = null;
+                }
+            } catch (error) {
+                console.error("Unable to refresh payment status.", error);
+            }
+        }, 10000);
     },
 
 

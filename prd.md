@@ -950,7 +950,6 @@ products
 bookings
 booking_items
 schedules
-blocked_slots
 payments
 reviews
 ```

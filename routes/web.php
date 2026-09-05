@@ -3,8 +3,11 @@
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\BarberController;
 use App\Http\Controllers\Admin\ScheduleController;
+use App\Http\Controllers\Admin\ServiceController;
+use App\Http\Controllers\Admin\BookingAdminController;
 use App\Http\Controllers\BookingController;
 use App\Http\Controllers\LandingController;
+use App\Http\Controllers\DokuTestController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -18,11 +21,20 @@ Route::domain('admin.' . config('app.domain', 'kref.test'))->group(function () {
     Route::resource('barbers', BarberController::class)
         ->names('admin.barbers')
         ->except(['show']);
+    Route::resource('services', ServiceController::class)
+        ->names('admin.services')
+        ->except(['show']);
     Route::get('/schedules', [ScheduleController::class, 'index'])->name('admin.schedules.index');
     Route::post('/schedules', [ScheduleController::class, 'store'])->name('admin.schedules.store');
+    Route::patch('/schedules/{schedule}', [ScheduleController::class, 'update'])->name('admin.schedules.update');
     Route::delete('/schedules/{schedule}', [ScheduleController::class, 'destroy'])->name('admin.schedules.destroy');
     Route::post('/schedules/bulk', [ScheduleController::class, 'bulkStore'])->name('admin.schedules.bulk');
     Route::post('/schedules/copy-previous-week', [ScheduleController::class, 'copyPreviousWeek'])->name('admin.schedules.copy-previous-week');
+    Route::get('/bookings/export', [BookingAdminController::class, 'export'])->name('admin.bookings.export');
+    Route::resource('bookings', BookingAdminController::class)
+        ->names('admin.bookings');
+    Route::patch('bookings/{booking}/status', [BookingAdminController::class, 'updateStatus'])
+        ->name('admin.bookings.update-status');
 });
 
 /*
@@ -42,4 +54,6 @@ Route::domain(config('app.domain', 'kref.test'))->group(function () {
 
     // Webhook Payment DOKU (Public API endpoint)
     Route::post('/booking/doku/webhook', [BookingController::class, 'webhook'])->name('booking.payment.webhook');
+    Route::get('/testing-payment', [DokuTestController::class, 'index'])->name('doku-test.index');
+    Route::post('/testing-payment/generate', [DokuTestController::class, 'generate'])->name('doku-test.generate');
 });

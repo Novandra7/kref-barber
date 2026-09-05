@@ -6,7 +6,7 @@
 @section('content')
     <div class="mb-6 flex flex-wrap items-end justify-between gap-4">
         <div>
-            <h2 class="font-montserrat text-2xl font-bold text-gray-900">Barbers</h2>
+            <h2 class="font-league text-4xl uppercase text-gray-900">Barbers</h2>
             <p class="mt-1 text-sm text-gray-500">Manage barber profiles and availability.</p>
         </div>
         <button 

@@ -11,7 +11,7 @@
     $rows = $rows instanceof \Illuminate\Support\Collection ? $rows : collect($rows);
     $tableId = 'admin-table-' . \Illuminate\Support\Str::lower(\Illuminate\Support\Str::random(10));
     $columns = $columns ?: [
-        ['key' => 'walk_in_customer_name', 'label' => 'Customer', 'class' => 'font-semibold text-gray-900'],
+        ['key' => 'name', 'label' => 'Customer', 'class' => 'font-semibold text-gray-900'],
         ['key' => 'barber.name', 'label' => 'Barber'],
         ['key' => 'scheduled_at', 'label' => 'Schedule', 'type' => 'datetime'],
         ['key' => 'total_amount', 'label' => 'Amount', 'type' => 'currency'],

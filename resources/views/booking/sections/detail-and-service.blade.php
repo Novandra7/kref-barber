@@ -130,9 +130,10 @@
                                 <span>{{ $service['name'] }}</span>
                                 
                                 <!-- Menggunakan formatPriceK yang otomatis tambah 10k jika Haircut + Owner -->
-                                <span class="font-bold text-primary" x-text="
-                                    formatPriceK({{ $service['price'] }} + (isOwnerSelected() && '{{ $catSlug }}' === 'haircut' ? 10000 : 0))
-                                "></span>
+                               <span
+                                    class="font-bold text-primary"
+                                    x-text="formatPriceK({{ $service['price'] }} + (isOwnerSelected() && '{{ strtolower($service['name']) }}'.includes('regular haircut') ? 10000 : 0))">
+                                </span>
                             </label>
                         </div>
                     @endforeach
@@ -206,7 +207,7 @@
             Back : Barbers & Time
         </button>
         
-        <button type="button" class="btn btn-primary rounded-xl" @click="validateStep2()">
+        <button type="button" class="btn btn-primary rounded-xl" @click="validateStep2()" onclick="window.scrollTo({ top: 0, behavior: 'smooth' })">
             Save & Continue
         </button>
     </div>

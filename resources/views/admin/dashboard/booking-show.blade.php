@@ -23,8 +23,8 @@
         <div class="rounded-xl border border-gray-200 bg-white p-5 shadow-sm lg:col-span-2">
             <h3 class="font-montserrat font-bold text-gray-900">Customer & Services</h3>
             <div class="mt-4 grid gap-3 text-sm sm:grid-cols-2">
-                <p><span class="text-gray-500">Name:</span> {{ $booking->walk_in_customer_name ?? '-' }}</p>
-                <p><span class="text-gray-500">Phone:</span> {{ $booking->walk_in_customer_phone ?? '-' }}</p>
+                <p><span class="text-gray-500">Name:</span> {{ $booking->name ?? '-' }}</p>
+                <p><span class="text-gray-500">Phone:</span> {{ $booking->phone ?? '-' }}</p>
                 <p><span class="text-gray-500">Barber:</span> {{ $booking->barber?->name ?? '-' }}</p>
                 <p><span class="text-gray-500">Schedule:</span> {{ $booking->scheduled_at?->format('d M Y H:i') ?? '-' }}</p>
             </div>

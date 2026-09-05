@@ -49,8 +49,4 @@ return [
         'webhook_secret' => env('DOKU_WEBHOOK_SECRET'),
         'postal_code' => env('DOKU_POSTAL_CODE', '75121'),
     ],
-    'app' => [
-        'domain' => env('APP_DOMAIN', 'kref.test'),
-    ],
-
 ];

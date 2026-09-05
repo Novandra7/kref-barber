@@ -12,15 +12,16 @@ class Booking extends Model
     use HasFactory;
 
     protected $fillable = [
-        'user_id',
+        'schedule_id',
+        'name',
+        'phone',
+        'description',
         'barber_id',
         'created_by',
         'source',
         'payment_type',
         'status',
         'payment_status',
-        'walk_in_customer_name',
-        'walk_in_customer_phone',
         'total_amount',
         'outstanding_amount',
         'scheduled_at',
@@ -37,14 +38,14 @@ class Booking extends Model
         ];
     }
 
-    public function user(): BelongsTo
-    {
-        return $this->belongsTo(User::class);
-    }
-
     public function barber(): BelongsTo
     {
         return $this->belongsTo(Barber::class);
+    }
+
+    public function schedule(): BelongsTo
+    {
+        return $this->belongsTo(Schedule::class);
     }
 
     public function creator(): BelongsTo
@@ -65,5 +66,27 @@ class Booking extends Model
     public function reviews(): HasMany
     {
         return $this->hasMany(Review::class);
+    }
+    
+    public function isPaidFull(): bool
+    {
+        return $this->payment_status === 'paid_full';
+    }
+
+    // Helper untuk mengecek apakah ada sisa tagihan
+    public function hasOutstanding(): bool
+    {
+        return $this->outstanding_amount > 0;
+    }
+
+    // Scope untuk filter berdasarkan status pembayaran
+    public function scopePaid($query)
+    {
+        return $query->where('payment_status', 'paid_full');
+    }
+
+    public function scopeUnpaid($query)
+    {
+        return $query->whereIn('payment_status', ['unpaid', 'partial']);
     }
 }
