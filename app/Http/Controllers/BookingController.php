@@ -170,7 +170,7 @@ class BookingController extends Controller
             }
 
             // --- Hitung jumlah yang harus dibayar (DP atau Full) ---
-            $amount = strtolower($data['payment_type']) === 'dp' ? 40000 : $totalAmount;
+            $amount = strtolower($data['payment_type']) === 'dp' ? 1000 : $totalAmount;
             if ($amount > $totalAmount) {
                 abort(422, 'DP amount cannot exceed the booking total.');
             }
@@ -225,6 +225,7 @@ class BookingController extends Controller
                 'reference'  => $reference,
                 'amount'     => $amount,
                 'qrContent'  => $qrContent,
+                'expiresAt'  => $expiresAt->toDateTimeString(),
                 'paymentUrl' => $paymentUrl,
                 'bookingIds' => collect($bookingPayments)->map(fn (array $item) => $item[0]->id)->values()->all(),
                 'response'   => $response,
@@ -251,13 +252,19 @@ class BookingController extends Controller
         $payments = Payment::where('provider', 'doku')
             ->where(function ($query) use ($reference): void {
                 $query->where('partner_reference_no', $reference)
+                    ->orWhere('doku_reference_no', $reference)
                     ->orWhereJsonContains('provider_payload->partnerReferenceNo', $reference);
             })
             ->get();
 
         abort_if($payments->isEmpty(), 404, 'Payment not found.');
 
-        $bookings = Booking::with('barber')
+        $bookings = Booking::with([
+            'barber',
+            'items' => fn ($query) => $query
+                ->where('item_type', 'service')
+                ->orderBy('id'),
+        ])
             ->whereIn('id', $payments->pluck('booking_id'))
             ->get();
 
@@ -274,6 +281,7 @@ class BookingController extends Controller
             'qrContent'     => $qrContent,
             'paymentAmount' => $payments->sum('amount'),
             'bookings'      => $bookings,
+            'expiresAt'     => $payments->pluck('expires_at')->filter()->first(),
         ]);
     }
 

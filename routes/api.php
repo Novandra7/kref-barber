@@ -3,6 +3,7 @@
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Services\DokuService;
+use App\Http\Controllers\Api\DokuWebhookController;
 
 Route::get('/user', function (Request $request) {
     return $request->user();
@@ -12,6 +13,10 @@ Route::get('/user', function (Request $request) {
 //     $dokuService = app(DokuService::class);
 //     return $dokuService->getB2BToken();
 // });
+
+// Webhook Payment DOKU (Public API endpoint)
+Route::post('/payments/webhook', [DokuWebhookController::class, 'handle']);
+
 
 Route::post('/doku/create-qris', function (Request $request) {
     // Validasi parameter input

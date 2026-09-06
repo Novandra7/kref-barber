@@ -15,6 +15,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 use Maatwebsite\Excel\Facades\Excel;
 
 class BookingAdminController extends Controller
@@ -138,6 +139,7 @@ class BookingAdminController extends Controller
 
     public function store(Request $request): RedirectResponse
     {
+
         $data = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'phone' => ['required', 'string', 'max:30'],
@@ -150,20 +152,37 @@ class BookingAdminController extends Controller
             'payment_method' => ['required', 'in:cash,qris_static'],
             'description' => ['nullable', 'string'],
         ]);
-
         DB::transaction(function () use ($data): void {
-            $schedule = Schedule::query()
-                ->where('barber_id', $data['barber_id'])
-                ->whereDate('date', $data['date'])
-                ->whereTime('slot_time', $data['time'])
-                ->where('is_available', true)
-                ->lockForUpdate()
-                ->firstOrFail();
-
             $barber = Barber::query()
                 ->whereKey($data['barber_id'])
                 ->where('is_active', true)
-                ->firstOrFail();
+                ->first();
+
+            if (! $barber) {
+                throw ValidationException::withMessages([
+                    'barber_id' => 'The selected barber is not active or could not be found.',
+                ]);
+            }
+
+            $scheduleExists = Schedule::query()
+                ->where('barber_id', $data['barber_id'])
+                ->where('date', $data['date'])
+                ->whereTime('slot_time', $data['time'])
+                ->exists();
+
+            if ($scheduleExists) {
+                throw ValidationException::withMessages([
+                    'time' => 'A booking already exists for this barber at the selected date and time.',
+                ]);
+            }
+
+            $schedule = Schedule::create([
+                'barber_id' => $data['barber_id'],
+                'date' => $data['date'],
+                'slot_time' => $data['time'],
+                'is_available' => false,
+            ]);
+
             $services = Service::query()
                 ->whereIn('id', $data['service_ids'])
                 ->where('is_active', true)

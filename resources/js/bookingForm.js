@@ -198,7 +198,6 @@ export default (
             }
 
             this.paymentData = payload;
-            console.log("Payment data:", this.paymentData);
             this.paymentTypeConfirmed = true;
             await this.$nextTick();
             if (payload.qrContent) {
@@ -218,7 +217,7 @@ export default (
     startPaymentPolling() {
         if (!this.paymentData?.reference || this.paymentPolling) return;
 
-        this.paymentPolling = window.setInterval(async () => {
+        const refreshStatus = async () => {
             try {
                 const response = await fetch(
                     `/booking/payment/${encodeURIComponent(this.paymentData.reference)}/status`,
@@ -227,16 +226,29 @@ export default (
                 if (!response.ok) return;
 
                 const payload = await response.json();
-                this.paymentData.status = payload.status;
+                this.paymentData = {
+                    ...this.paymentData,
+                    status: payload.status,
+                };
 
-                if (payload.status === "paid") {
-                    window.clearInterval(this.paymentPolling);
-                    this.paymentPolling = null;
+                if (["paid", "failed", "expired", "cancelled"].includes(payload.status)) {
+                    if (this.paymentPolling) {
+                        window.clearInterval(this.paymentPolling);
+                        this.paymentPolling = null;
+                    }
+
+                    if (payload.status !== "paid") {
+                        this.paymentState = "error";
+                        this.paymentError = `Payment ${payload.status}.`;
+                    }
                 }
             } catch (error) {
                 console.error("Unable to refresh payment status.", error);
             }
-        }, 10000);
+        };
+
+        refreshStatus();
+        this.paymentPolling = window.setInterval(refreshStatus, 10000);
     },
 
 

@@ -157,21 +157,27 @@ class DokuService
         $externalId = (string) ((int) (microtime(true) * 1000));
 
         // 6. Send Request menggunakan raw Body JSON agar tidak di-reformat oleh Laravel
-        $response = Http::timeout(15)
-            ->withHeaders([
-                'Authorization' => 'Bearer ' . $accessToken,
-                'Content-Type'   => 'application/json',
-                'Accept'         => '*/*',
-                'X-PARTNER-ID'   => $this->clientId,
-                'X-EXTERNAL-ID'  => $externalId,
-                'X-TIMESTAMP'    => $timestamp,
-                'X-SIGNATURE'    => $signature,
-                'CHANNEL-ID'     => 'H2H',
-            ])
-            ->withBody($bodyJson, 'application/json') // Kirim string JSON mentah yang sudah di-hash
-            ->post($this->baseUrl . $endpoint);
+        try{
+            $response = Http::timeout(15)
+                ->withHeaders([
+                    'Authorization' => 'Bearer ' . $accessToken,
+                    'Content-Type'   => 'application/json',
+                    'Accept'         => '*/*',
+                    'X-PARTNER-ID'   => $this->clientId,
+                    'X-EXTERNAL-ID'  => $externalId,
+                    'X-TIMESTAMP'    => $timestamp,
+                    'X-SIGNATURE'    => $signature,
+                    'CHANNEL-ID'     => 'H2H',
+                ])
+                ->withBody($bodyJson, 'application/json') // Kirim string JSON mentah yang sudah di-hash
+                ->post($this->baseUrl . $endpoint);
 
-        return $this->responseData($response);
+            return $this->responseData($response); 
+        } catch (ConnectionException $e) {
+            // throw new \RuntimeException('DOKU request failed: ' . $e->getMessage());
+            abort(500, 'DOKU request failed: ' . $e->getMessage());
+        }
+        
     }
 
     private function responseData(Response $response): array
