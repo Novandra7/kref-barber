@@ -126,6 +126,20 @@ export default (
 
     init() {
         this.startNewGuest();
+        this.$watch('currentGuest.barber', () => this.syncHaircutWithBarber());
+    },
+
+    // Haircut By Rizal menggantikan Regular Haircut saat barber yang dipilih adalah owner
+    syncHaircutWithBarber() {
+        if (!this.currentGuest?.selectedHaircut) return;
+
+        const isOwner = this.selectedBarberObj()?.role?.toLowerCase() === "owner";
+
+        if (isOwner && this.currentGuest.selectedHaircut === "Regular Haircut") {
+            this.currentGuest.selectedHaircut = "Haircut By Rizal";
+        } else if (!isOwner && this.currentGuest.selectedHaircut === "Haircut By Rizal") {
+            this.currentGuest.selectedHaircut = "Regular Haircut";
+        }
     },
 
     startNewGuest() {
@@ -249,40 +263,16 @@ export default (
     },
 
 
-    isOwnerSelected() {
-        const barber = this.selectedBarberObj();
-        return barber && barber.role && barber.role.toLowerCase() === "owner";
-    },
-
     getGuestSelectedServices(guest) {
         if (!guest) return [];
 
         let selected = [];
-        const barber =
-            this.barbers.find(
-                (barber) => barber.id == guest.barber || barber.name === guest.barber,
-            ) || {};
-        const isOwner =
-            barber.role && barber.role.toLowerCase() === "owner";
 
         if (guest.selectedHaircut) {
             const haircut = this.services.find(
                 (service) => service.name === guest.selectedHaircut,
             );
-
-            if (haircut) {
-                const isRegularCut = haircut.name.toLowerCase().includes("regular");
-                const extraFee = isOwner && isRegularCut ? 10000 : 0;
-
-                selected.push({
-                    ...haircut,
-                    name:
-                        isOwner && isRegularCut
-                            ? `${haircut.name} - By Owner`
-                            : haircut.name,
-                    price: haircut.price + extraFee,
-                });
-            }
+            if (haircut) selected.push({ ...haircut });
         }
 
         if (guest.selectedChemical) {
@@ -396,20 +386,7 @@ export default (
 
         // Haircut
         if (guest.selectedHaircut) {
-            const isOwner =
-                guest.barber &&
-                this.barbers
-                    .find((b) => b.id === guest.barber)
-                    ?.role?.toLowerCase() === "owner";
-            const isRegular = guest.selectedHaircut
-                .toLowerCase()
-                .includes("regular");
-
-            services.push(
-                isOwner && isRegular
-                    ? `${guest.selectedHaircut} - By Owner`
-                    : guest.selectedHaircut,
-            );
+            services.push(guest.selectedHaircut);
         }
 
         // Chemical

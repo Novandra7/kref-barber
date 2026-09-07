@@ -91,7 +91,16 @@
                 <!-- List Layanan per Kategori -->
                 <div class="grid lg:grid-cols-2 gap-4 mb-5">
                     @foreach ($categoryServices as $index => $service)
-                        <div class="flex items-center">
+                        @php
+                            $serviceNameLower = strtolower($service['name']);
+                            $isRegularHaircut = $catSlug === 'haircut' && $serviceNameLower === 'regular haircut';
+                            $isOwnerHaircut = $catSlug === 'haircut' && $serviceNameLower === 'haircut by rizal';
+                        @endphp
+                        <div
+                            class="flex items-center"
+                            @if ($isRegularHaircut) x-cloak x-show="selectedBarberObj()?.role?.toLowerCase() !== 'owner'" @endif
+                            @if ($isOwnerHaircut) x-cloak x-show="selectedBarberObj()?.role?.toLowerCase() === 'owner'" @endif
+                        >
                             @if ($catSlug === 'haircut')
                                 <input
                                     id="service-{{ $service['id'] ?? $loop->parent->index . '-' . $index }}"
@@ -129,10 +138,9 @@
                             >
                                 <span>{{ $service['name'] }}</span>
                                 
-                                <!-- Menggunakan formatPriceK yang otomatis tambah 10k jika Haircut + Owner -->
-                               <span
+                                <span
                                     class="font-bold text-primary"
-                                    x-text="formatPriceK({{ $service['price'] }} + (isOwnerSelected() && '{{ strtolower($service['name']) }}'.includes('regular haircut') ? 10000 : 0))">
+                                    x-text="formatPriceK({{ $service['price'] }})">
                                 </span>
                             </label>
                         </div>

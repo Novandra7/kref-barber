@@ -1,3 +1,8 @@
+@php
+    // Saat berada di luar landing page, link section harus mengarah balik ke landing page + hash
+    $landingUrlBase = request()->routeIs('landing') ? '' : route('landing');
+@endphp
+
 <header
     x-data="{ open: false }"
     class="relative bg-white py-3 transition-all duration-200 shadow-none border-b-0 md:border-b md:border-black "
@@ -30,7 +35,7 @@
             </button>
 
             <!-- Logo (Desktop Only - Pojok Kiri) -->
-            <a href="#hero" class="hidden md:block z-20 shrink-0">
+            <a href="{{ $landingUrlBase }}#hero" class="hidden md:block z-20 shrink-0">
                 <img 
                     src="{{ asset('images/Logo.svg') }}"
                     alt="Logo Barbershop" 
@@ -41,13 +46,13 @@
 
         <!-- Kolom 2 (Tengah): Navigasi Desktop -->
         <nav class="hidden md:flex items-center justify-center gap-8">
-            <a href="#hero" class="font-dosis text-lg font-bold hover:text-primary transition-colors">Home</a>
-            <a href="#about" class="font-dosis text-lg font-bold hover:text-primary transition-colors">About</a>
-            <a href="#services" class="font-dosis text-lg font-bold hover:text-primary transition-colors">Services</a>
-            <a href="#barbers" class="font-dosis text-lg font-bold hover:text-primary transition-colors">Barbers</a>
-            <a href="#gallery" class="font-dosis text-lg font-bold hover:text-primary transition-colors">Gallery</a>
-            <a href="#testimonial" class="font-dosis text-lg font-bold hover:text-primary transition-colors">Testimonial</a>
-            <a href="#location" class="font-dosis text-lg font-bold hover:text-primary transition-colors">Location</a>
+            <a href="{{ $landingUrlBase }}#hero" class="font-dosis text-lg font-bold hover:text-primary transition-colors">Home</a>
+            <a href="{{ $landingUrlBase }}#about" class="font-dosis text-lg font-bold hover:text-primary transition-colors">About</a>
+            <a href="{{ $landingUrlBase }}#services" class="font-dosis text-lg font-bold hover:text-primary transition-colors">Services</a>
+            <a href="{{ $landingUrlBase }}#barbers" class="font-dosis text-lg font-bold hover:text-primary transition-colors">Barbers</a>
+            <a href="{{ $landingUrlBase }}#gallery" class="font-dosis text-lg font-bold hover:text-primary transition-colors">Gallery</a>
+            <a href="{{ $landingUrlBase }}#testimonial" class="font-dosis text-lg font-bold hover:text-primary transition-colors">Testimonial</a>
+            <a href="{{ $landingUrlBase }}#location" class="font-dosis text-lg font-bold hover:text-primary transition-colors">Location</a>
         </nav>
 
         <!-- Kolom 3 (Kanan): Empty Placeholder (Menjaga simetris grid 3 kolom desktop) -->
@@ -83,7 +88,7 @@
     >
         <!-- Logo di Dalam Dropdown Mobile -->
         <div class="pb-2 border-b border-gray-100">
-            <a @click="open = false" href="#hero" class="inline-block">
+            <a @click="open = false" href="{{ $landingUrlBase }}#hero" class="inline-block">
                 <img 
                     src="{{ asset('images/Logo.svg') }}"
                     alt="Logo Barbershop" 
@@ -93,12 +98,12 @@
         </div>
 
         <!-- Links Mobile -->
-        <a @click="open = false" href="#hero" class="block w-full rounded-lg font-dosis text-lg font-bold text-black hover:text-primary">Home</a>
-        <a @click="open = false" href="#about" class="block w-full rounded-lg font-dosis text-lg font-bold text-black hover:text-primary">About</a>
-        <a @click="open = false" href="#services" class="block w-full rounded-lg font-dosis text-lg font-bold text-black hover:text-primary">Services</a>
-        <a @click="open = false" href="#barbers" class="block w-full rounded-lg font-dosis text-lg font-bold text-black hover:text-primary">Barbers</a>
-        <a @click="open = false" href="#gallery" class="block w-full rounded-lg font-dosis text-lg font-bold text-black hover:text-primary">Gallery</a>
-        <a @click="open = false" href="#testimonial" class="block w-full rounded-lg font-dosis text-lg font-bold text-black hover:text-primary">Testimonial</a>
-        <a @click="open = false" href="#location" class="block w-full rounded-lg font-dosis text-lg font-bold text-black hover:text-primary">Location</a>
+        <a @click="open = false" href="{{ $landingUrlBase }}#hero" class="block w-full rounded-lg font-dosis text-lg font-bold text-black hover:text-primary">Home</a>
+        <a @click="open = false" href="{{ $landingUrlBase }}#about" class="block w-full rounded-lg font-dosis text-lg font-bold text-black hover:text-primary">About</a>
+        <a @click="open = false" href="{{ $landingUrlBase }}#services" class="block w-full rounded-lg font-dosis text-lg font-bold text-black hover:text-primary">Services</a>
+        <a @click="open = false" href="{{ $landingUrlBase }}#barbers" class="block w-full rounded-lg font-dosis text-lg font-bold text-black hover:text-primary">Barbers</a>
+        <a @click="open = false" href="{{ $landingUrlBase }}#gallery" class="block w-full rounded-lg font-dosis text-lg font-bold text-black hover:text-primary">Gallery</a>
+        <a @click="open = false" href="{{ $landingUrlBase }}#testimonial" class="block w-full rounded-lg font-dosis text-lg font-bold text-black hover:text-primary">Testimonial</a>
+        <a @click="open = false" href="{{ $landingUrlBase }}#location" class="block w-full rounded-lg font-dosis text-lg font-bold text-black hover:text-primary">Location</a>
     </nav>
 </header>
