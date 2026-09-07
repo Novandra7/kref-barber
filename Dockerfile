@@ -30,6 +30,20 @@ FROM node:20-alpine AS frontend
 
 WORKDIR /app
 
+# Vite bakes VITE_* variables into the compiled JS at build time (not runtime),
+# so they must be passed explicitly as build args instead of relying on a
+# mounted .env file (which is intentionally excluded via .dockerignore).
+ARG VITE_APP_NAME
+ARG VITE_REVERB_APP_KEY
+ARG VITE_REVERB_HOST
+ARG VITE_REVERB_PORT
+ARG VITE_REVERB_SCHEME
+ENV VITE_APP_NAME=${VITE_APP_NAME} \
+    VITE_REVERB_APP_KEY=${VITE_REVERB_APP_KEY} \
+    VITE_REVERB_HOST=${VITE_REVERB_HOST} \
+    VITE_REVERB_PORT=${VITE_REVERB_PORT} \
+    VITE_REVERB_SCHEME=${VITE_REVERB_SCHEME}
+
 COPY package.json package-lock.json ./
 RUN npm ci
 
