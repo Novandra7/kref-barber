@@ -26,28 +26,7 @@ class BarberSeeder extends Seeder
                 'photo' => null,
                 'phone' => '081234567891',
                 'is_active' => true,
-            ],
-            [
-                'name' => 'Candra Wijaya',
-                'role' => 'senior',
-                'photo' => null,
-                'phone' => '081234567892',
-                'is_active' => true,
-            ],
-            [
-                'name' => 'Dedi Kurniawan',
-                'role' => 'junior',
-                'photo' => null,
-                'phone' => '081234567893',
-                'is_active' => true,
-            ],
-            [
-                'name' => 'Eko Ramadhan',
-                'role' => 'junior',
-                'photo' => null,
-                'phone' => '081234567894',
-                'is_active' => false,
-            ],
+            ]
         ];
 
         foreach ($barbers as $barber) {
