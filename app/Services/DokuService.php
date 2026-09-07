@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use Illuminate\Http\Client\Response;
+use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Facades\Http;
 
 class DokuService
@@ -174,8 +175,7 @@ class DokuService
 
             return $this->responseData($response); 
         } catch (ConnectionException $e) {
-            // throw new \RuntimeException('DOKU request failed: ' . $e->getMessage());
-            abort(500, 'DOKU request failed: ' . $e->getMessage());
+            throw new \RuntimeException('DOKU request failed: ' . $e->getMessage(), 0, $e);
         }
         
     }
@@ -189,5 +189,93 @@ class DokuService
         }
 
         return $response->json() ?? [];
+    }
+
+    public function queryQrisPayment(string $originalReferenceNo, string $originalPartnerReferenceNo): array 
+    {
+        $tokenResponse = $this->getB2BToken();
+
+        $accessToken = $tokenResponse['accessToken']
+            ?? $tokenResponse['access_token']
+            ?? null;
+
+        if (!$accessToken) {
+            throw new \RuntimeException(
+                'DOKU access token was not returned.'
+            );
+        }
+
+        $timestamp = now()
+            ->utc()
+            ->format('Y-m-d\TH:i:s\Z');
+
+        $body = [
+            'originalReferenceNo' => $originalReferenceNo,
+            'originalPartnerReferenceNo' => $originalPartnerReferenceNo,
+            'serviceCode' => '47',
+            'merchantId' => config('services.doku.merchant_id'),
+        ];
+
+        $endpoint = '/snap-adapter/b2b/v1.0/qr/qr-mpm-query';
+
+        $bodyJson = json_encode(
+            $body,
+            JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE
+        );
+
+        if ($bodyJson === false) {
+            throw new \RuntimeException(
+                'Failed to encode DOKU request body.'
+            );
+        }
+
+        $hashedBody = strtolower(
+            hash('sha256', $bodyJson)
+        );
+
+        $stringToSign =
+            'POST'
+            . ':'
+            . $endpoint
+            . ':'
+            . $accessToken
+            . ':'
+            . $hashedBody
+            . ':'
+            . $timestamp;
+
+        $signature = base64_encode(
+            hash_hmac(
+                'sha512',
+                $stringToSign,
+                $this->secretKey,
+                true
+            )
+        );
+
+        $externalId = (string) (
+            (int) (microtime(true) * 1000)
+        );
+
+        $response = Http::timeout(15)
+            ->withHeaders([
+                'Authorization' => 'Bearer ' . $accessToken,
+                'Content-Type' => 'application/json',
+                'Accept' => '*/*',
+                'X-PARTNER-ID' => $this->clientId,
+                'X-EXTERNAL-ID' => $externalId,
+                'X-TIMESTAMP' => $timestamp,
+                'X-SIGNATURE' => $signature,
+                'CHANNEL-ID' => 'H2H',
+            ])
+            ->withBody(
+                $bodyJson,
+                'application/json'
+            )
+            ->post(
+                $this->baseUrl . $endpoint
+            );
+
+        return $this->responseData($response);
     }
 }

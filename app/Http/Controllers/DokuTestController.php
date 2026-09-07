@@ -1,18 +1,15 @@
-<?php    
+<?php
+
 namespace App\Http\Controllers;
 
-use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
+use App\Services\DokuService;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
-use Illuminate\Support\Facades\Http;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 
 class DokuTestController extends Controller
 {
-    /**
-     * Menampilkan halaman pengujian QRIS
-     */
     public function index(): View
     {
         return view('test-payment', [
@@ -20,11 +17,10 @@ class DokuTestController extends Controller
         ]);
     }
 
-    /**
-     * Hit API Local DOKU QRIS (http://localhost:8000/api/doku/create-qris)
-     */
-    public function generate(Request $request): RedirectResponse
-    {
+    public function generate(
+        Request $request,
+        DokuService $dokuService
+    ): RedirectResponse {
         $request->validate([
             'amount' => ['required', 'numeric', 'min:1000'],
         ]);
@@ -32,50 +28,83 @@ class DokuTestController extends Controller
         $amount = (int) $request->input('amount');
 
         try {
-            // Hit API menggunakan HTTP GET dengan query parameters
-            $response = Http::acceptJson()
-                ->post('http://localhost:8000/api/doku/create-qris', [
-                    'amount' => $amount,
-                ]);
+            $reference = 'TEST-' . now()->format('YmdHis') . '-' . random_int(100, 999);
 
-            if ($response->successful()) {
-                $data = $response->json();
-
-                return redirect()
-                    ->route('doku-test.index')
-                    ->with('qrisResult', array_merge($data, ['amount' => $amount]));
-            }
-
-            // Ambil detail error jika status code selain 2xx
-            $errorBody = $response->json();
-            $errorMessage = $errorBody['responseMessage'] 
-                ?? $errorBody['message'] 
-                ?? $errorBody['error'] 
-                ?? 'Terjadi kesalahan pada API DOKU.';
-
-            $detailedError = sprintf(
-                'Gagal membuat QRIS (HTTP %d): %s',
-                $response->status(),
-                is_array($errorMessage) ? json_encode($errorMessage) : $errorMessage
+            $result = $dokuService->createQrisPayment(
+                $reference,
+                $amount
             );
 
-            Log::error('DOKU API Error Response', [
-                'status' => $response->status(),
-                'body'   => $errorBody ?? $response->body(),
+            $qrisResult = [
+                'referenceNo' => $result['referenceNo'] ?? null,
+                'partnerReferenceNo' => $result['partnerReferenceNo'] ?? null,
+                'qrContent' => $result['qrContent'] ?? null,
+                'amount' => $amount,
+
+                // Belum melakukan query
+                'queryResult' => null,
+            ];
+
+            session()->put('qrisResult', $qrisResult);
+            return redirect()->route('doku-test.index');
+
+        } catch (\Throwable $e) {
+            Log::error('DOKU test QRIS generation failed.', [
+                'amount' => $amount,
+                'message' => $e->getMessage(),
             ]);
 
             return redirect()
                 ->back()
                 ->withInput()
-                ->withErrors(['amount' => $detailedError]);
+                ->withErrors([
+                    'amount' => 'Tidak dapat terhubung ke API: ' . $e->getMessage(),
+                ]);
+        }
+    }
+
+    public function query(Request $request, DokuService $dokuService): RedirectResponse 
+    {
+        $request->validate([
+            'referenceNo' => ['required', 'string'],
+            'partnerReferenceNo' => ['required', 'string'],
+        ]);
+
+        try {
+            $queryResult = $dokuService->queryQrisPayment(
+                $request->input('referenceNo'),
+                $request->input('partnerReferenceNo')
+            );
+
+            /*
+             * Ambil data QRIS yang sebelumnya disimpan
+             */
+            $qrisResult = session()->get('qrisResult', []);
+
+            /*
+             * Simpan hasil query ke dalam qrisResult
+             */
+            $qrisResult = session()->get('qrisResult', []);
+            $qrisResult['referenceNo'] ??= $request->input('referenceNo');
+            $qrisResult['partnerReferenceNo'] ??= $request->input('partnerReferenceNo');
+            $qrisResult['queryResult'] = $queryResult;
+
+            session()->put('qrisResult', $qrisResult);
+            return redirect()->route('doku-test.index');
 
         } catch (\Throwable $e) {
-            Log::error('DOKU API Connection Failed: ' . $e->getMessage());
+            Log::error('DOKU test QRIS query failed.', [
+                'referenceNo' => $request->input('referenceNo'),
+                'partnerReferenceNo' => $request->input('partnerReferenceNo'),
+                'message' => $e->getMessage(),
+            ]);
 
             return redirect()
                 ->back()
-                ->withInput()
-                ->withErrors(['amount' => 'Tidak dapat terhubung ke API: ' . $e->getMessage()]);
+                ->with('qrisResult', session()->get('qrisResult', []))
+                ->withErrors([
+                    'query' => $e->getMessage(),
+                ]);
         }
     }
 }

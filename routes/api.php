@@ -9,16 +9,23 @@ Route::get('/user', function (Request $request) {
     return $request->user();
 })->middleware('auth:sanctum');
 
+Route::get('/testing-payment', function (Request $request) {
+    return response()->json([
+        'message' => 'API endpoint for testing DOKU QRIS payment',
+    ]);
+});
+
 // Route::get('/doku/access-token', function () {
 //     $dokuService = app(DokuService::class);
 //     return $dokuService->getB2BToken();
 // });
 
 // Webhook Payment DOKU (Public API endpoint)
-Route::post('/payments/webhook', [DokuWebhookController::class, 'handle']);
+Route::post('/payments/webhook', [DokuWebhookController::class, 'webhook'])->name('doku.webhook');
 
 
 Route::post('/doku/create-qris', function (Request $request) {
+    \Log::info('API /doku/create-qris called with payload: ' . json_encode($request->all()));
     // Validasi parameter input
     $validated = $request->validate([
         'amount' => ['required', 'numeric', 'min:1000'],

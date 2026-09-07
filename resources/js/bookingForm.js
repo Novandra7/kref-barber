@@ -42,6 +42,7 @@ export default (
     isSubmittingBooking: false,
 
     bookingId: null,
+    paymentChannel: null,
 
     initDatepicker(element, inline = false) {
         const availableDates = this.availableDates.map((date) => new Date(`${date}T00:00:00`));
@@ -207,48 +208,44 @@ export default (
                 });
             }
             this.paymentState = "ready";
-            this.startPaymentPolling();
+            this.subscribeToPaymentUpdates();
         } catch (error) {
             this.paymentState = "error";
             this.paymentError = error.message;
         }
     },
 
-    startPaymentPolling() {
-        if (!this.paymentData?.reference || this.paymentPolling) return;
+    subscribeToPaymentUpdates() {
+        if (!this.paymentData?.reference || !window.Echo || this.paymentChannel) return;
 
-        const refreshStatus = async () => {
-            try {
-                const response = await fetch(
-                    `/booking/payment/${encodeURIComponent(this.paymentData.reference)}/status`,
-                    { headers: { Accept: "application/json" } },
-                );
-                if (!response.ok) return;
-
-                const payload = await response.json();
+        const channelName = `payment.${this.paymentData.reference}`;
+        this.paymentChannel = window.Echo
+            .channel(channelName)
+            .listen(".payment.updated", (payload) => {
                 this.paymentData = {
                     ...this.paymentData,
                     status: payload.status,
+                    doku_data: payload.doku_data,
                 };
+                console.log("Payment data update received:", this.paymentData);
 
-                if (["paid", "failed", "expired", "cancelled"].includes(payload.status)) {
-                    if (this.paymentPolling) {
-                        window.clearInterval(this.paymentPolling);
-                        this.paymentPolling = null;
-                    }
-
-                    if (payload.status !== "paid") {
-                        this.paymentState = "error";
-                        this.paymentError = `Payment ${payload.status}.`;
-                    }
+                if (payload.status === "paid") {
+                    this.paymentState = "paid";
+                    this.paymentError = null;
+                    this.leavePaymentChannel();
+                } else if (["failed", "expired", "cancelled"].includes(payload.status)) {
+                    this.paymentState = "error";
+                    this.paymentError = `Payment ${payload.status}.`;
+                    this.leavePaymentChannel();
                 }
-            } catch (error) {
-                console.error("Unable to refresh payment status.", error);
-            }
-        };
+            });
+    },
 
-        refreshStatus();
-        this.paymentPolling = window.setInterval(refreshStatus, 10000);
+    leavePaymentChannel() {
+        if (!this.paymentChannel || !window.Echo || !this.paymentData?.reference) return;
+
+        window.Echo.leave(`payment.${this.paymentData.reference}`);
+        this.paymentChannel = null;
     },
 
 

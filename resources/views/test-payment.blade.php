@@ -6,69 +6,107 @@
     <title>Uji Coba DOKU QRIS</title>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
-<body class="bg-gray-50 p-6 min-h-screen flex items-center justify-center font-sans">
+<body class="min-h-screen bg-gray-50 p-6 font-sans">
+    <div class="mx-auto w-full max-w-md space-y-6">
 
-    <div class="w-full max-w-md bg-white rounded-xl shadow-md border border-gray-100 p-6 space-y-6">
-        <div>
-            <h2 class="text-xl font-bold text-gray-900">Uji Coba Generate QRIS DOKU</h2>
-            <p class="text-xs text-gray-500 mt-1">Masukkan nominal untuk membuat QRIS dinamis.</p>
-        </div>
-
-        {{-- Form Input Nominal --}}
-        <form action="{{ route('doku-test.generate') }}" method="POST" class="space-y-4">
-            @csrf
-            <div>
-                <label for="amount" class="block mb-1.5 text-sm font-medium text-gray-700">Nominal Pembayaran (Rp) <span class="text-red-500">*</span></label>
-                <input 
-                    type="number" 
-                    id="amount" 
-                    name="amount" 
-                    placeholder="Contoh: 50000" 
-                    min="1000"
-                    value="{{ old('amount', $qrisResult['amount'] ?? '') }}"
-                    required 
-                    class="block w-full rounded-lg border border-gray-300 bg-gray-50 p-2.5 text-sm text-gray-900 focus:border-brand focus:ring-brand"
-                >
-                @error('amount')
-                    <p class="mt-1 text-xs text-red-500">{{ $message }}</p>
-                @enderror
+        {{-- Generate --}}
+        <div class="rounded-xl border border-gray-100 bg-white p-6 shadow-md">
+            <div class="mb-6">
+                <h2 class="text-xl font-bold text-gray-900">Uji Coba DOKU QRIS</h2>
+                <p class="mt-1 text-xs text-gray-500">Generate QRIS dinamis dan cek status pembayarannya.</p>
             </div>
 
-            <button type="submit" class="w-full rounded-lg bg-brand px-4 py-2.5 text-sm font-semibold text-white hover:opacity-90 transition">
-                Generate QRIS
-            </button>
-        </form>
-
-        {{-- Hasil Display QRIS --}}
-        @if ($qrisResult)
-            <div class="border-t border-gray-100 pt-6 space-y-4 text-center">
-                <div class="inline-block bg-emerald-50 text-emerald-700 px-3 py-1 rounded-full text-xs font-semibold">
-                    {{ $qrisResult['responseMessage'] ?? $qrisResult['response_message'] ?? 'QRIS Berhasil Dibuat' }}
+            <form action="{{ route('doku-test.generate') }}" method="POST" class="space-y-4">
+                @csrf
+                <div>
+                    <label for="amount" class="mb-1.5 block text-sm font-medium text-gray-700">Nominal Pembayaran</label>
+                    <input
+                        type="number"
+                        id="amount"
+                        name="amount"
+                        min="1000"
+                        value="{{ old('amount', $qrisResult['amount'] ?? '') }}"
+                        placeholder="Contoh: 50000"
+                        required
+                        class="block w-full rounded-lg border border-gray-300 bg-gray-50 p-2.5 text-sm text-gray-900 focus:border-brand focus:ring-brand"
+                    >
+                    @error('amount')
+                        <p class="mt-1 text-xs text-red-500">{{ $message }}</p>
+                    @enderror
                 </div>
 
-                <div class="flex justify-center p-4 bg-white rounded-lg border border-gray-200 inline-block">
-                    {{-- Render QR Code dari string qrContent --}}
-                    @php
-                        $qrContent = $qrisResult['qrContent'] ?? $qrisResult['qr_content'] ?? '';
-                    @endphp
+                <button type="submit" class="w-full rounded-lg bg-brand px-4 py-2.5 text-sm font-semibold text-white transition hover:opacity-90">
+                    Generate QRIS
+                </button>
+            </form>
+        </div>
 
-                    @if ($qrContent)
-                        {!! QrCode::size(220)->generate($qrContent) !!}
-                    @else
-                        <p class="text-xs text-red-500">Field qrContent tidak ditemukan dalam respon API.</p>
-                    @endif
+        @php
+            $latestTransactionStatus = (string) data_get($qrisResult, 'queryResult.latestTransactionStatus', '');
+            $isPaymentSuccessful = in_array(strtoupper($latestTransactionStatus), ['00', 'SUCCESS'], true);
+        @endphp
+
+        {{-- QRIS tetap ditampilkan selama pembayaran belum sukses --}}
+        @if (!empty($qrisResult['qrContent']) && !$isPaymentSuccessful)
+            <div class="rounded-xl border border-gray-100 bg-white p-6 shadow-md">
+                <div class="mb-4">
+                    <h3 class="text-sm font-semibold text-gray-900">QRIS Pembayaran</h3>
+                    <p class="mt-1 text-xs text-gray-500">Scan QR code berikut menggunakan aplikasi pembayaran.</p>
                 </div>
 
-                <div class="space-y-1 text-left bg-gray-50 p-3.5 rounded-lg text-xs font-mono text-gray-600">
-                    <p><strong class="text-gray-900">Partner Ref No:</strong> {{ $qrisResult['partnerReferenceNo'] ?? $qrisResult['partner_reference_no'] ?? '-' }}</p>
-                    <p><strong class="text-gray-900">Total Nominal:</strong> Rp {{ number_format($qrisResult['amount'] ?? 0, 0, ',', '.') }}</p>
-                    @if (isset($qrisResult['additionalInfo']['validityPeriod']) || isset($qrisResult['validity_period']))
-                        <p><strong class="text-gray-900">Berlaku Hingga:</strong> {{ \Carbon\Carbon::parse($qrisResult['additionalInfo']['validityPeriod'] ?? $qrisResult['validity_period'])->format('d M Y, H:i:s T') }}</p>
+                <div class="flex justify-center rounded-lg border border-gray-200 bg-white p-4">
+                    {!! QrCode::size(220)->generate($qrisResult['qrContent']) !!}
+                </div>
+
+                <div class="mt-4 space-y-1 rounded-lg bg-gray-50 p-3.5 text-xs font-mono text-gray-600">
+                    <p><strong class="text-gray-900">Reference No:</strong> {{ $qrisResult['referenceNo'] ?? '-' }}</p>
+                    <p><strong class="text-gray-900">Partner Ref No:</strong> {{ $qrisResult['partnerReferenceNo'] ?? '-' }}</p>
+                    <p><strong class="text-gray-900">Nominal:</strong> Rp {{ number_format($qrisResult['amount'] ?? 0, 0, ',', '.') }}</p>
+                </div>
+
+                {{-- Query --}}
+                <form action="{{ route('doku-test.query') }}" method="POST" class="mt-4">
+                    @csrf
+                    <input type="hidden" name="referenceNo" value="{{ $qrisResult['referenceNo'] ?? '' }}">
+                    <input type="hidden" name="partnerReferenceNo" value="{{ $qrisResult['partnerReferenceNo'] ?? '' }}">
+                    <button type="submit" class="w-full rounded-lg bg-brand px-4 py-2.5 text-sm font-semibold text-white transition hover:opacity-90">
+                        Cek Status Pembayaran
+                    </button>
+                </form>
+                @error('query')
+                    <p class="mt-2 text-xs text-red-500">{{ $message }}</p>
+                @enderror
+            </div>
+        @endif
+
+        {{-- Hasil Query --}}
+        @if (!empty($qrisResult['queryResult']))
+            <div class="rounded-xl border border-gray-100 bg-white p-6 shadow-md">
+                <div class="mb-4">
+                    <h3 class="text-sm font-semibold text-gray-900">Hasil Pembayaran</h3>
+                </div>
+
+                @if (($qrisResult['queryResult']['latestTransactionStatus'] ?? null) === '00')
+                    <div class="mb-4 rounded-lg bg-emerald-50 p-3 text-center text-sm font-semibold text-emerald-700">
+                        Pembayaran Berhasil
+                    </div>
+                @else
+                    <div class="mb-4 rounded-lg bg-yellow-50 p-3 text-center text-sm font-semibold text-yellow-700">
+                        {{ $qrisResult['queryResult']['transactionStatusDesc'] ?? 'Menunggu Pembayaran' }}
+                    </div>
+                @endif
+
+                <div class="space-y-1 rounded-lg bg-gray-50 p-3.5 text-xs font-mono text-gray-600">
+                    <p><strong class="text-gray-900">Status:</strong> {{ $qrisResult['queryResult']['latestTransactionStatus'] ?? '-' }}</p>
+                    <p><strong class="text-gray-900">Keterangan:</strong> {{ $qrisResult['queryResult']['transactionStatusDesc'] ?? '-' }}</p>
+                    <p><strong class="text-gray-900">Nominal:</strong> Rp {{ number_format($qrisResult['queryResult']['amount']['value'] ?? 0, 0, ',', '.') }}</p>
+                    @if (!empty($qrisResult['queryResult']['paidTime']))
+                        <p><strong class="text-gray-900">Paid Time:</strong> {{ $qrisResult['queryResult']['paidTime'] }}</p>
                     @endif
                 </div>
             </div>
         @endif
-    </div>
 
+    </div>
 </body>
 </html>

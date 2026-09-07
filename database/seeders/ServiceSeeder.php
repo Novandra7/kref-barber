@@ -19,6 +19,13 @@ class ServiceSeeder extends Seeder
                 'is_active' => true,
             ],
             [
+                'name' => 'Haircut By Rizal',
+                'category' => 'Haircut',
+                'price' => 80000,
+                'description' => null,
+                'is_active' => true,
+            ],
+            [
                 'name' => 'Long Trim',
                 'category' => 'Haircut',
                 'price' => 80000,

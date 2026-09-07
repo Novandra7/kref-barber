@@ -10,9 +10,9 @@
             <h1 class="mt-2 text-2xl font-bold text-gray-900">Booking Payment</h1>
             <p class="mt-2 text-sm text-gray-500">Reference: {{ $reference }}</p>
 
-            <div class="mt-6 rounded-lg bg-brand/10 p-4">
-                <p class="text-sm text-gray-500">Payment status</p>
-                <p class="mt-1 text-xl font-bold text-gray-900">{{ ucfirst($status) }}</p>
+            <div class="mt-6 rounded-lg p-4 {{ strtolower($status) === 'paid' ? 'bg-green-500/10 text-green-700' : 'bg-brand/10 text-gray-900' }}">
+                <p class="text-sm {{ strtolower($status) === 'paid' ? 'text-green-600' : 'text-gray-500' }}">Payment status</p>
+                <p class="mt-1 text-xl font-bold {{ strtolower($status) === 'paid' ? 'text-green-800' : 'text-gray-900' }}">{{ ucfirst($status) }}</p>
             </div>
 
             @if ($status === 'pending' && $qrContent)

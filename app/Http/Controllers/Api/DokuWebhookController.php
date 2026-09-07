@@ -2,18 +2,19 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Events\PaymentStatusUpdated;
 use App\Http\Controllers\Controller;
 use App\Models\Booking;
 use App\Models\Payment;
 use App\Services\BookingNotificationService;
-use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Http\Response;
 
 class DokuWebhookController extends Controller
 {
-    public function webhook(Request $request, BookingNotificationService $notifications): JsonResponse
+    public function webhook(Request $request, BookingNotificationService $notifications): Response
     {
         $headers = $request->headers;
         $payload = $request->all();
@@ -25,23 +26,12 @@ class DokuWebhookController extends Controller
         $requestTimestamp = $request->header('Request-Timestamp');
         $incomingSignature = $request->header('Signature');
 
-        Log::info('DOKU Webhook Received', [
-            'headers' => $headers->all(),
-            'body' => $payload,
-        ]);
+        $secretKey = config('services.doku.secret_key');
 
-        // 2. Verifikasi Signature (HMAC-SHA256)
-        $secretKey = config('services.doku.webhook_secret');
+        $endpointPath = $request->getPathInfo(); 
 
-        // PENTING: path ini HARUS sama dengan path Notification URL yang
-        // benar-benar terdaftar di DOKU Back Office (bukan path bawaan DOKU).
-        // Sesuai route:list project ini, path-nya adalah /api/payments/webhook.
-        $endpointPath = '/api/payments/webhook';
-
-        // Digest = Base64(SHA256(RawBody))
         $digest = base64_encode(hash('sha256', $rawBody, true));
 
-        // Susun Component String to Sign
         $stringToSign = "Client-Id:" . $clientId . "\n" .
                         "Request-Id:" . $requestId . "\n" .
                         "Request-Timestamp:" . $requestTimestamp . "\n" .
@@ -63,16 +53,8 @@ class DokuWebhookController extends Controller
         }
 
         // 3. Extract Data Pembayaran dari Payload
-        $reference = data_get($payload, 'order.invoice_number')
-            ?? data_get($payload, 'order.partner_reference_no')
-            ?? data_get($payload, 'order.partnerReferenceNo')
-            ?? data_get($payload, 'partnerReferenceNo')
-            ?? data_get($payload, 'originalPartnerReferenceNo')
-            ?? data_get($payload, 'transaction.originalPartnerReferenceNo');
-        $transactionStatus = data_get($payload, 'transaction.status')
-            ?? data_get($payload, 'transactionStatusDesc')
-            ?? data_get($payload, 'transaction.statusDescription')
-            ?? data_get($payload, 'status');
+        $reference = data_get($payload, 'order.invoice_number');
+        $transactionStatus = data_get($payload, 'transaction.status');
 
         if (! $reference) {
             Log::warning('DOKU webhook reference missing.', [
@@ -146,6 +128,23 @@ class DokuWebhookController extends Controller
                 return $booking->id;
             });
         }
+        Log::info('DOKU Webhook Processed', [
+            'reference' => $reference,
+            'transaction_status' => $transactionStatus,
+            'normalized_status' => $normalizedStatus,
+            'is_paid' => $isPaid,
+            'is_failed' => $isFailed,
+            'booking_id' => $bookingId,
+            'should_notify' => $shouldNotify,
+        ]);
+
+        if ($isPaid || $isFailed) {
+            PaymentStatusUpdated::dispatch(
+                (string) $reference,
+                $isPaid ? 'paid' : 'failed',
+                $rawBody
+            );
+        }
 
         if ($shouldNotify && $bookingId) {
             $booking = Booking::find($bookingId);
@@ -159,8 +158,6 @@ class DokuWebhookController extends Controller
         }
 
         // 5. Response HTTP 200 OK ke DOKU
-        return response()->json([
-            'message' => 'SUCCESS',
-        ], 200);
+        return response('CONTINUE', 200)->header('Content-Type', 'text/plain');
     }
 }

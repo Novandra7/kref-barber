@@ -63,9 +63,9 @@ Route::domain(config('app.domain', 'kref.test'))->group(function () {
     Route::get('/booking/payment/{reference}', [BookingController::class, 'paymentReturn'])->name('booking.payment.return');
     Route::get('/booking/payment/{reference}/status', [BookingController::class, 'paymentStatus'])->name('booking.payment.status');
 
-    // Webhook Payment DOKU (Public API endpoint)
-    Route::post('/booking/doku/webhook', [BookingController::class, 'webhook'])->name('booking.payment.webhook');
+    // DOKU Test Page (untuk pengujian QRIS)
     Route::get('/testing-payment', [DokuTestController::class, 'index'])->name('doku-test.index');
     Route::post('/testing-payment/generate', [DokuTestController::class, 'generate'])->name('doku-test.generate');
+    Route::post('/testing-payment/query', [DokuTestController::class, 'query'])->name('doku-test.query');
 
 });
