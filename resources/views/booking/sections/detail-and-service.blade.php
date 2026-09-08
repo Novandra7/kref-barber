@@ -157,10 +157,16 @@
                 <!-- Barber Profile -->
                 <div class="flex items-center gap-5 mb-5">
                     <img 
+                        x-show="selectedBarberObj()?.photo_url"
                         class="size-15 rounded-full object-cover border border-gray-200" 
-                        :src="selectedBarberObj()?.photo_url || 'https://img.daisyui.com/images/profile/demo/1@94.webp'" 
+                        :src="selectedBarberObj()?.photo_url" 
                         :alt="selectedBarberObj()?.name || 'Barber'"
                     />
+                    <div 
+                        x-show="!selectedBarberObj()?.photo_url"
+                        class="flex size-15 items-center justify-center rounded-full bg-primary/10 font-bold uppercase text-primary border border-gray-200"
+                        x-text="(selectedBarberObj()?.name || '-').charAt(0)"
+                    ></div>
                     <div class="flex flex-col gap-1">
                         <span class="text-sm font-semibold text-gray-900" x-text="selectedBarberObj()?.name || '-'"></span>
                         <span class="text-xs uppercase font-semibold opacity-60" x-text="selectedBarberObj()?.role || 'Barber'"></span>

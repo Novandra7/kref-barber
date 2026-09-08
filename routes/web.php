@@ -5,6 +5,7 @@ use App\Http\Controllers\Admin\BarberController;
 use App\Http\Controllers\Admin\ScheduleController;
 use App\Http\Controllers\Admin\ServiceController;
 use App\Http\Controllers\Admin\BookingAdminController;
+use App\Http\Controllers\Admin\PaymentController;
 use App\Http\Controllers\BookingController;
 use App\Http\Controllers\Api\DokuWebhookController;
 use App\Http\Controllers\LandingController;
@@ -46,6 +47,9 @@ Route::domain('admin.' . config('app.domain', 'kref.test'))->group(function () {
         ->names('admin.bookings');
     Route::patch('bookings/{booking}/status', [BookingAdminController::class, 'updateStatus'])
         ->name('admin.bookings.update-status');
+
+    // Payments
+    Route::get('/payments', [PaymentController::class, 'index'])->name('admin.payments.index');
 });
 
 /*

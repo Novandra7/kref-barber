@@ -41,7 +41,7 @@
             Schedules
         </a>
         <a 
-            href="#" 
+            href="{{ route('admin.payments.index') }}" 
             class="rounded-lg px-4 py-3 transition-colors {{ request()->routeIs('admin.payments.*') ? 'bg-primary/10 text-primary' : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900' }}"
         >
             Payments
