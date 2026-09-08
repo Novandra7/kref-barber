@@ -138,7 +138,7 @@
                                 </td>
                                 <td class="px-5 py-4 align-top">
                                     <div class="font-semibold text-gray-900">{{ $methodOptions[$payment->method] ?? str_replace('_', ' ', ucfirst($payment->method)) }}</div>
-                                    <div class="text-xs uppercase text-gray-500">{{ $payment->payment_source ?? '-' }}</div>
+                                    <div class="text-xs text-gray-500">{{ $payment->payment_source ?? '-' }}</div>
                                 </td>
                                 <td class="px-5 py-4 align-top">
                                     <span class="inline-flex rounded-full bg-gray-100 px-2.5 py-1 text-xs font-semibold text-gray-700">
