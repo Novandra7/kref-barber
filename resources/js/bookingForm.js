@@ -44,13 +44,27 @@ export default (
     bookingId: null,
     paymentChannel: null,
 
-    initDatepicker(element, inline = false) {
-        const availableDates = this.availableDates.map((date) => new Date(`${date}T00:00:00`));
+    // Menghitung tanggal-tanggal yang tersedia untuk barber tertentu saja
+    // (bukan gabungan semua barber), karena tiap barber bisa punya hari kerja berbeda.
+    getBarberAvailableDates(barberId) {
+        if (!barberId) return [];
+
+        return [...new Set(
+            this.schedules
+                .filter((schedule) => schedule.barber_id == barberId)
+                .map((schedule) => schedule.date)
+        )].sort();
+    },
+
+    // Menghitung config minDate/maxDate/datesDisabled datepicker berdasarkan
+    // tanggal-tanggal yang tersedia untuk barber yang diberikan.
+    buildDatepickerConfig(barberId) {
+        const dates = this.getBarberAvailableDates(barberId);
         const disabledDates = [];
 
-        if (availableDates.length > 0) {
-            const firstDate = availableDates[0];
-            const lastDate = availableDates[availableDates.length - 1];
+        if (dates.length > 0) {
+            const firstDate = new Date(`${dates[0]}T00:00:00`);
+            const lastDate = new Date(`${dates[dates.length - 1]}T00:00:00`);
 
             for (
                 const date = new Date(firstDate);
@@ -59,17 +73,38 @@ export default (
             ) {
                 const dateValue = this.toDateValue(date);
 
-                if (!this.availableDates.includes(dateValue)) {
+                if (!dates.includes(dateValue)) {
                     disabledDates.push(dateValue);
                 }
             }
         }
 
+        return {
+            minDate: dates[0] ?? null,
+            maxDate: dates[dates.length - 1] ?? null,
+            datesDisabled: disabledDates,
+            dates,
+        };
+    },
+
+    // Tanggal default untuk barber tertentu: hari ini jika barber tersedia hari ini,
+    // kalau tidak pakai tanggal paling awal yang tersedia untuk barber tersebut.
+    getDefaultDateForBarber(dates) {
+        if (!dates.length) return "";
+
+        const today = this.toDateValue(new Date());
+
+        return dates.includes(today) ? today : dates[0];
+    },
+
+    initDatepicker(element, inline = false) {
+        const initialConfig = this.buildDatepickerConfig(this.currentGuest.barber);
+
         const datepicker = new Datepicker(element, {
             format: 'yyyy-mm-dd',
-            minDate: this.availableDates[0] ?? null,
-            maxDate: this.availableDates[this.availableDates.length - 1] ?? null,
-            datesDisabled: disabledDates,
+            minDate: initialConfig.minDate,
+            maxDate: initialConfig.maxDate,
+            datesDisabled: initialConfig.datesDisabled,
             autohide: !inline,
         });
 
@@ -82,6 +117,35 @@ export default (
         if (this.currentGuest.date) {
             datepicker.setDate(this.currentGuest.date);
         }
+
+        // Setiap kali barber berganti, min/max/disabled date dihitung ulang
+        // khusus untuk barber tersebut (bukan gabungan semua barber).
+        this.$watch('currentGuest.barber', (barberId) => {
+            const config = this.buildDatepickerConfig(barberId);
+
+            datepicker.setOptions({
+                minDate: config.minDate,
+                maxDate: config.maxDate,
+                datesDisabled: config.datesDisabled,
+            });
+
+            const dateStillValid = this.currentGuest.date && config.dates.includes(this.currentGuest.date);
+
+            // Kalau guest ini belum punya waktu tersimpan (belum bagian dari edit guest
+            // yang sudah lengkap), berarti pemilihan barber ini masih "baru" -> langsung
+            // arahkan ke hari ini (jika barber tersedia) atau tanggal paling awal barber
+            // tersebut. Kalau sedang edit guest dan tanggal masih valid, biarkan tetap.
+            if (!this.currentGuest.time || !dateStillValid) {
+                this.currentGuest.time = "";
+                this.currentGuest.date = this.getDefaultDateForBarber(config.dates);
+
+                if (this.currentGuest.date) {
+                    datepicker.setDate(this.currentGuest.date);
+                } else {
+                    datepicker.setDate();
+                }
+            }
+        });
     },
 
     toDateValue(date) {
@@ -111,7 +175,9 @@ export default (
     createGuest() {
         return {
             barber: null,
-            date: initialDate,
+            // Tanggal dikosongkan dulu, nanti diisi otomatis (hari ini/tanggal paling
+            // awal) begitu barber dipilih, karena jadwal tiap barber berbeda-beda.
+            date: "",
             time: "",
 
             name: "",

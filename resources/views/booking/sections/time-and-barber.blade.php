@@ -29,15 +29,21 @@
                         @click="currentGuest.barber = '{{ $barber['id'] ?? $barber['name'] }}'">
                         
                         <div>
-                            <img 
-                                class="size-10 rounded-full object-cover border border-gray-200" 
-                                alt="{{ $barber['name'] }}" 
-                                src="{{ $barber['photo_url'] ?? 'https://img.daisyui.com/images/profile/demo/1@94.webp' }}"
-                            />
+                            @if ($barber->photo)
+                                <img 
+                                    class="size-10 rounded-full object-cover border border-gray-200" 
+                                    alt="{{ $barber->name }}" 
+                                    src="{{ asset('storage/' . $barber->photo) }}"
+                                />
+                            @else
+                                <div class="flex size-10 items-center justify-center rounded-full bg-primary/10 font-bold uppercase text-primary border border-gray-200">
+                                    {{ substr($barber->name, 0, 1) }}
+                                </div>
+                            @endif
                         </div>
                         
                         <div class="text-black">
-                            <div>{{ $barber['name'] }}</div>
+                            <div class="font-semibold">{{ $barber['name'] }}</div>
                             <div class="text-xs uppercase font-semibold opacity-60">
                                 {{ $barber['role'] ?? $barber['role'] ?? 'Barber' }}
                             </div>
