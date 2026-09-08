@@ -238,9 +238,16 @@
             $operationStatus = $booking->status ?? 'pending';
         @endphp
 
-        <div id="booking-actions-{{ $bookingId }}" class="z-50 hidden w-48 divide-y divide-gray-100 rounded-lg border border-gray-200 bg-white shadow-lg">
+        <div id="booking-actions-{{ $bookingId }}" class="z-50 hidden divide-y divide-gray-100 rounded-lg border border-gray-200 bg-white shadow-lg">
             <ul class="p-2 text-sm text-gray-700">
-                <li><a href="{{ route('admin.bookings.show', $booking) }}" class="block w-full rounded px-3 py-2 text-left hover:bg-gray-100">View Detail</a></li>
+                <li>
+                    <button type="button" 
+                            data-modal-target="detailBookingModal-{{ $bookingId }}" 
+                            data-modal-toggle="detailBookingModal-{{ $bookingId }}" 
+                            class="block w-full rounded px-3 py-2 text-left hover:bg-gray-100">
+                        View Detail
+                    </button>
+                </li>
                 <li><a href="{{ route('admin.bookings.edit', $booking) }}" class="block w-full rounded px-3 py-2 text-left hover:bg-gray-100">Edit Booking</a></li>
                 @if (($booking->outstanding_amount ?? 0) > 0)
                     <li><button type="button" data-modal-target="paymentModal-{{ $bookingId }}" data-modal-toggle="paymentModal-{{ $bookingId }}" class="w-full rounded px-3 py-2 text-left hover:bg-gray-100">Pelunasan / Mark as Paid</button></li>
