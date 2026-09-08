@@ -56,6 +56,13 @@ export default (
         )].sort();
     },
 
+    // Dipakai di blade untuk menampilkan pesan "tidak ada jadwal" dan
+    // menyembunyikan datepicker/time-picker saat barber terpilih tidak
+    // punya schedule sama sekali.
+    barberHasSchedule(barberId) {
+        return this.getBarberAvailableDates(barberId).length > 0;
+    },
+
     // Menghitung config minDate/maxDate/datesDisabled datepicker berdasarkan
     // tanggal-tanggal yang tersedia untuk barber yang diberikan.
     buildDatepickerConfig(barberId) {
@@ -100,11 +107,20 @@ export default (
     initDatepicker(element, inline = false) {
         const initialConfig = this.buildDatepickerConfig(this.currentGuest.barber);
 
+        // Guard tambahan selain minDate/maxDate/datesDisabled: kalau barber tidak
+        // punya jadwal sama sekali (dates kosong), semua tanggal dipaksa disabled
+        // walaupun minDate/maxDate bernilai null (yang secara default artinya
+        // "tidak ada batas" alias semua tanggal bisa dipilih).
+        const makeBeforeShowDay = (dates) => (date) => dates.length > 0
+            ? dates.includes(this.toDateValue(date))
+            : false;
+
         const datepicker = new Datepicker(element, {
             format: 'yyyy-mm-dd',
             minDate: initialConfig.minDate,
             maxDate: initialConfig.maxDate,
             datesDisabled: initialConfig.datesDisabled,
+            beforeShowDay: makeBeforeShowDay(initialConfig.dates),
             autohide: !inline,
         });
 
@@ -127,6 +143,7 @@ export default (
                 minDate: config.minDate,
                 maxDate: config.maxDate,
                 datesDisabled: config.datesDisabled,
+                beforeShowDay: makeBeforeShowDay(config.dates),
             });
 
             const dateStillValid = this.currentGuest.date && config.dates.includes(this.currentGuest.date);

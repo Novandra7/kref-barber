@@ -84,8 +84,18 @@
                 <p class="text-base font-semibold">Please select a barber first</p>
                 <p class="text-xs text-gray-500 mt-1">Available dates and times will appear here after choosing a barber.</p>
             </div>
+
+            <div x-cloak x-show="currentGuest.barber && !barberHasSchedule(currentGuest.barber)" class="h-full flex flex-col items-center justify-center pb-14 pt-10 md:pb-12 md:pt-0 text-center">
+                <div class="flex h-12 w-12 items-center justify-center rounded-full bg-red-50 text-primary">
+                    <svg class="size-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2Zm5-6h.01" />
+                    </svg>
+                </div>
+                <p class="text-base font-semibold">No schedule available</p>
+                <p class="text-xs text-gray-500 mt-1">This barber doesn't have any available schedule yet. Please choose another barber.</p>
+            </div>
             
-            <div x-show="currentGuest.barber" class="flex flex-col sm:flex-row gap-6 items-start">
+            <div x-cloak x-show="currentGuest.barber && barberHasSchedule(currentGuest.barber)" class="flex flex-col sm:flex-row gap-6 items-start">
                 
                 <!-- Datepicker Container -->
                 <div class="w-full sm:w-1/2">

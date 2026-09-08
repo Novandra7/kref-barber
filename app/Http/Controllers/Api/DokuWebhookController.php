@@ -107,14 +107,17 @@ class DokuWebhookController extends Controller
 
                 $paid = $booking->payments()->where('status', 'paid')->sum('amount');
 
+                // Status booking menjadi 'confirmed' begitu ada pembayaran yang berhasil
+                // (baik DP/partial maupun lunas), karena slot jadwal sudah terkunci untuk
+                // customer tersebut sejak saat itu (lihat komentar enum status di migration
+                // create_bookings_table). Hanya batalkan booking jika belum pernah ada
+                // pembayaran yang berhasil sama sekali (mis. transaksi pertama gagal/expired).
                 $booking->update([
                     'payment_status' => $paid >= $booking->total_amount
                         ? 'paid_full'
                         : ($paid > 0 ? 'partial' : 'unpaid'),
                     'outstanding_amount' => max(0, $booking->total_amount - $paid),
-                    'status' => $paid >= $booking->total_amount
-                        ? 'confirmed'
-                        : (! $isPaid ? 'cancelled' : 'pending'),
+                    'status' => $paid > 0 ? 'confirmed' : 'cancelled',
                 ]);
 
                 // Kalau pembayaran gagal/kedaluwarsa, lepas kembali slot jadwal
