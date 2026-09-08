@@ -83,13 +83,13 @@ services:
     restart: unless-stopped
     environment:
       - WAHA_DASHBOARD_USERNAME=${WAHA_DASHBOARD_USERNAME:-admin}
-      - WAHA_DASHBOARD_PASSWORD=${WAHA_DASHBOARD_PASSWORD:-PasswordRahasiaKamu123!}
+      - WAHA_DASHBOARD_PASSWORD=${WAHA_DASHBOARD_PASSWORD:-adminkref}
       - WAHA_API_KEY=${WAHA_API_KEY:-APIKeyRahasiaKamu123!}
       - WAHA_PRINT_QR=true
       - WHATSAPP_DEFAULT_ENGINE=WEBJS
       - TZ=Asia/Makassar
     ports:
-      - "127.0.0.1:${WAHA_PORT:-3000}:3000"
+      - "${WAHA_PORT:-3000}:3000"
     volumes:
       - waha_sessions:/app/.sessions
     networks:
