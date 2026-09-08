@@ -205,22 +205,9 @@
                                     </span>
                                 </td>
                                 <td class="px-5 py-4 text-right align-top">
-                                    <button type="button" data-dropdown-toggle="booking-actions-{{ $bookingId }}" class="inline-flex rounded-lg p-2 text-gray-500 hover:bg-gray-100 hover:text-brand" aria-label="Booking actions">
+                                    <button type="button" data-dropdown-toggle="booking-actions-{{ $bookingId }}" data-dropdown-placement="bottom-end" class="inline-flex rounded-lg p-2 text-gray-500 hover:bg-gray-100 hover:text-brand" aria-label="Booking actions">
                                         <svg class="h-5 w-5" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 24 24"><path d="M12 7a2 2 0 1 0 0-4 2 2 0 0 0 0 4Zm0 7a2 2 0 1 0 0-4 2 2 0 0 0 0 4Zm0 7a2 2 0 1 0 0-4 2 2 0 0 0 0 4Z"/></svg>
                                     </button>
-                                    <div id="booking-actions-{{ $bookingId }}" class="z-10 hidden w-48 divide-y divide-gray-100 rounded-lg border border-gray-200 bg-white shadow-sm">
-                                        <ul class="p-2 text-sm text-gray-700">
-                                            <li><a href="{{ route('admin.bookings.show', $booking) }}" class="block w-full rounded px-3 py-2 text-left hover:bg-gray-100">View Detail</a></li>
-                                            <li><a href="{{ route('admin.bookings.edit', $booking) }}" class="block w-full rounded px-3 py-2 text-left hover:bg-gray-100">Edit Booking</a></li>
-                                            @if (($booking->outstanding_amount ?? 0) > 0)
-                                                <li><button type="button" data-modal-target="paymentModal-{{ $bookingId }}" data-modal-toggle="paymentModal-{{ $bookingId }}" class="w-full rounded px-3 py-2 text-left hover:bg-gray-100">Pelunasan / Mark as Paid</button></li>
-                                            @endif
-                                                <li><button type="button" data-modal-target="statusModal-{{ $bookingId }}" data-modal-toggle="statusModal-{{ $bookingId }}" class="w-full rounded px-3 py-2 text-left hover:bg-gray-100">Update Status</button></li>
-                                            @if ($operationStatus !== 'cancelled')
-                                                <li><button type="button" data-modal-target="cancelModal-{{ $bookingId }}" data-modal-toggle="cancelModal-{{ $bookingId }}" class="w-full rounded px-3 py-2 text-left text-red-600 hover:bg-red-50">Cancel Booking</button></li>
-                                            @endif
-                                        </ul>
-                                    </div>
                                 </td>
                             </tr>
                         @empty
@@ -250,6 +237,20 @@
             $paymentStatus = $booking->payment_status ?? 'unpaid';
             $operationStatus = $booking->status ?? 'pending';
         @endphp
+
+        <div id="booking-actions-{{ $bookingId }}" class="z-50 hidden w-48 divide-y divide-gray-100 rounded-lg border border-gray-200 bg-white shadow-lg">
+            <ul class="p-2 text-sm text-gray-700">
+                <li><a href="{{ route('admin.bookings.show', $booking) }}" class="block w-full rounded px-3 py-2 text-left hover:bg-gray-100">View Detail</a></li>
+                <li><a href="{{ route('admin.bookings.edit', $booking) }}" class="block w-full rounded px-3 py-2 text-left hover:bg-gray-100">Edit Booking</a></li>
+                @if (($booking->outstanding_amount ?? 0) > 0)
+                    <li><button type="button" data-modal-target="paymentModal-{{ $bookingId }}" data-modal-toggle="paymentModal-{{ $bookingId }}" class="w-full rounded px-3 py-2 text-left hover:bg-gray-100">Pelunasan / Mark as Paid</button></li>
+                @endif
+                    <li><button type="button" data-modal-target="statusModal-{{ $bookingId }}" data-modal-toggle="statusModal-{{ $bookingId }}" class="w-full rounded px-3 py-2 text-left hover:bg-gray-100">Update Status</button></li>
+                @if ($operationStatus !== 'cancelled')
+                    <li><button type="button" data-modal-target="cancelModal-{{ $bookingId }}" data-modal-toggle="cancelModal-{{ $bookingId }}" class="w-full rounded px-3 py-2 text-left text-red-600 hover:bg-red-50">Cancel Booking</button></li>
+                @endif
+            </ul>
+        </div>
 
         <div id="detailBookingModal-{{ $bookingId }}" tabindex="-1" aria-hidden="true" class="fixed inset-0 z-50 hidden h-full w-full items-center justify-center overflow-y-auto overflow-x-hidden p-4">
             <div class="relative max-h-full w-full max-w-2xl"><div class="relative rounded-xl bg-white shadow">
