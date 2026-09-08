@@ -108,7 +108,7 @@
                         <tr>
                             <th scope="col" class="px-5 py-4">Payment</th>
                             <th scope="col" class="px-5 py-4">Booking / Customer</th>
-                            <th scope="col" class="px-5 py-4">Method & Provider</th>
+                            <th scope="col" class="px-5 py-4">Method & Source</th>
                             <th scope="col" class="px-5 py-4">Purpose</th>
                             <th scope="col" class="px-5 py-4">Amount</th>
                             <th scope="col" class="px-5 py-4">Status</th>
