@@ -55,6 +55,7 @@ class DokuWebhookController extends Controller
         // 3. Extract Data Pembayaran dari Payload
         $reference = data_get($payload, 'order.invoice_number');
         $transactionStatus = data_get($payload, 'transaction.status');
+        $paymentSource = data_get($payload, 'issuer.name');
 
         if (! $reference) {
             Log::warning('DOKU webhook reference missing.', [
@@ -98,6 +99,7 @@ class DokuWebhookController extends Controller
                 $lockedPayment->update([
                     'status' => $isPaid ? 'paid' : 'failed',
                     'provider_payload' => $payload,
+                    'payment_source' => $paymentSource,
                 ]);
 
                 $booking = $lockedPayment->booking()->lockForUpdate()->first();
@@ -107,11 +109,6 @@ class DokuWebhookController extends Controller
 
                 $paid = $booking->payments()->where('status', 'paid')->sum('amount');
 
-                // Status booking menjadi 'confirmed' begitu ada pembayaran yang berhasil
-                // (baik DP/partial maupun lunas), karena slot jadwal sudah terkunci untuk
-                // customer tersebut sejak saat itu (lihat komentar enum status di migration
-                // create_bookings_table). Hanya batalkan booking jika belum pernah ada
-                // pembayaran yang berhasil sama sekali (mis. transaksi pertama gagal/expired).
                 $booking->update([
                     'payment_status' => $paid >= $booking->total_amount
                         ? 'paid_full'

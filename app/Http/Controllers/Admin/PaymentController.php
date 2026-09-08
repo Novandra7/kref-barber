@@ -58,6 +58,7 @@ class PaymentController extends Controller
             ->paginate(10)
             ->withQueryString();
 
+        dd($payments->toArray());
         return view('admin.payments.index', [
             'payments' => $payments,
             'paymentCount' => $payments->total(),

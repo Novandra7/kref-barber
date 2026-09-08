@@ -16,6 +16,7 @@ return new class extends Migration
             // Metode dan Provider
             $table->enum('method', ['qris_doku', 'qris_static', 'cash']);
             $table->string('provider')->default('manual'); // 'doku' atau 'manual'
+            $table->string('payment_source')->nullable();
             
             // Tujuan Pembayaran & Status
             $table->enum('purpose', ['dp', 'full_payment', 'pelunasan', 'walk_in']);

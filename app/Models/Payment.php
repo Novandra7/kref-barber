@@ -17,6 +17,7 @@ class Payment extends Model
         'provider',
         'purpose',
         'status',
+        'payment_source',
         'partner_reference_no',
         'doku_reference_no',
         'payment_url',
