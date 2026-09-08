@@ -29,6 +29,9 @@ services:
       CACHE_STORE: ${CACHE_STORE:-database}
       QUEUE_CONNECTION: ${QUEUE_CONNECTION:-database}
       REVERB_HOST: 0.0.0.0
+      WAHA_BASE_URL: http://waha:3000
+      WAHA_API_KEY: ${WAHA_API_KEY:-APIKeyRahasiaKamu123!}
+      WAHA_SESSION: ${WAHA_SESSION:-kref}
     volumes:
       - storage_data:/var/www/html/storage/app
       - ./storage/logs:/var/www/html/storage/logs
@@ -36,6 +39,8 @@ services:
       mysql:
         condition: service_healthy
       redis:
+        condition: service_started
+      waha:
         condition: service_started
     networks:
       - kref-network
@@ -71,6 +76,24 @@ services:
       - redis_data:/data
     networks:
       - kref-network
+  
+  waha:
+    image: devlikeapro/waha:latest
+    container_name: kref-waha
+    restart: unless-stopped
+    environment:
+      - WAHA_DASHBOARD_USERNAME=${WAHA_DASHBOARD_USERNAME:-admin}
+      - WAHA_DASHBOARD_PASSWORD=${WAHA_DASHBOARD_PASSWORD:-PasswordRahasiaKamu123!}
+      - WAHA_API_KEY=${WAHA_API_KEY:-APIKeyRahasiaKamu123!}
+      - WAHA_PRINT_QR=true
+      - WHATSAPP_DEFAULT_ENGINE=WEBJS
+      - TZ=Asia/Makassar
+    ports:
+      - "127.0.0.1:${WAHA_PORT:-3000}:3000"
+    volumes:
+      - waha_sessions:/app/.sessions
+    networks:
+      - kref-network
 
 networks:
   kref-network:
@@ -80,3 +103,4 @@ volumes:
   mysql_data:
   redis_data:
   storage_data:
+  waha_sessions:
