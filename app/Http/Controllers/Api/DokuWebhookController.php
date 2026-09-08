@@ -88,7 +88,7 @@ class DokuWebhookController extends Controller
         $shouldNotify = false;
 
         if ($isPaid || $isFailed) {
-            $bookingId = DB::transaction(function () use ($payment, $payload, $isPaid, &$shouldNotify): ?int {
+            $bookingId = DB::transaction(function () use ($payment, $paymentSource, $payload, $isPaid, &$shouldNotify): ?int {
                 $lockedPayment = Payment::query()->lockForUpdate()->find($payment->id);
                 if (! $lockedPayment) {
                     return null;
