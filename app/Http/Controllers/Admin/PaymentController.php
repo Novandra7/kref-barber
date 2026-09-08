@@ -15,14 +15,14 @@ class PaymentController extends Controller
     {
         $request->validate([
             'date_from' => ['nullable', 'date_format:Y-m-d'],
-            'date_to' => ['nullable', 'date_format:Y-m-d'],
+            'date_to'   => ['nullable', 'date_format:Y-m-d'],
         ]);
 
         if ($request->filled('date_from') && $request->filled('date_to')
             && $request->input('date_from') > $request->input('date_to')) {
             $request->merge([
                 'date_from' => $request->input('date_to'),
-                'date_to' => $request->input('date_from'),
+                'date_to'   => $request->input('date_from'),
             ]);
         }
 
@@ -34,6 +34,7 @@ class PaymentController extends Controller
                     $query->where('id', $search)
                         ->orWhere('partner_reference_no', 'like', "%{$search}%")
                         ->orWhere('doku_reference_no', 'like', "%{$search}%")
+                        ->orWhere('payment_source', 'like', "%{$search}%")
                         ->orWhereHas('booking', function (Builder $query) use ($search): void {
                             $query->where('name', 'like', "%{$search}%")
                                 ->orWhere('phone', 'like', "%{$search}%")
@@ -42,7 +43,7 @@ class PaymentController extends Controller
                 });
             })
             ->when($request->filled('method'), fn (Builder $query) => $query->where('method', $request->input('method')))
-            ->when($request->filled('provider'), fn (Builder $query) => $query->where('provider', $request->input('provider')))
+            ->when($request->filled('payment_source'), fn (Builder $query) => $query->where('payment_source', $request->input('payment_source')))
             ->when($request->filled('status'), fn (Builder $query) => $query->where('status', $request->input('status')))
             ->when($request->filled('date_from'), function (Builder $query) use ($request): void {
                 $query->where('created_at', '>=', Carbon::createFromFormat('Y-m-d', $request->input('date_from'))->startOfDay());
@@ -58,43 +59,48 @@ class PaymentController extends Controller
             ->paginate(10)
             ->withQueryString();
 
+        // Ambil daftar payment_source unik yang tersedia di database
+        $sourceOptions = Payment::query()
+            ->whereNotNull('payment_source')
+            ->where('payment_source', '!=', '')
+            ->distinct()
+            ->pluck('payment_source', 'payment_source')
+            ->toArray();
+
         return view('admin.payments.index', [
-            'payments' => $payments,
-            'paymentCount' => $payments->total(),
-            'paidTotal' => $paidTotal,
+            'payments'       => $payments,
+            'paymentCount'   => $payments->total(),
+            'paidTotal'      => $paidTotal,
             'currentFilters' => [
-                'search' => (string) $request->input('search', ''),
-                'method' => (string) $request->input('method', ''),
-                'provider' => (string) $request->input('provider', ''),
-                'status' => (string) $request->input('status', ''),
-                'date_from' => (string) $request->input('date_from', ''),
-                'date_to' => (string) $request->input('date_to', ''),
+                'search'         => (string) $request->input('search', ''),
+                'method'         => (string) $request->input('method', ''),
+                'payment_source' => (string) $request->input('payment_source', ''),
+                'status'         => (string) $request->input('status', ''),
+                'date_from'      => (string) $request->input('date_from', ''),
+                'date_to'        => (string) $request->input('date_to', ''),
             ],
-            'methodOptions' => [
-                'qris_doku' => 'QRIS (DOKU)',
+            'methodOptions'  => [
+                'qris_doku'   => 'QRIS (DOKU)',
                 'qris_static' => 'QRIS (Static)',
-                'cash' => 'Cash',
+                'cash'        => 'Cash',
             ],
-            'providerOptions' => [
-                'doku' => 'DOKU',
-                'manual' => 'Manual',
-            ],
-            'statusOptions' => [
-                'pending' => 'Pending',
-                'paid' => 'Paid',
-                'failed' => 'Failed',
-                'expired' => 'Expired',
+            'sourceOptions'  => $sourceOptions,
+            'statusOptions'  => [
+                'pending'   => 'Pending',
+                'paid'      => 'Paid',
+                'failed'    => 'Failed',
+                'expired'   => 'Expired',
                 'cancelled' => 'Cancelled',
-                'refunded' => 'Refunded',
+                'refunded'  => 'Refunded',
             ],
             'purposeOptions' => [
-                'dp' => 'Down Payment',
+                'dp'           => 'Down Payment',
                 'full_payment' => 'Full Payment',
-                'pelunasan' => 'Pelunasan',
-                'walk_in' => 'Walk-in',
+                'pelunasan'    => 'Pelunasan',
+                'walk_in'      => 'Walk-in',
             ],
-            'filterUrl' => route('admin.payments.index'),
-            'resetUrl' => route('admin.payments.index'),
+            'filterUrl'      => route('admin.payments.index'),
+            'resetUrl'       => route('admin.payments.index'),
         ]);
     }
 }

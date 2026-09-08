@@ -44,10 +44,12 @@
                     @endforeach
                 </select>
 
-                <select name="provider" class="rounded-lg border-gray-300 text-sm text-gray-700 focus:border-brand focus:ring-brand">
-                    <option value="">All Providers</option>
-                    @foreach ($providerOptions as $value => $label)
-                        <option value="{{ $value }}" @selected($currentFilters['provider'] === $value)>{{ $label }}</option>
+                <select name="payment_source" class="rounded-lg border-gray-300 text-sm text-gray-700 focus:border-brand focus:ring-brand">
+                    <option value="">All Sources</option>
+                    @foreach ($sourceOptions as $value => $label)
+                        <option value="{{ $value }}" @selected($currentFilters['payment_source'] === $value)>
+                            {{ strtoupper($label) }}
+                        </option>
                     @endforeach
                 </select>
 
