@@ -80,6 +80,7 @@ RUN apk add --no-cache \
         icu-dev \
         oniguruma-dev \
         linux-headers \
+        openssl \
     && docker-php-ext-configure gd --with-freetype --with-jpeg \
     && docker-php-ext-install -j"$(nproc)" \
         pdo_mysql \
