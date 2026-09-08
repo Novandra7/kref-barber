@@ -133,7 +133,6 @@ class BookingAdminController extends Controller
 
     public function create(): View
     {
-        // dd($this->bookingFormData());
         return view('admin.bookings.create', $this->bookingFormData());
     }
 
@@ -254,14 +253,12 @@ class BookingAdminController extends Controller
     public function edit(Booking $booking): View
     {
         $booking->load(['barber', 'schedule', 'items']);
-        // dd($this->bookingFormData($booking));
 
         return view('admin.bookings.edit', $this->bookingFormData($booking));
     }
 
     public function update(Request $request, Booking $booking): RedirectResponse
     {
-        // dd($request->all());
         $data = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'phone' => ['required', 'string', 'max:30'],
