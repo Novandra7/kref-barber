@@ -238,12 +238,13 @@
             $operationStatus = $booking->status ?? 'pending';
         @endphp
 
-        <div id="booking-actions-{{ $bookingId }}" class="z-50 hidden divide-y divide-gray-100 rounded-lg border border-gray-200 bg-white shadow-lg">
+        <div id="booking-actions-{{ $bookingId }}" class="z-30 hidden divide-y divide-gray-100 rounded-lg border border-gray-200 bg-white shadow-lg">
             <ul class="p-2 text-sm text-gray-700">
                 <li>
                     <button type="button" 
                             data-modal-target="detailBookingModal-{{ $bookingId }}" 
                             data-modal-toggle="detailBookingModal-{{ $bookingId }}" 
+                            data-dropdown-hide="booking-actions-{{ $bookingId }}"
                             class="block w-full rounded px-3 py-2 text-left hover:bg-gray-100">
                         View Detail
                     </button>
@@ -259,7 +260,7 @@
             </ul>
         </div>
 
-        <div id="detailBookingModal-{{ $bookingId }}" tabindex="-1" aria-hidden="true" class="fixed inset-0 z-50 hidden h-full w-full items-center justify-center overflow-y-auto overflow-x-hidden p-4">
+        <div id="detailBookingModal-{{ $bookingId }}" tabindex="-1" aria-hidden="true" class="fixed inset-0 z-50 hidden h-full w-full items-center justify-center overflow-y-auto overflow-x-hidden bg-gray-900/50 p-4 backdrop-blur-xs">
             <div class="relative max-h-full w-full max-w-2xl"><div class="relative rounded-xl bg-white shadow">
                 <div class="flex items-center justify-between border-b border-gray-200 p-4 md:p-5"><h3 class="font-montserrat text-xl font-semibold text-gray-900">Booking #BK-{{ $bookingId }}</h3><button type="button" data-modal-hide="detailBookingModal-{{ $bookingId }}" class="rounded-lg p-2 text-gray-400 hover:bg-gray-100">&times;</button></div>
                 <div class="grid gap-5 p-4 text-sm md:grid-cols-2 md:p-5">
