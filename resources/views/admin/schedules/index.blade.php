@@ -20,20 +20,34 @@
                 <!-- Action Controls Retro -->
                 <div class="flex flex-wrap gap-2">
                     <form method="GET" class="flex flex-wrap items-center gap-2">
-                        <input type="date" name="week" value="{{ $weekStart->toDateString() }}"
-                               onchange="this.form.submit()"
-                               class="rounded-xl border-2 border-gray-900 bg-white px-3 py-2 text-xs font-bold text-gray-900 shadow-[2px_2px_0px_0px_rgba(17,24,39,1)] focus:border-brand focus:ring-0">
-                        
-                        <select name="role" onchange="this.form.submit()"
-                                class="rounded-xl border-2 border-gray-900 bg-white px-3 py-2 text-xs font-bold text-gray-900 shadow-[2px_2px_0px_0px_rgba(17,24,39,1)] focus:border-brand focus:ring-0">
+                        <div class="relative">
+                            <div class="pointer-events-none absolute inset-y-0 start-0 flex items-center ps-3">
+                                <svg class="h-4 w-4 text-gray-500" xmlns="http://www.w3.org/2000/svg"
+                                    fill="currentColor" viewBox="0 0 20 20">
+                                    <path d="M20 4a2 2 0 0 0-2-2h-2V1a1 1 0 0 0-2 0v1H6V1a1 1 0 0 0-2 0v1H2a2 2 0 0 0-2 2v2h20V4ZM0 8v10a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V8H0Zm5 3h2v2H5v-2Zm4 0h2v2H9v-2Zm4 0h2v2h-2v-2Z"/>
+                                </svg>
+                            </div>
+
+                            <input
+                                type="text"
+                                name="week"
+                                value="{{ $weekStart->format('Y-m-d') }}"
+                                datepicker
+                                datepicker-format="yyyy-mm-dd"
+                                class="block w-full rounded-xl border-2 border-gray-900 bg-white
+                                    py-2.5 ps-10 pe-3 text-xs font-bold text-gray-900
+                                    focus:border-brand focus:ring-0"
+                                placeholder="Select date"
+                            >
+                        </div>                       
+                        <select name="role" onchange="this.form.submit()" class="rounded-xl border-2 border-gray-900 text-xs font-bold text-gray-900 focus:border-brand focus:ring-0">
                             <option value="">All roles</option>
                             @foreach ($roles as $role)
                                 <option value="{{ $role }}" @selected($selectedRole === $role)>{{ $role }}</option>
                             @endforeach
                         </select>
 
-                        <select name="barber" onchange="this.form.submit()"
-                                class="rounded-xl border-2 border-gray-900 bg-white px-3 py-2 text-xs font-bold text-gray-900 shadow-[2px_2px_0px_0px_rgba(17,24,39,1)] focus:border-brand focus:ring-0">
+                        <select name="barber" onchange="this.form.submit()" class="rounded-xl border-2 border-gray-900 text-xs font-bold text-gray-900 focus:border-brand focus:ring-0">
                             <option value="">All barbers</option>
                             @foreach ($allBarbers as $filterBarber)
                                 <option value="{{ $filterBarber->id }}" @selected((string) $selectedBarber === (string) $filterBarber->id)>
@@ -161,27 +175,9 @@
                                                     </div>
                                                     @if ($booking)
                                                         <div x-show="tooltipOpen" x-cloak
-                                                             class="pointer-events-none absolute bottom-full left-1/2 z-20 mb-2 hidden w-full -translate-x-1/2 rounded-lg bg-gray-900 px-3 py-2 text-left text-xs text-white shadow-lg md:!block md:opacity-0 md:group-hover/slot:opacity-100">
+                                                             class="py-3 pointer-events-none absolute bottom-full left-1/2 z-20 hidden w-full -translate-x-1/2 rounded-lg bg-gray-900 text-center text-xs text-white shadow-lg md:block! md:opacity-0 md:group-hover/slot:opacity-100">
                                                             <p class="font-semibold">{{ $booking->name ?? 'Customer' }}</p>
                                                             <p class="mt-1 text-gray-300">{{ $booking->phone ?? 'Phone unavailable' }}</p>
-                                                            <p class="mt-2 font-semibold text-gray-300">
-                                                                Services
-                                                                <span class="ml-1 rounded-full px-1.5 py-0.5 {{ $booking->payment_type === 'dp' ? 'bg-amber-400/20 text-amber-200' : 'bg-blue-400/20 text-blue-200' }}">
-                                                                    {{ strtoupper($booking->payment_type ?? 'booked') }}
-                                                                </span>
-                                                            </p>
-                                                            <ul class="mt-1 space-y-0.5 text-gray-300">
-                                                                @forelse ($booking->items->where('item_type', 'service') as $item)
-                                                                    <li>
-                                                                        {{ $item->service_name_snapshot ?? 'Service' }}
-                                                                        @if ($item->qty > 1)
-                                                                            x{{ $item->qty }}
-                                                                        @endif
-                                                                    </li>
-                                                                @empty
-                                                                    <li>Services unavailable</li>
-                                                                @endforelse
-                                                            </ul>
                                                             <span class="absolute left-1/2 top-full -translate-x-1/2 border-4 border-transparent border-t-gray-900"></span>
                                                         </div>
                                                     @endif
@@ -293,6 +289,13 @@
                 document.getElementById('schedule-barber-id').value = button.dataset.barberId;
                 document.getElementById('schedule-date').value = button.dataset.date;
                 document.getElementById('schedule-slot-time').value = button.dataset.slotTime || '';
+            });
+        });
+        document.addEventListener('DOMContentLoaded', () => {
+            const dateInput = document.querySelector('[name="week"]');
+
+            dateInput.addEventListener('changeDate', () => {
+                dateInput.form.submit();
             });
         });
     </script>
