@@ -419,7 +419,7 @@
                         This action will mark the booking as cancelled.
                     </p>
 
-                    <form method="POST" action="{{ route('admin.bookings.update', $booking) }}" class="mt-6 flex items-center justify-end gap-2">
+                    <form method="POST" action="{{ route('admin.bookings.update-status', $booking) }}" class="mt-6 flex items-center justify-end gap-2">
                         @csrf
                         @method('PATCH')
                         <input type="hidden" name="booking_id" value="{{ $bookingId }}">

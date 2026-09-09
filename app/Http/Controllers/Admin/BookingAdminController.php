@@ -279,7 +279,7 @@ class BookingAdminController extends Controller
                 ->whereDate('date', $data['date'])
                 ->whereTime('slot_time', $data['time'])
                 ->where(function (Builder $query) use ($booking): void {
-                    $query->where('is_available', true)->orWhereKey($booking->schedule_id);
+                    $query->where('is_available', true)->orWhere('id', $booking->schedule_id);
                 })
                 ->lockForUpdate()
                 ->firstOrFail();
