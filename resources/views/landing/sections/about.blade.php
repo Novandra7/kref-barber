@@ -8,7 +8,7 @@
                 <div class="h-1.5 mt-3 bg-red-500 w-full"></div>
             </div>
             <p class="w-full md:w-5/6 text-black font-extralight mt-4">
-                KREF is a place to slow down, get comfortable, and leave feeling fresh. We keep things simple — good cuts, good people, and a style that feels like you.KREF is a place to slow down, get comfortable, and leave feeling fresh. We keep things simple — good cuts, good people, and a style that feels like you.
+                KREF adalah tempat untuk santai, merasa nyaman, dan keluar dengan rasa yang lebih fresh. Potongan yang rapi, suasana yang nyaman, dan gaya yang sesuai dengan kamu — sesederhana itu.
             </p>
         </div>
         <div class="w-full md:w-1/3 py-5 md:p-5 md:pr-0 flex items-end justify-center">
