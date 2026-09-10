@@ -1,15 +1,4 @@
-@php
-$testimonials = [
-    ['name' => 'Jerome Bell', 'image' => 'https://randomuser.me/api/portraits/men/1.jpg', 'text' => 'Suka banget sama hasilnya. Potongannya rapi, barbernya ngerti apa yang aku mau, dan prosesnya juga nyaman.', 'rating' => 5],
-    ['name' => 'Kristin Watson', 'image' => 'https://randomuser.me/api/portraits/men/2.jpg', 'text' => 'Barbernya ramah, tempatnya nyaman, dan hasil potongannya sesuai banget sama yang aku mau. Pasti balik lagi.', 'rating' => 5],
-    ['name' => 'Annette Black', 'image' => 'https://randomuser.me/api/portraits/women/1.jpg', 'text' => 'Pertama kali coba di KREF dan langsung cocok. Potongannya rapi, detailnya bagus, dan pelayanannya juga oke.', 'rating' => 5],
-    ['name' => 'Ralph Edwards', 'image' => 'https://randomuser.me/api/portraits/men/3.jpg', 'text' => 'Harga sesuai kualitas, tempatnya bersih, dan barbernya sabar dengerin request potongan.', 'rating' => 5],
-    ['name' => 'Cody Fisher', 'image' => 'https://randomuser.me/api/portraits/men/4.jpg', 'text' => 'Udah langganan dari tahun lalu, ga pernah kecewa sama hasilnya.', 'rating' => 4],
-    ['name' => 'Esther Howard', 'image' => 'https://randomuser.me/api/portraits/women/2.jpg', 'text' => 'Booking online gampang, ga perlu antre lama. Recommended banget.', 'rating' => 5],
-];
-@endphp
-
-<section id="testimonial" x-data="carousel()" class="mt-10 w-screen relative left-1/2 -translate-x-1/2 z-10 overflow-hidden bg-black p-8 md:px-15 md:py-31">
+<section id="testimonial" x-data="carousel()" class="mt-10 w-screen relative left-1/2 -translate-x-1/2 z-10 overflow-hidden bg-black p-8 md:px-15 md:py-28">
     <div
         class="absolute inset-0 bg-cover bg-center opacity-20 rotate-180 pointer-events-none"
         style="background-image: url('{{ asset('images/services-overlay.png') }}')">
@@ -34,11 +23,11 @@ $testimonials = [
         </div>
 
         <div x-ref="testimonialList" class="w-full flex gap-5 pt-5 md:pb-5 overflow-x-auto scroll-smooth snap-x snap-mandatory scrollbar-hide">
-            @foreach ($testimonials as $testimonial)
+            @for ($i = 1; $i < 9; $i++)
                 <div class="snap-start snap-always shrink-0 w-full md:w-[calc(33.333%-0.833rem)] min-w-0">
-                    @include("components.landing.testi-card", ['testimonial' => $testimonial])
+                    @include("components.landing.testi-card", ['index' => $i])
                 </div>
-            @endforeach
+            @endfor
         </div>
     </div>
 </section>
