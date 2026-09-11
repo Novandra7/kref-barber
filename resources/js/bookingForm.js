@@ -9,21 +9,7 @@ export default (
     initialAvailableDates = [],
 ) => ({
     currentStep: 1,
-    guests: [
-        // {
-        //     barber: 1,
-        //     date: initialDate,
-        //     time: "09:00",
-
-        //     name: "novan",
-        //     phone: "08123456789",
-        //     notes: "Test notes",
-
-        //     selectedHaircut: 'Regular Haircut',
-        //     selectedChemical: null,
-        //     selectedTreatments: [],
-        // }
-    ],
+    guests: [],
     currentGuest: null,
 
     services: initialServices,
@@ -44,8 +30,33 @@ export default (
     bookingId: null,
     paymentChannel: null,
 
+    // Cek apakah slot waktu sudah lewat untuk tanggal hari ini
+    isTimePassed(slotTime) {
+        if (!this.currentGuest?.date || !slotTime) return false;
+
+        const today = new Date();
+        const year = today.getFullYear();
+        const month = String(today.getMonth() + 1).padStart(2, '0');
+        const day = String(today.getDate()).padStart(2, '0');
+        const currentDateString = `${year}-${month}-${day}`;
+
+        // Jika tanggal yang dipilih bukan hari ini, waktu dianggap belum lewat
+        if (this.currentGuest.date !== currentDateString) {
+            return false;
+        }
+
+        // Ekstrak jam & menit dari format hh:mm atau hh:mm:ss
+        const timeParts = slotTime.split(':');
+        const hours = parseInt(timeParts[0], 10);
+        const minutes = parseInt(timeParts[1], 10);
+
+        const slotDate = new Date();
+        slotDate.setHours(hours, minutes, 0, 0);
+
+        return slotDate <= today;
+    },
+
     // Menghitung tanggal-tanggal yang tersedia untuk barber tertentu saja
-    // (bukan gabungan semua barber), karena tiap barber bisa punya hari kerja berbeda.
     getBarberAvailableDates(barberId) {
         if (!barberId) return [];
 
@@ -56,17 +67,14 @@ export default (
         )].sort();
     },
 
-    // Dipakai di blade untuk menampilkan pesan "tidak ada jadwal" dan
-    // menyembunyikan datepicker/time-picker saat barber terpilih tidak
-    // punya schedule sama sekali.
     barberHasSchedule(barberId) {
         return this.getBarberAvailableDates(barberId).length > 0;
     },
 
-    // Menghitung config minDate/maxDate/datesDisabled datepicker berdasarkan
-    // tanggal-tanggal yang tersedia untuk barber yang diberikan.
     buildDatepickerConfig(barberId) {
-        const dates = this.getBarberAvailableDates(barberId);
+        // Filter hanya tanggal hari ini atau esok/masa depan
+        const today = this.toDateValue(new Date());
+        const dates = this.getBarberAvailableDates(barberId).filter(d => d >= today);
         const disabledDates = [];
 
         if (dates.length > 0) {
@@ -87,15 +95,14 @@ export default (
         }
 
         return {
-            minDate: dates[0] ?? null,
+            // minDate diset minimal tanggal hari ini
+            minDate: dates[0] && dates[0] >= today ? dates[0] : today,
             maxDate: dates[dates.length - 1] ?? null,
             datesDisabled: disabledDates,
             dates,
         };
     },
 
-    // Tanggal default untuk barber tertentu: hari ini jika barber tersedia hari ini,
-    // kalau tidak pakai tanggal paling awal yang tersedia untuk barber tersebut.
     getDefaultDateForBarber(dates) {
         if (!dates.length) return "";
 
@@ -107,10 +114,6 @@ export default (
     initDatepicker(element, inline = false) {
         const initialConfig = this.buildDatepickerConfig(this.currentGuest.barber);
 
-        // Guard tambahan selain minDate/maxDate/datesDisabled: kalau barber tidak
-        // punya jadwal sama sekali (dates kosong), semua tanggal dipaksa disabled
-        // walaupun minDate/maxDate bernilai null (yang secara default artinya
-        // "tidak ada batas" alias semua tanggal bisa dipilih).
         const makeBeforeShowDay = (dates) => (date) => dates.length > 0
             ? dates.includes(this.toDateValue(date))
             : false;
@@ -134,8 +137,6 @@ export default (
             datepicker.setDate(this.currentGuest.date);
         }
 
-        // Setiap kali barber berganti, min/max/disabled date dihitung ulang
-        // khusus untuk barber tersebut (bukan gabungan semua barber).
         this.$watch('currentGuest.barber', (barberId) => {
             const config = this.buildDatepickerConfig(barberId);
 
@@ -148,10 +149,6 @@ export default (
 
             const dateStillValid = this.currentGuest.date && config.dates.includes(this.currentGuest.date);
 
-            // Kalau guest ini belum punya waktu tersimpan (belum bagian dari edit guest
-            // yang sudah lengkap), berarti pemilihan barber ini masih "baru" -> langsung
-            // arahkan ke hari ini (jika barber tersedia) atau tanggal paling awal barber
-            // tersebut. Kalau sedang edit guest dan tanggal masih valid, biarkan tetap.
             if (!this.currentGuest.time || !dateStillValid) {
                 this.currentGuest.time = "";
                 this.currentGuest.date = this.getDefaultDateForBarber(config.dates);
@@ -192,8 +189,6 @@ export default (
     createGuest() {
         return {
             barber: null,
-            // Tanggal dikosongkan dulu, nanti diisi otomatis (hari ini/tanggal paling
-            // awal) begitu barber dipilih, karena jadwal tiap barber berbeda-beda.
             date: "",
             time: "",
 
@@ -212,7 +207,6 @@ export default (
         this.$watch('currentGuest.barber', () => this.syncHaircutWithBarber());
     },
 
-    // Haircut By Rizal menggantikan Regular Haircut saat barber yang dipilih adalah owner
     syncHaircutWithBarber() {
         if (!this.currentGuest?.selectedHaircut) return;
 
@@ -233,7 +227,6 @@ export default (
     saveGuest() {
         if (!this.currentGuest) return;
 
-        // Jika sedang edit (ada editingIndex), update data di index tersebut. Jika baru, push ke array.
         if (this.editingIndex !== null && this.editingIndex !== undefined) {
             this.guests[this.editingIndex] = {
                 ...this.currentGuest,
@@ -255,7 +248,6 @@ export default (
     },
 
     editGuest(index) {
-        // Fungsi opsional untuk mengedit guest dari list
         this.editingIndex = index;
         this.currentGuest = JSON.parse(JSON.stringify(this.guests[index]));
         this.currentStep = 1;
@@ -324,7 +316,6 @@ export default (
                     status: payload.status,
                     doku_data: payload.doku_data,
                 };
-                console.log("Payment data update received:", this.paymentData);
 
                 if (payload.status === "paid") {
                     this.paymentState = "paid";
@@ -344,7 +335,6 @@ export default (
         window.Echo.leave(`payment.${this.paymentData.reference}`);
         this.paymentChannel = null;
     },
-
 
     getGuestSelectedServices(guest) {
         if (!guest) return [];
@@ -395,7 +385,6 @@ export default (
         if (!dateString) return '-';
         
         const date = new Date(dateString);
-        // return format D/M/YYYY (cth: 2/9/2026)
         return `${date.getDate()}/${date.getMonth() + 1}/${date.getFullYear()}`;
     },
 
@@ -411,7 +400,6 @@ export default (
     selectedBarberObj() {
         if (!this.currentGuest?.barber) return null;
 
-        // Mendukung pencarian berdasarkan ID (number/string) atau Nama Barber
         return (
             this.barbers.find(
                 (barber) =>
@@ -467,17 +455,14 @@ export default (
 
         let services = [];
 
-        // Haircut
         if (guest.selectedHaircut) {
             services.push(guest.selectedHaircut);
         }
 
-        // Chemical
         if (guest.selectedChemical) {
             services.push(guest.selectedChemical);
         }
 
-        // Treatments
         if (
             Array.isArray(guest.selectedTreatments) &&
             guest.selectedTreatments.length > 0

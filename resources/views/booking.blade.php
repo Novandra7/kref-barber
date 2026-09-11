@@ -11,12 +11,12 @@
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-5 h-5 rotate-180">
                         <path stroke-linecap="round" stroke-linejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
                     </svg>
-                    <span class="underline underline-offset-2">back home</span>
+                    <span class="underline underline-offset-2">kembali ke beranda</span>
                 </a>
 
                 <!-- Title Booking Page (Tengah di Desktop, Bawah Tombol Back di Mobile) -->
                 <div class="flex items-center justify-center font-league text-brand">
-                    <span class="text-2xl inline-block">BOOKING PAGE</span>
+                    <span class="text-2xl inline-block">HALAMAN PEMESANAN</span>
                 </div>
 
                 <!-- Spacer Kolom Kanan Desktop -->
@@ -25,7 +25,7 @@
 
             <div class="w-full text-center">
                 <h2 class="inline-block text-2xl sm:text-4xl font-league text-black origin-top">
-                    LET'S SET UP YOUR APPOINTMENT
+                    MARI ATUR JADWAL JANJI TEMU ANDA
                 </h2>
             </div>
 

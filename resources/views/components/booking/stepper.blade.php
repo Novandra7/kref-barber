@@ -18,7 +18,7 @@
         </div>
         <span class="mt-2 text-xs sm:text-sm font-semibold text-center whitespace-nowrap"
             :class="(currentStep >= 1 || currentStep === 'guest') ? 'text-primary' : 'text-gray-400'">
-            Barbers & Time
+            Barber & Waktu
         </span>
     </div>
 
@@ -44,7 +44,7 @@
         </div>
         <span class="mt-2 text-xs sm:text-sm font-semibold text-center whitespace-nowrap"
             :class="currentStep >= 2 || currentStep === 'guest' ? 'text-primary' : 'text-gray-400'">
-            Confirm Details
+            Konfirmasi Detail
         </span>
     </div>
 
@@ -70,7 +70,7 @@
         </div>
         <span class="mt-2 text-xs sm:text-sm font-semibold text-center whitespace-nowrap"
             :class="currentStep >= 3 ? 'text-primary' : 'text-gray-400'">
-            Payment
+            Pembayaran
         </span>
     </div>
 </div>

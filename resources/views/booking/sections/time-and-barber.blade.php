@@ -1,5 +1,5 @@
 <section aria-labelledby="time-and-barber-title">
-    <h1 id="time-and-barber-title" class="sr-only">Barbers & Time</h1>
+    <h1 id="time-and-barber-title" class="sr-only">Barber & Waktu</h1>
 
     {{-- Alert --}}
     <div
@@ -11,7 +11,7 @@
         <svg class="size-6 shrink-0 text-red-600" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none">
             <path d="M12 9v4m0 4h.01M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
         </svg>
-        <span>Please complete all required fields before continuing.</span>
+        <span>Harap lengkapi semua bidang yang wajib diisi sebelum melanjutkan.</span>
     </div>
 
     <!-- Layout Container -->
@@ -19,7 +19,7 @@
         
         <!-- Barber Column -->
         <div class="w-full lg:w-1/2 rounded-xl bg-white border border-gray-200 p-6">
-            <div class="pb-4 text-xl font-montserrat font-bold tracking-tight text-primary">CHOOSE BARBER *</div>
+            <div class="pb-4 text-xl font-montserrat font-bold tracking-tight text-primary">PILIH BARBER *</div>
             <ul class="list flex flex-col gap-3.5 max-h-85 overflow-y-auto pr-1">
                 
                 <!-- Dynamic Barber Options from Database -->
@@ -33,7 +33,7 @@
                                 <img 
                                     class="size-10 rounded-full object-cover border border-gray-200" 
                                     alt="{{ $barber->name }}" 
-                                    src="{{ asset('storage/' . $barber->photo) }}"
+                                    src="{{ $barber->photo_url }}"
                                 />
                             @else
                                 <div class="flex size-10 items-center justify-center rounded-full bg-primary/10 font-bold uppercase text-primary border border-gray-200">
@@ -73,7 +73,7 @@
 
         <!-- Date & Time Column -->
         <div class="w-full lg:w-1/2 rounded-xl bg-white border border-gray-200 p-6">
-            <span class="block pb-4 text-xl font-montserrat font-bold tracking-tight text-primary">CHOOSE DATE & TIME *</span>
+            <span class="block pb-4 text-xl font-montserrat font-bold tracking-tight text-primary">PILIH TANGGAL & WAKTU *</span>
             
             <div x-show="!currentGuest.barber" class="h-full flex flex-col items-center justify-center pb-14 pt-10 md:pb-12 md:pt-0 text-center">
                 <div class="flex h-12 w-12 items-center justify-center rounded-full bg-red-50 text-primary">
@@ -81,8 +81,8 @@
                         <path stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                     </svg>
                 </div>
-                <p class="text-base font-semibold">Please select a barber first</p>
-                <p class="text-xs text-gray-500 mt-1">Available dates and times will appear here after choosing a barber.</p>
+                <p class="text-base font-semibold">Silakan pilih barber terlebih dahulu</p>
+                <p class="text-xs text-gray-500 mt-1">Tanggal dan waktu yang tersedia akan muncul di sini setelah memilih barber.</p>
             </div>
 
             <div x-cloak x-show="currentGuest.barber && !barberHasSchedule(currentGuest.barber)" class="h-full flex flex-col items-center justify-center pb-14 pt-10 md:pb-12 md:pt-0 text-center">
@@ -91,8 +91,8 @@
                         <path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2Zm5-6h.01" />
                     </svg>
                 </div>
-                <p class="text-base font-semibold">No schedule available</p>
-                <p class="text-xs text-gray-500 mt-1">This barber doesn't have any available schedule yet. Please choose another barber.</p>
+                <p class="text-base font-semibold">Jadwal tidak tersedia</p>
+                <p class="text-xs text-gray-500 mt-1">Barber ini belum memiliki jadwal yang tersedia. Silakan pilih barber lain.</p>
             </div>
             
             <div x-cloak x-show="currentGuest.barber && barberHasSchedule(currentGuest.barber)" class="flex flex-col sm:flex-row gap-6 items-start">
@@ -101,7 +101,7 @@
                 <div class="w-full sm:w-1/2">
                     <!-- Mobile Datepicker -->
                     <div class="block sm:hidden w-full">
-                        <label for="mobile-datepicker" class="block mb-2 text-sm font-semibold text-gray-700">Select Date</label>
+                        <label for="mobile-datepicker" class="block mb-2 text-sm font-semibold text-gray-700">Pilih Tanggal</label>
                         <div class="relative w-full">
                             <div class="absolute inset-y-0 inset-s-0 flex items-center ps-3 pointer-events-none">
                                 <svg class="w-4 h-4 text-gray-500" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
@@ -113,7 +113,7 @@
                                 type="text" 
                                 :value="currentGuest.date"
                                 class="block w-full ps-10 pe-3 py-2.5 bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-xl focus:ring-primary focus:border-primary cursor-pointer" 
-                                placeholder="Select date"
+                                placeholder="Pilih tanggal"
                                 readonly
                                 x-init="$nextTick(() => initDatepicker($el))"
                             >
@@ -133,13 +133,13 @@
 
                 <!-- Available Time Grid / Time Picker-->
                 <div class="w-full sm:w-1/2">
-                    <p class="mb-3 text-sm font-semibold text-gray-700">Available time</p>
+                    <p class="mb-3 text-sm font-semibold text-gray-700">Jam yang tersedia</p>
                     <div class="grid grid-cols-3 gap-2.5">
                         <template x-for="schedule in getSelectedSchedules()" :key="schedule.id">
                             <button 
                                 type="button"
                                 class="rounded-xl border px-2.5 py-2 text-sm font-semibold transition-colors disabled:bg-gray-100 disabled:text-gray-400 disabled:border-gray-200 disabled:cursor-not-allowed disabled:opacity-60"
-                                :disabled="!schedule.is_available || isScheduleTaken(schedule)"
+                                :disabled="!schedule.is_available || isScheduleTaken(schedule) || isTimePassed(schedule.slot_time)"
                                 :class="currentGuest.time === schedule.slot_time
                                     ? 'border-primary bg-primary text-white'
                                     : 'border-gray-200 bg-white text-gray-700 enabled:hover:border-primary enabled:hover:text-primary'"
@@ -150,7 +150,7 @@
                         </template>
                         <p x-show="currentGuest.barber && currentGuest.date && getSelectedSchedules().length === 0"
                            class="col-span-3 text-sm text-gray-500">
-                            No schedules available for this barber on the selected date.
+                            Tidak ada jadwal yang tersedia untuk barber ini pada tanggal yang dipilih.
                         </p>
                     </div>
                     
@@ -164,13 +164,12 @@
                                 </svg>
                             </div>
                             <div>
-                                <p class="text-xs font-medium text-gray-900">Times are displayed in</p>
+                                <p class="text-xs font-medium text-gray-900">Waktu ditampilkan dalam</p>
                                 <p class="font-bold text-gray-950">WITA (GMT+8)</p>
                             </div>
                         </div>
                     </div>
                 </div>
-
             </div>
         </div>
 
@@ -179,7 +178,7 @@
     {{-- Bottom Action Button --}}
     <div class="flex items-center gap-2.5 sm:gap-3 mt-6 w-full">
         
-        <!-- Tombol Back (Mengambil lebar pas sesuai konten) -->
+        <!-- Tombol Back -->
         <div x-show="guests.length > 0" class="shrink-0">
             <button 
                 type="button" 
@@ -191,18 +190,18 @@
                     <path d="M12 22C6.477 22 2 17.523 2 12C2 6.477 6.477 2 12 2C17.523 2 22 6.477 22 12C22 17.523 17.523 22 12 22Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
                     <path d="M13.5 16.5L9 12L13.5 7.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                 </svg>
-                <span>Back : Guest</span>
+                <span>Kembali : Pelanggan</span>
             </button>
         </div>
 
-        <!-- Tombol Next (Mengambil seluruh sisa ruang yang ada) -->
+        <!-- Tombol Next -->
         <button 
             type="button" 
             class="btn btn-primary flex-1 sm:flex-none sm:ml-auto rounded-xl flex items-center justify-center gap-1.5 sm:gap-2 px-3 sm:px-6 py-2.5 sm:py-3 text-xs sm:text-sm font-semibold transition-all duration-200 min-w-0"
             @click="validateStep1()"
             onclick="window.scrollTo({ top: 0, behavior: 'smooth' })"
         >
-            <span class="truncate">Next : Your Detail & Service</span>
+            <span class="truncate">Lanjut : Identitas & Layanan</span>
             <svg class="size-4 sm:size-5 shrink-0" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <path d="M12 22C17.523 22 22 17.523 22 12C22 6.477 17.523 2 12 2C6.477 2 2 6.477 2 12C2 17.523 6.477 22 12 22Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
                 <path d="M10.5 16.5L15 12L10.5 7.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
