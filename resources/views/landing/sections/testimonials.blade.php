@@ -12,7 +12,7 @@
                 </svg>
             </button>
             <div class="inline-block">
-                <h2 class="text-white text-3xl md:text-6xl font-league">WHAT CLIENT SAYS</h2>
+                <h2 class="text-white text-3xl md:text-6xl font-league">PENGALAMAN MEREKA</h2>
                 <div class="h-1 mt-1 bg-white w-full"></div>
             </div>
             <button class="p-2 bg-white text-primary rounded-full hover:bg-primary hover:text-white" @click="scroll(1,'testimonialList')">

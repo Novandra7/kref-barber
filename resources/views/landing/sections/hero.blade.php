@@ -102,7 +102,7 @@
                 </div>
         
                 <!-- Foto Bawah -->
-                <div class="grid h-40 flex-none grid-cols-2 gap-2 sm:h-auto sm:flex-none sm:gap-4">
+                <div class="grid h-45 flex-none grid-cols-2 gap-2 sm:h-auto sm:flex-none sm:gap-4">
                     <div class="relative w-full overflow-hidden rounded-xl shadow-sm sm:h-48 sm:aspect-auto">
                         <img src="{{ asset('images/hero2.jpg') }}" alt="Kref Barber Interior" class="h-full w-full object-cover">
                         <div class="absolute inset-0 flex flex-col items-center justify-center bg-[#A64545]/80 p-2">
@@ -119,7 +119,7 @@
             <!-- Kolom Kanan: Teks & CTA -->
             <div class="flex shrink-0 flex-col items-center gap-2 text-center lg:items-end lg:text-right">
                 <div class="inline-flex select-none flex-col font-league leading-none tracking-wide">
-                    <div class="flex items-center justify-center gap-2 text-7xl font-black text-black sm:text-7xl lg:justify-between md:text-[140px]">
+                    <div class="flex items-center gap-2 text-7xl font-black text-black sm:text-7xl justify-between md:text-[140px]">
                         <span>CUT</span>
                         <span>&</span>
                         <img src="{{ asset('images/Logo2.svg') }}" alt="Kref Barber Icon" class="h-[0.85em] w-auto shrink-0 object-contain">
@@ -131,14 +131,14 @@
                 </div>
         
                 <a href="{{ route('booking.index') }}" class="my-2 inline-flex items-center gap-2 rounded-xl bg-primary px-6 py-2.5 font-dosis text-base font-semibold text-white shadow-md transition-colors hover:bg-[#963333] sm:mt-6 sm:px-7 sm:py-3 sm:text-lg">
-                    <span>booking now</span>
+                    <span>booking sekarang</span>
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="h-4 w-4 sm:h-5 sm:w-5">
                         <path stroke-linecap="round" stroke-linejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
                     </svg>
                 </a>
                 <p class="max-w-xs font-dosis text-sm leading-snug text-gray-700 sm:mt-4 sm:max-w-md sm:text-lg">
-                    Find a style that feels like you.<br class="hidden sm:inline">
-                    Simple, sharp, and made to last.
+                    Temukan gaya yang sesuai denganmu.<br class="hidden sm:inline">
+                    Sederhana, elegan, dan stylish.
                 </p>
         
             </div>

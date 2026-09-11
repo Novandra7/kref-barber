@@ -7,7 +7,7 @@
         
         {{-- Title --}}
         <div class="relative z-10 flex w-fit flex-col items-center">
-            <h2 class="font-league text-5xl text-white md:text-7xl">OUR SERVICES</h2>
+            <h2 class="font-league text-5xl text-white md:text-7xl">LAYANAN KREF</h2>
             <div class="mt-3 h-1.5 w-full bg-white"></div>
         </div>
 
@@ -60,7 +60,14 @@
                                     <p class="truncate text-sm text-white">{{ $item->name }}</p>
                                 @endif
                             </div>
-                            <p class="shrink-0 text-white">{{ $item->formattedPrice }}</p>
+                            <div class="flex shrink-0 items-center gap-2">
+                                @if ($item->name === "Long Trim")
+                                    <span class="inline-flex items-center rounded-full bg-white/15 px-3 py-1 text-xs font-medium text-white/80 backdrop-blur-sm">
+                                        Start From
+                                    </span>
+                                @endif
+                                <p class="text-white">{{ $item->formattedPrice }}</p>
+                            </div>
                         </div>
                     @endforeach
 

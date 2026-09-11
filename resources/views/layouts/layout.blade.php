@@ -12,7 +12,8 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Dosis:wght@400;500;600;700&family=League+Gothic&family=Montserrat:ital,wght@0,100..900;1,100..900&display=swap&family=Montserrat:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet">
-
+    
+    <link rel="icon" type="image/x-icon" href="{{ asset('favicon.ico') }}?v=2">
     <!-- Hapus @fonts jika sudah menggunakan link Google Fonts di atas -->
 
     @if (file_exists(public_path('build/manifest.json')) || file_exists(public_path('hot')))

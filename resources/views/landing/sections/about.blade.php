@@ -3,12 +3,12 @@
         <div class="w-full md:w-2/3 pr-5 pt-5 md:pb-5">
             <div class="inline-block">
                 <h2 class="text-5xl md:text-7xl font-league">
-                    ABOUT US
+                    KENAPA KREF ?
                 </h2>
                 <div class="h-1.5 mt-3 bg-red-500 w-full"></div>
             </div>
             <p class="w-full md:w-5/6 text-black font-extralight mt-4">
-                KREF adalah tempat untuk santai, merasa nyaman, dan keluar dengan rasa yang lebih fresh. Potongan yang rapi, suasana yang nyaman, dan gaya yang sesuai dengan kamu — sesederhana itu.
+                karena Kref merupakan tempat untuk santai, merasa nyaman, dan keluar dengan rasa yang lebih fresh. Potongan yang rapi, suasana yang nyaman, dan gaya yang sesuai dengan kamu — sesederhana itu.
             </p>
         </div>
         <div class="w-full md:w-1/3 py-5 md:p-5 md:pr-0 flex items-end justify-center">

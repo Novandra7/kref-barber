@@ -2,7 +2,7 @@
     <div class="flex flex-col md:flex-row">
         <div
             x-ref="barberList"
-            class="w-full flex gap-5 md:w-2/3 pt-5 md:pb-5 overflow-x-auto scroll-smooth snap-x snap-mandatory scrollbar-hide"
+            class="order-2 md:order-1 w-full flex gap-5 md:w-2/3 py-5 md:pb-5 overflow-x-auto scroll-smooth snap-x snap-mandatory scrollbar-hide"
         >
             @foreach ($barbers as $barber)
                 <div class="snap-start snap-always shrink-0 w-[calc(50%-0.625rem)] md:w-[calc(33.333%-0.833rem)] min-w-0">
@@ -10,7 +10,7 @@
                 </div>
             @endforeach
         </div>
-        <div class="w-full md:w-1/3 py-5 md:pl-5 md:pr-0 flex items-start justify-end">
+        <div class="order-1 md:order-2 w-full md:w-1/3 pb-5 md:pl-5 md:pr-0 flex items-start justify-end">
             <div class="flex flex-col items-end gap-6 py-4 md:py-0">
                 <div class="flex gap-6">
                     <button @click="scroll(-1,'barberList')" class="p-2 bg-primary/10 rounded-full hover:bg-primary/20">
@@ -25,10 +25,10 @@
                     </button>
                 </div>
                 <div class="inline-block text-end">
-                    <h2 class="text-4xl md:text-6xl font-league">MEET OUR BARBERS</h2>
+                    <h2 class="text-4xl md:text-6xl font-league">GUNTINGNYA DI TANGAN MEREKA</h2>
                     <div class="h-1.5 mt-3 bg-red-500 w-full"></div>
                 </div>
-                <p class="text-end md:w-6/7">Good cuts start with the right hands. Get to know the crew behind the chair.</p>
+                <p class="text-end md:w-6/7">Di balik setiap potongan yang rapi, ada tangan yang tahu caranya. Kenalan dengan crew KREF.</p>
                 <div class="w-full md:w-6/7 bg-black/10 rounded-lg h-0.5"></div>
             </div>
         </div>

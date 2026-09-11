@@ -2,10 +2,10 @@
     {{-- <hr class="border-t-2 border-gray-200 my-5"> --}}
     <div class="flex flex-col items-start gap-8">
         <div class="inline-block">
-            <h2 class="text-5xl md:text-7xl font-league">GALLERY</h2>
+            <h2 class="text-5xl md:text-7xl font-league">INTIP KREF</h2>
             <div class="h-1.5 mt-3 bg-red-500 w-full"></div>
         </div>
-        <p>Fresh cuts, clean details, real results.</p>
+        <p>Potongan fresh, detail rapi, gaya yang kamu mau.</p>
         <div class="grid w-full grid-cols-1 md:grid-cols-2 gap-4">
             <div class="flex flex-col gap-4">
                 <div class="h-48 md:h-52 overflow-hidden rounded-2xl">
