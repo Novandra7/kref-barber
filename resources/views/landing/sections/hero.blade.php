@@ -122,7 +122,7 @@
                     <div class="flex items-center gap-2 text-7xl font-black text-black sm:text-7xl justify-between md:text-[140px]">
                         <span>CUT</span>
                         <span>&</span>
-                        <img src="{{ asset('images/Logo2.svg') }}" alt="Kref Barber Icon" class="h-[0.85em] w-auto shrink-0 object-contain">
+                        <img src="{{ asset('images/Logo2.png') }}" alt="Kref Barber Icon" class="h-[0.85em] w-auto shrink-0 object-contain">
                     </div>
         
                     <span class="-mt-1 text-7xl font-black text-primary sm:text-7xl md:text-[140px]">
