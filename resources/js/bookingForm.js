@@ -30,22 +30,33 @@ export default (
     bookingId: null,
     paymentChannel: null,
 
-    // Cek apakah slot waktu sudah lewat untuk tanggal hari ini
-    isTimePassed(slotTime) {
-        if (!this.currentGuest?.date || !slotTime) return false;
-
+    // Helper mendapatkan string tanggal hari ini (YYYY-MM-DD) lokal
+    getTodayString() {
         const today = new Date();
         const year = today.getFullYear();
         const month = String(today.getMonth() + 1).padStart(2, '0');
         const day = String(today.getDate()).padStart(2, '0');
-        const currentDateString = `${year}-${month}-${day}`;
+        return `${year}-${month}-${day}`;
+    },
 
-        // Jika tanggal yang dipilih bukan hari ini, waktu dianggap belum lewat
-        if (this.currentGuest.date !== currentDateString) {
+    // 1. DIBENAHI: Mengecek apakah slot jam sudah lewat (khusus untuk tanggal hari ini)
+    isTimePassed(slotTime) {
+        if (!this.currentGuest?.date || !slotTime) return false;
+
+        const todayStr = this.getTodayString();
+
+        // Jika tanggal yang dipilih adalah esok/masa depan, jam TIDAK dianggap lewat
+        if (this.currentGuest.date > todayStr) {
             return false;
         }
 
-        // Ekstrak jam & menit dari format hh:mm atau hh:mm:ss
+        // Jika tanggal yang dipilih adalah kemarin/lampau, semua jam dianggap lewat
+        if (this.currentGuest.date < todayStr) {
+            return true;
+        }
+
+        // Jika tanggal yang dipilih ADALAH HARI INI -> Cek jam & menit saat ini
+        const now = new Date();
         const timeParts = slotTime.split(':');
         const hours = parseInt(timeParts[0], 10);
         const minutes = parseInt(timeParts[1], 10);
@@ -53,16 +64,18 @@ export default (
         const slotDate = new Date();
         slotDate.setHours(hours, minutes, 0, 0);
 
-        return slotDate <= today;
+        return slotDate <= now;
     },
 
-    // Menghitung tanggal-tanggal yang tersedia untuk barber tertentu saja
+    // 2. DIBENAHI: Hanya mengambil tanggal yang >= HARI INI
     getBarberAvailableDates(barberId) {
         if (!barberId) return [];
 
+        const todayStr = this.getTodayString();
+
         return [...new Set(
             this.schedules
-                .filter((schedule) => schedule.barber_id == barberId)
+                .filter((schedule) => schedule.barber_id == barberId && schedule.date >= todayStr)
                 .map((schedule) => schedule.date)
         )].sort();
     },
@@ -71,52 +84,65 @@ export default (
         return this.getBarberAvailableDates(barberId).length > 0;
     },
 
+    // 3. DIBENAHI: Konfigurasi datepicker mengunci penuh tanggal lampau
     buildDatepickerConfig(barberId) {
-        // Filter hanya tanggal hari ini atau esok/masa depan
-        const today = this.toDateValue(new Date());
-        const dates = this.getBarberAvailableDates(barberId).filter(d => d >= today);
+        const todayStr = this.getTodayString();
+        const availableDates = this.getBarberAvailableDates(barberId);
+
+        if (availableDates.length === 0) {
+            return {
+                minDate: todayStr,
+                maxDate: todayStr,
+                datesDisabled: [todayStr],
+                dates: []
+            };
+        }
+
+        const minDate = availableDates[0] >= todayStr ? availableDates[0] : todayStr;
+        const maxDate = availableDates[availableDates.length - 1];
+
+        // Matikan semua tanggal di antara minDate & maxDate yang tidak punya slot aktif
         const disabledDates = [];
+        const startDate = new Date(`${minDate}T00:00:00`);
+        const endDate = new Date(`${maxDate}T00:00:00`);
 
-        if (dates.length > 0) {
-            const firstDate = new Date(`${dates[0]}T00:00:00`);
-            const lastDate = new Date(`${dates[dates.length - 1]}T00:00:00`);
-
-            for (
-                const date = new Date(firstDate);
-                date <= lastDate;
-                date.setDate(date.getDate() + 1)
-            ) {
-                const dateValue = this.toDateValue(date);
-
-                if (!dates.includes(dateValue)) {
-                    disabledDates.push(dateValue);
-                }
+        for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
+            const dateStr = this.toDateValue(d);
+            if (!availableDates.includes(dateStr)) {
+                disabledDates.push(dateStr);
             }
         }
 
         return {
-            // minDate diset minimal tanggal hari ini
-            minDate: dates[0] && dates[0] >= today ? dates[0] : today,
-            maxDate: dates[dates.length - 1] ?? null,
+            minDate,
+            maxDate,
             datesDisabled: disabledDates,
-            dates,
+            dates: availableDates,
         };
     },
 
     getDefaultDateForBarber(dates) {
         if (!dates.length) return "";
-
-        const today = this.toDateValue(new Date());
-
-        return dates.includes(today) ? today : dates[0];
+        const todayStr = this.getTodayString();
+        return dates.includes(todayStr) ? todayStr : dates[0];
     },
 
+    // 4. DIBENAHI: Flowbite Datepicker dengan penanganan status disabled yang ketat
     initDatepicker(element, inline = false) {
         const initialConfig = this.buildDatepickerConfig(this.currentGuest.barber);
 
-        const makeBeforeShowDay = (dates) => (date) => dates.length > 0
-            ? dates.includes(this.toDateValue(date))
-            : false;
+        const makeBeforeShowDay = (availableDates) => (date) => {
+            const dateStr = this.toDateValue(date);
+            const todayStr = this.getTodayString();
+            
+            // Tanggal kemarin/lampau ATAU tanggal yang tidak ada di jadwal otomatis disabled
+            const isAvailable = dateStr >= todayStr && availableDates.includes(dateStr);
+
+            return {
+                enabled: isAvailable,
+                classes: isAvailable ? '' : 'disabled opacity-30 cursor-not-allowed pointer-events-none'
+            };
+        };
 
         const datepicker = new Datepicker(element, {
             format: 'yyyy-mm-dd',
@@ -129,7 +155,17 @@ export default (
 
         element.addEventListener('changeDate', (event) => {
             const date = event.detail.date;
-            this.currentGuest.date = this.toDateValue(date);
+            const selectedStr = this.toDateValue(date);
+            const config = this.buildDatepickerConfig(this.currentGuest.barber);
+
+            // Validasi keras: cegah pengisian jika user memaksa pilih tanggal tidak valid
+            if (!config.dates.includes(selectedStr) || selectedStr < this.getTodayString()) {
+                this.currentGuest.date = "";
+                this.currentGuest.time = "";
+                return;
+            }
+
+            this.currentGuest.date = selectedStr;
             this.currentGuest.time = "";
         });
 
@@ -156,16 +192,17 @@ export default (
                 if (this.currentGuest.date) {
                     datepicker.setDate(this.currentGuest.date);
                 } else {
-                    datepicker.setDate();
+                    datepicker.setDate({ clear: true });
                 }
             }
         });
     },
 
     toDateValue(date) {
-        return date instanceof Date
-            ? `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`
-            : date;
+        if (!date) return "";
+        if (typeof date === "string") return date.split("T")[0];
+
+        return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
     },
 
     getSelectedSchedules() {
@@ -191,11 +228,9 @@ export default (
             barber: null,
             date: "",
             time: "",
-
             name: "",
             phone: "",
             notes: "",
-
             selectedHaircut: null,
             selectedChemical: null,
             selectedTreatments: [],
