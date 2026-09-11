@@ -91,26 +91,26 @@
 }
 </style>
 <section id="hero" class="w-full">
-    <div class="flex min-h-[calc(100dvh-4.5rem)] flex-col items-center gap-2 lg:min-h-0 lg:justify-between">
-        <div class="flex min-h-0 w-full flex-1 flex-col gap-3 sm:mt-4 sm:gap-4 lg:flex-row lg:items-center lg:justify-between lg:gap-8">
+    <div class="flex flex-col items-center gap-2 lg:min-h-0 lg:justify-between">
+        <div class="flex min-h-0 w-full flex-col gap-3 sm:mt-4 sm:gap-4 lg:flex-row lg:items-center lg:justify-between lg:gap-8">
             
             <!-- Kolom Kiri: Galeri Foto -->
-            <div class="flex min-h-0 w-full flex-1 flex-col gap-2 sm:gap-4">
+            <div class="flex min-h-0 w-full flex-col gap-2 sm:gap-4">
                 <!-- Foto Atas -->
                 <div class="h-[clamp(9rem,26svh,16rem)] w-full overflow-hidden rounded-xl shadow-sm sm:h-80 sm:aspect-auto md:h-96">
                     <img src="{{ asset('images/hero1.jpg') }}" alt="Barber Cutting Hair" class="h-full w-full object-cover">
                 </div>
         
                 <!-- Foto Bawah -->
-                <div class="grid min-h-0 flex-1 grid-cols-2 gap-2 sm:flex-none sm:gap-4">
-                    <div class="relative min-h-[6rem] w-full overflow-hidden rounded-xl shadow-sm sm:h-48 sm:min-h-0 sm:aspect-auto">
+                <div class="grid h-40 flex-none grid-cols-2 gap-2 sm:h-auto sm:flex-none sm:gap-4">
+                    <div class="relative w-full overflow-hidden rounded-xl shadow-sm sm:h-48 sm:aspect-auto">
                         <img src="{{ asset('images/hero2.jpg') }}" alt="Kref Barber Interior" class="h-full w-full object-cover">
                         <div class="absolute inset-0 flex flex-col items-center justify-center bg-[#A64545]/80 p-2">
                             <img src="{{ asset('images/Logo.svg') }}" alt="Kref Barber Logo" class="h-auto w-16 sm:w-24 object-contain">
                         </div>
                     </div>
         
-                    <div class="min-h-[6rem] w-full overflow-hidden rounded-xl shadow-sm sm:h-48 sm:min-h-0 sm:aspect-auto">
+                    <div class="w-full overflow-hidden rounded-xl shadow-sm sm:h-48 sm:aspect-auto">
                         <img src="{{ asset('images/hero3.jpg') }}" alt="Hair Styling Detail" class="h-full w-full object-cover">
                     </div>
                 </div>
