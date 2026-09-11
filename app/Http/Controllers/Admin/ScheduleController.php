@@ -121,7 +121,8 @@ class ScheduleController extends Controller
         $data = $request->validate([
             'barber_id' => ['required', 'exists:barbers,id'],
             'week' => ['required', 'date_format:Y-m-d'],
-            'slot_time' => ['required', 'date_format:H:i'],
+            'slot_times' => ['required', 'array', 'min:1'],
+            'slot_times.*' => ['required', 'date_format:H:i'],
             'days' => ['required', 'array', 'min:1'],
             'days.*' => ['integer', 'between:0,6'],
             'is_available' => ['required', 'boolean'],
@@ -131,14 +132,18 @@ class ScheduleController extends Controller
 
         DB::transaction(function () use ($data, $weekStart): void {
             foreach ($data['days'] as $day) {
-                Schedule::updateOrCreate(
-                    [
-                        'barber_id' => $data['barber_id'],
-                        'date' => $weekStart->addDays((int) $day)->toDateString(),
-                        'slot_time' => $data['slot_time'],
-                    ],
-                    ['is_available' => $data['is_available']],
-                );
+                $scheduleDate = $weekStart->copy()->addDays((int) $day)->toDateString();
+
+                foreach ($data['slot_times'] as $slotTime) {
+                    Schedule::updateOrCreate(
+                        [
+                            'barber_id' => $data['barber_id'],
+                            'date' => $scheduleDate,
+                            'slot_time' => $slotTime,
+                        ],
+                        ['is_available' => $data['is_available']]
+                    );
+                }
             }
         });
 

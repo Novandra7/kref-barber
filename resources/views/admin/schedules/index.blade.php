@@ -228,31 +228,54 @@
     </div>
 
     <!-- Modal Bulk Schedule Retro -->
-    <div id="bulk-schedule-modal" tabindex="-1" aria-hidden="true" class="fixed inset-0 z-50 hidden h-full w-full items-center justify-center overflow-y-auto bg-gray-900/60 p-4 backdrop-blur-xs">
+    <div id="bulk-schedule-modal" x-data="{ timeSlots: [''] }" tabindex="-1" aria-hidden="true" class="fixed inset-0 z-50 hidden h-full w-full items-center justify-center overflow-y-auto bg-gray-900/60 p-4 backdrop-blur-xs">
         <div class="relative w-full max-w-md">
             <div class="relative rounded-2xl border-2 border-gray-900 bg-[#FAF8F5] p-5 shadow-[6px_6px_0px_0px_rgba(17,24,39,1)]">
                 <div class="flex items-center justify-between border-b-2 border-gray-900 pb-3">
-                    <h3 class="font-league text-2xl font-black uppercase text-gray-900">Bulk set schedule</h3>
-                    <button type="button" data-modal-hide="bulk-schedule-modal" class="rounded-lg border-2 border-gray-900 bg-white px-2 py-0.5 font-black">&times;</button>
+                    <h3 class="font-league text-2xl font-black uppercase text-gray-900">Atur Jadwal Sekaligus</h3>
+                    <button @click="timeSlots = ['']" type="button" data-modal-hide="bulk-schedule-modal" class="rounded-lg border-2 border-gray-900 bg-white px-2 py-0.5 font-black">&times;</button>
                 </div>
+                
+                <!-- Wrapper Alpine.js untuk mengelola dynamic slot time -->
                 <form method="POST" action="{{ route('admin.schedules.bulk') }}" class="mt-4 space-y-4">
                     @csrf
                     <input type="hidden" name="week" value="{{ $weekStart->toDateString() }}">
+                    
                     <div>
-                        <label class="mb-1 block text-xs font-black uppercase text-gray-700">Select Barber</label>
+                        <label class="mb-1 block text-xs font-black uppercase text-gray-700">Pilih Barber</label>
                         <select name="barber_id" required class="block w-full rounded-xl border-2 border-gray-900 bg-white p-2.5 text-xs font-bold text-gray-900 focus:border-brand focus:ring-0">
-                            <option value="">Select barber</option>
+                            <option value="">Pilih barber</option>
                             @foreach ($barbers as $barber)
                                 <option value="{{ $barber->id }}">{{ $barber->name }}</option>
                             @endforeach
                         </select>
                     </div>
+
+                    <!-- Section Dynamic Slot Time -->
                     <div>
-                        <label class="mb-1 block text-xs font-black uppercase text-gray-700">Slot Time</label>
-                        <input type="time" name="slot_time" required class="block w-full rounded-xl border-2 border-gray-900 bg-white p-2.5 text-xs font-bold text-gray-900 focus:border-brand focus:ring-0">
+                        <div class="flex items-center justify-between mb-1">
+                            <label class="block text-xs font-black uppercase text-gray-700">Waktu Slot</label>
+                            <button type="button" @click="timeSlots.push('')" class="flex items-center gap-1 rounded-lg border-2 border-gray-900 bg-brand px-2 py-0.5 text-[10px] font-black uppercase text-white shadow-[1px_1px_0px_0px_rgba(17,24,39,1)] hover:opacity-90">
+                                + Tambah Waktu
+                            </button>
+                        </div>
+
+                        <div class="space-y-2 max-h-36 overflow-y-auto pr-1">
+                            <template x-for="(slot, index) in timeSlots" :key="index">
+                                <div class="flex items-center gap-2">
+                                    <input type="time" name="slot_times[]" required class="block w-full rounded-xl border-2 border-gray-900 bg-white p-2.5 text-xs font-bold text-gray-900 focus:border-brand focus:ring-0" x-model="timeSlots[index]">
+                                    
+                                    <!-- Tombol Hapus Slot (Hanya muncul jika slot lebih dari 1) -->
+                                    <button type="button" x-show="timeSlots.length > 1" @click="timeSlots.splice(index, 1)" class="shrink-0 rounded-xl border-2 border-gray-900 bg-red-500 p-2 text-xs font-black text-white shadow-[1px_1px_0px_0px_rgba(17,24,39,1)] hover:bg-red-600">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"/></svg>
+                                    </button>
+                                </div>
+                            </template>
+                        </div>
                     </div>
+
                     <div>
-                        <label class="mb-1 block text-xs font-black uppercase text-gray-700">Apply Days</label>
+                        <label class="mb-1 block text-xs font-black uppercase text-gray-700">Terapkan Pada Hari</label>
                         <div class="grid grid-cols-2 gap-2 text-xs font-bold">
                             @foreach ($days as $index => $day)
                                 <label class="flex items-center gap-2 rounded-xl border-2 border-gray-900 bg-white p-2 shadow-[1px_1px_0px_0px_rgba(17,24,39,1)]">
@@ -261,8 +284,9 @@
                             @endforeach
                         </div>
                     </div>
+
                     <input type="hidden" name="is_available" value="1">
-                    <button class="w-full rounded-xl border-2 border-gray-900 bg-brand px-4 py-2.5 text-xs font-black uppercase text-white shadow-[2px_2px_0px_0px_rgba(17,24,39,1)] active:shadow-none">Save bulk schedule</button>
+                    <button class="w-full rounded-xl border-2 border-gray-900 bg-brand px-4 py-2.5 text-xs font-black uppercase text-white shadow-[2px_2px_0px_0px_rgba(17,24,39,1)] active:shadow-none">Simpan Jadwal Sekaligus</button>
                 </form>
             </div>
         </div>
