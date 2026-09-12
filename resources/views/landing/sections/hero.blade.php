@@ -111,7 +111,7 @@
                     </div>
         
                     <div class="w-full overflow-hidden rounded-xl shadow-sm sm:h-48 sm:aspect-auto">
-                        <img src="{{ asset('images/hero3.jpg') }}" alt="Hair Styling Detail" class="h-full w-full object-cover">
+                        <img src="{{ asset('images/hero3.png') }}" alt="Hair Styling Detail" class="h-full w-full object-cover">
                     </div>
                 </div>
             </div>
