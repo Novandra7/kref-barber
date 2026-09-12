@@ -12,7 +12,7 @@ class WahaService
 
     public function __construct()
     {
-        $this->baseUrl = config('services.waha.base_url', env('WAHA_BASE_URL', 'http://localhost:3000'));
+        $this->baseUrl = config('services.waha.base_url', env('WAHA_BASE_URL', 'http://waha:3000'));
         $this->session = config('services.waha.session', env('WAHA_SESSION', 'kref'));
         $this->apiKey = config('services.waha.api_key', env('WAHA_API_KEY'));
     }

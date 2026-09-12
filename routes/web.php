@@ -76,7 +76,10 @@ Route::domain('admin.' . config('app.domain', 'kref.test'))->group(function () {
 | 2. Customer Landing Page & Booking Area (kref.test)
 |--------------------------------------------------------------------------
 */
-Route::domain(config('app.domain', 'kref.test'))->group(function () {
+Route::domain('{subdomain?}' . config('app.domain', 'kref.test'))
+    ->where(['subdomain' => '(www\.)?']) // Gunakan array di sini
+    ->group(function () {
+
     // Landing Page
     Route::get('/', [LandingController::class, 'index'])->name('landing');
 
@@ -86,7 +89,7 @@ Route::domain(config('app.domain', 'kref.test'))->group(function () {
     Route::get('/booking/payment/{reference}', [BookingController::class, 'paymentReturn'])->name('booking.payment.return');
     Route::get('/booking/payment/{reference}/status', [BookingController::class, 'paymentStatus'])->name('booking.payment.status');
 
-    // DOKU Test Page (untuk pengujian QRIS)
+    // DOKU Test Page
     Route::get('/testing-payment', [DokuTestController::class, 'index'])->name('doku-test.index');
     Route::post('/testing-payment/generate', [DokuTestController::class, 'generate'])->name('doku-test.generate');
     Route::post('/testing-payment/query', [DokuTestController::class, 'query'])->name('doku-test.query');

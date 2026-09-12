@@ -29,7 +29,7 @@ class AppServiceProvider extends ServiceProvider
         });
 
         if (app()->environment('production')) {
-            URL::forceScheme('http');
+            URL::forceScheme('https');
         }
     }
 }
