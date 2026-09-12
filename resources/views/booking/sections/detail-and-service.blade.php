@@ -1,6 +1,6 @@
 <section aria-labelledby="time-and-barber-title">
 
-    <h1 id="time-and-barber-title" class="sr-only">Detail & Service</h1>
+    <h1 id="time-and-barber-title" class="sr-only">Detail & Layanan</h1>
 
     <!-- Alert Validasi -->
     <div
@@ -12,22 +12,22 @@
         <svg class="size-6 shrink-0 text-red-600" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none">
             <path d="M12 9v4m0 4h.01M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
         </svg>
-        <span>Please complete all required fields and select at least one service before continuing.</span>
+        <span>Harap lengkapi semua kolom yang wajib diisi dan pilih setidaknya satu layanan sebelum melanjutkan.</span>
     </div>
 
     <div class="flex flex-col md:flex-row gap-4">
-        <!-- YOUR DETAILS -->
+        <!-- DETAIL ANDA -->
         <div class="w-full md:w-1/3 rounded-xl bg-base border border-gray-200 p-6">
-            <h2 class="pb-4 text-xl font-montserrat font-bold tracking-tight text-brand">YOUR DETAILS *</h2>
+            <h2 class="pb-4 text-xl font-montserrat font-bold tracking-tight text-brand">DETAIL ANDA *</h2>
             
             <!-- Input Nama -->
             <div class="mb-4">
-                <label for="name" class="mb-2 block text-sm font-semibold text-gray-700">Name</label>
+                <label for="name" class="mb-2 block text-sm font-semibold text-gray-700">Nama Lengkap</label>
                 <input
                     type="text"
                     id="name"
                     class="block w-full rounded-xl border border-gray-200 bg-base px-3 py-2.5 text-sm text-gray-900 placeholder:text-gray-400 focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/20"
-                    placeholder="Kylo Chandra"
+                    placeholder="Contoh: Kylo Chandra"
                     x-model="currentGuest.name"
                     required
                 />
@@ -35,7 +35,7 @@
 
             <!-- Input No. Telepon -->
             <div class="mb-4">
-                <label for="phone-input" class="mb-2 block text-sm font-semibold text-gray-700">Phone Number</label>
+                <label for="phone-input" class="mb-2 block text-sm font-semibold text-gray-700">Nomor Telepon / WhatsApp</label>
                 <div class="flex items-center">
                     <span class="z-10 inline-flex shrink-0 items-center rounded-s-xl border border-e-0 border-gray-200 bg-gray-50 px-3 py-2.5 text-sm font-medium text-gray-900">
                         <svg class="me-2 h-4 w-4 overflow-hidden rounded-full border border-gray-200" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -61,21 +61,21 @@
 
             <!-- Input Catatan -->
             <div class="mb-3">
-                <label for="notes" class="mb-2 block text-sm font-semibold text-gray-700">Notes (Optional)</label>
+                <label for="notes" class="mb-2 block text-sm font-semibold text-gray-700">Catatan Khusus (Opsional)</label>
                 <textarea
                     id="notes"
                     x-model="currentGuest.notes"
                     rows="4"
                     class="block w-full rounded-xl border border-gray-200 bg-base px-3 py-2.5 text-sm text-gray-900 placeholder:text-gray-400 focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/20"
-                    placeholder="Any special request?"
+                    placeholder="Ada permintaan khusus?"
                 ></textarea>
             </div>
         </div>
 
-        <!-- SELECT SERVICE -->
+        <!-- PILIH LAYANAN -->
         <div class="w-full md:w-1/3 rounded-xl bg-base border border-gray-200 p-6">
             <h2 class="pb-4 text-xl font-montserrat font-bold tracking-tight text-brand">
-                SELECT SERVICE *
+                PILIH LAYANAN *
             </h2>
 
             @foreach (collect($services)->groupBy('category') as $category => $categoryServices)
@@ -83,7 +83,7 @@
                     $catSlug = Str::slug($category);
                 @endphp
 
-                <!-- Category Title -->
+                <!-- Judul Kategori -->
                 <h3 class="mb-3 text-md font-semibold text-gray-700 uppercase">
                     {{ $category }}
                 </h3>
@@ -149,12 +149,12 @@
             @endforeach
         </div>
 
-        <!-- YOUR BOOKING SUMMARY -->
+        <!-- RINGKASAN PEMESANAN -->
         <div class="w-full md:w-1/3 rounded-xl bg-base border border-gray-200 p-6">
-            <h2 class="pb-4 text-xl font-montserrat font-bold tracking-tight text-brand">YOUR BOOKING</h2>
+            <h2 class="pb-4 text-xl font-montserrat font-bold tracking-tight text-brand">RINGKASAN PEMESANAN</h2>
             
             <div class="flex flex-col gap-3">
-                <!-- Barber Profile -->
+                <!-- Profil Barber -->
                 <div class="flex items-center gap-5 mb-5">
                     <img 
                         x-show="selectedBarberObj()?.photo_url"
@@ -173,7 +173,7 @@
                     </div>
                 </div>
 
-                <!-- Date -->
+                <!-- Tanggal -->
                 <div class="flex items-center gap-5">
                     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                         <path d="M19 19H5V8H19M16 1V3H8V1H6V3H5C3.89 3 3 3.89 3 5V19C3 19.5304 3.21071 20.0391 3.58579 20.4142C3.96086 20.7893 4.46957 21 5 21H19C19.5304 21 20.0391 20.7893 20.4142 20.4142C20.7893 20.0391 21 19.5304 21 19V5C21 4.46957 20.7893 3.96086 20.4142 3.58579C20.0391 3.21071 19.5304 3 19 3H18V1M17 12H12V17H17V12Z" fill="#C83E3E"/>
@@ -181,7 +181,7 @@
                     <span class="text-sm font-semibold text-gray-900" x-text="formatDate(currentGuest?.date)"></span>
                 </div>
 
-                <!-- Time -->
+                <!-- Waktu -->
                 <div class="flex items-center gap-5">
                     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                         <path d="M12 7V12L15 15M21 12C21 13.1819 20.7672 14.3522 20.3149 15.4442C19.8626 16.5361 19.1997 17.5282 18.364 18.364C17.5282 19.1997 16.5361 19.8626 15.4442 20.3149C14.3522 20.7672 13.1819 21 12 21C10.8181 21 9.64778 20.7672 8.55585 20.3149C7.46392 19.8626 6.47177 19.1997 5.63604 18.364C4.80031 17.5282 4.13738 16.5361 3.68508 15.4442C3.23279 14.3522 3 13.1819 3 12C3 9.61305 3.94821 7.32387 5.63604 5.63604C7.32387 3.94821 9.61305 3 12 3C14.3869 3 16.6761 3.94821 18.364 5.63604C20.0518 7.32387 21 9.61305 21 12Z" stroke="#C83E3E" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
@@ -190,9 +190,9 @@
                 </div>
 
                 <hr class="my-2 border-gray-200">
-                <span class="text-sm font-semibold text-brand">SELECTED SERVICES</span>
+                <span class="text-sm font-semibold text-brand">LAYANAN TERPILIH</span>
                 
-                <!-- Dynamic List Selected Services -->
+                <!-- List Layanan Terpilih Dinamis -->
                 <template x-for="service in selectedServices()" :key="service.name">
                     <div class="flex items-center justify-between">
                         <span class="text-sm font-semibold text-gray-900" x-text="service.name"></span>
@@ -202,7 +202,7 @@
                 
                 <hr class="my-2 border-gray-200">
 
-                <!-- Total Price -->
+                <!-- Total Harga -->
                 <div class="flex items-center justify-between">
                     <span class="text-md font-black text-gray-900">TOTAL</span>
                     <span class="text-md font-semibold text-brand" x-text="formatPrice(selectedServices().reduce((sum, s) => sum + s.price, 0))"></span>
@@ -211,18 +211,18 @@
         </div>
     </div>
 
-    <!-- Navigation Buttons -->
+    <!-- Tombol Navigasi -->
     <div class="flex items-center justify-between mt-4 gap-2">
         <button type="button" class="btn rounded-xl border border-gray-200 hover:bg-gray-100" @click="currentStep = 1">
             <svg class="size-[1.4em]" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <path d="M12 22C6.477 22 2 17.523 2 12C2 6.477 6.477 2 12 2C17.523 2 22 6.477 22 12C22 17.523 17.523 22 12 22Z" stroke="black" stroke-width="2" stroke-linejoin="round"/>
                 <path d="M13.5 16.5L9 12L13.5 7.5" stroke="black" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
             </svg>
-            Back : Barbers & Time
+            Kembali : Barber & Waktu
         </button>
         
         <button type="button" class="btn btn-primary rounded-xl" @click="validateStep2()" onclick="window.scrollTo({ top: 0, behavior: 'smooth' })">
-            Save & Continue
+            Simpan & Lanjutkan
         </button>
     </div>
 </section>

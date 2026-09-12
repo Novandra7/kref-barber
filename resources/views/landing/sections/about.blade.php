@@ -7,7 +7,7 @@
                 </h2>
                 <div class="h-1.5 mt-3 bg-red-500 w-full"></div>
             </div>
-            <p class="w-full md:w-5/6 text-black font-extralight mt-4">
+            <p class="w-full md:w-5/6 text-black font-extralight mt-4 font-dosis text-lg">
                 karena Kref merupakan tempat untuk santai, merasa nyaman, dan keluar dengan rasa yang lebih fresh. Potongan yang rapi, suasana yang nyaman, dan gaya yang sesuai dengan kamu — sesederhana itu.
             </p>
         </div>
