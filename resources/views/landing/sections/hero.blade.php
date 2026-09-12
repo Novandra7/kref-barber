@@ -88,7 +88,7 @@
         padding: 0.5rem 1.125rem;
         font-size: 0.9375rem;
     }
-}
+} 
 </style>
 <section id="hero" class="w-full">
     <div class="flex flex-col items-center gap-2 lg:min-h-0 lg:justify-between">
@@ -98,7 +98,7 @@
             <div class="flex min-h-0 w-full flex-col gap-2 sm:gap-4">
                 <!-- Foto Atas -->
                 <div class="h-[clamp(9rem,26svh,16rem)] w-full overflow-hidden rounded-xl shadow-sm sm:h-80 sm:aspect-auto md:h-96">
-                    <img src="{{ asset('images/hero1.jpg') }}" alt="Barber Cutting Hair" class="h-full w-full object-cover">
+                    <img src="{{ asset('images/hero.jpg') }}" alt="Barber Cutting Hair" class="h-full w-full object-cover">
                 </div>
         
                 <!-- Foto Bawah -->
