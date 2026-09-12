@@ -104,7 +104,7 @@
                 <!-- Foto Bawah -->
                 <div class="grid h-45 flex-none grid-cols-2 gap-2 sm:h-auto sm:flex-none sm:gap-4">
                     <div class="relative w-full overflow-hidden rounded-xl shadow-sm sm:h-48 sm:aspect-auto">
-                        <img src="{{ asset('images/hero2.jpg') }}" alt="Kref Barber Interior" class="h-full w-full object-cover">
+                        <img src="{{ asset('images/hero2.png') }}" alt="Kref Barber Interior" class="h-full w-full object-cover">
                         <div class="absolute inset-0 flex flex-col items-center justify-center bg-[#A64545]/80 p-2">
                             <img src="{{ asset('images/Logo.svg') }}" alt="Kref Barber Logo" class="h-auto w-16 sm:w-24 object-contain">
                         </div>
