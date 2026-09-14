@@ -36,7 +36,7 @@
                     <div class="rounded-xl border-2 border-gray-900 p-3 shadow-[2px_2px_0px_0px_rgba(17,24,39,1)] {{ strtolower($paymentStatus) === 'paid' ? 'bg-emerald-100' : 'bg-amber-100' }}">
                         <p class="text-2xs font-bold uppercase tracking-wider text-gray-700">Payment Status</p>
                         <p class="mt-0.5 text-lg font-black uppercase tracking-wide {{ strtolower($paymentStatus) === 'paid' ? 'text-emerald-900' : 'text-gray-900' }}">
-                            {{ ucfirst($paymentStatus) }}
+                            {{ Str::headline($paymentStatus) }}
                         </p>
                     </div>
                 </div>
@@ -120,10 +120,12 @@
 
                 <!-- Action Buttons -->
                 @php
-                    $allCancelled   = $bookings->every(fn($b) => in_array($b->status, ['cancelled', 'cancel_requested']));
-                    $allRequested   = $bookings->every(fn($b) => $b->status === 'cancel_requested');
-                    $cancelableBookings    = $bookings->filter(fn($b) => !in_array($b->status, ['cancelled', 'cancel_requested']));
-                    $reschedulableBookings = $bookings->filter(fn($b) => $b->status !== 'cancel_requested');
+                    $cancelableBookings    = $bookings->filter(fn($b) => !in_array(strtolower((string)$b->status), ['cancelled', 'cancel_requested']));
+                    $reschedulableBookings = $bookings->filter(fn($b) => !in_array(strtolower((string)$b->status), ['cancelled', 'cancel_requested', 'reschedule_requested']));
+
+                    $allCancelled          = $cancelableBookings->isEmpty();
+                    $allRequested          = $bookings->isNotEmpty() && $bookings->every(fn($b) => strtolower((string)$b->status) === 'cancel_requested');
+                    $hasReschedulable      = $reschedulableBookings->isNotEmpty();
                 @endphp
 
                 <div class="mt-6 flex flex-col items-center justify-between gap-3 sm:flex-row">
@@ -144,12 +146,12 @@
                     @endif
 
                     {{-- Tombol Reschedule --}}
-                    @if ($allRequested)
+                    @if (! $hasReschedulable)
                         <button type="button" disabled
                                 class="w-full flex-1 cursor-not-allowed rounded-xl border-2 border-gray-400 bg-gray-200 px-4 py-3 text-center text-xs font-black uppercase tracking-wider text-gray-500 opacity-80 shadow-none">
                             Reschedule
                         </button>
-                    @elseif ($bookings->count() > 1)
+                    @elseif ($reschedulableBookings->count() > 1)
                         <button data-modal-target="reschedule-modal"
                                 data-modal-toggle="reschedule-modal"
                                 class="w-full flex-1 rounded-xl border-2 border-gray-900 bg-brand px-4 py-3 text-center text-xs font-black uppercase tracking-wider text-white shadow-[2px_2px_0px_0px_rgba(17,24,39,1)] transition-all hover:-translate-x-0.5 hover:-translate-y-0.5 hover:shadow-[4px_4px_0px_0px_rgba(17,24,39,1)] active:translate-x-0.5 active:translate-y-0.5 active:shadow-[1px_1px_0px_0px_rgba(17,24,39,1)]"
@@ -157,7 +159,7 @@
                             Reschedule
                         </button>
                     @else
-                        <a href=""
+                        <a href="{{ route('booking.reschedule', ['reference' => $reschedulableBookings->first()?->id ?? $reference]) }}"
                            class="w-full flex-1 rounded-xl border-2 border-gray-900 bg-brand px-4 py-3 text-center text-xs font-black uppercase tracking-wider text-white shadow-[2px_2px_0px_0px_rgba(17,24,39,1)] transition-all hover:-translate-x-0.5 hover:-translate-y-0.5 hover:shadow-[4px_4px_0px_0px_rgba(17,24,39,1)] active:translate-x-0.5 active:translate-y-0.5 active:shadow-[1px_1px_0px_0px_rgba(17,24,39,1)]">
                             Reschedule
                         </a>
@@ -241,8 +243,8 @@
         </div>
     </div>
 
-    {{-- Modal Reschedule (hanya muncul jika lebih dari 1 booking) --}}
-    @if ($bookings->count() > 1)
+    {{-- Modal Reschedule (hanya muncul jika lebih dari 1 booking yang dapat di-reschedule) --}}
+    @if ($reschedulableBookings->count() > 1)
         <div id="reschedule-modal" tabindex="-1" class="backdrop-blur-xs fixed top-0 right-0 left-0 z-50 hidden h-[calc(100%-1rem)] max-h-full w-full items-center justify-center overflow-y-auto overflow-x-hidden bg-gray-900/50 md:inset-0">
             <div class="relative max-h-full w-full max-w-md p-4">
                 <div class="relative rounded-2xl border-2 border-gray-900 bg-[#FAF8F5] p-4 text-gray-900 shadow-[6px_6px_0px_0px_rgba(17,24,39,1)] md:p-6">
