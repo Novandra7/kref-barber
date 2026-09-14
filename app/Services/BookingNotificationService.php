@@ -14,16 +14,32 @@ class BookingNotificationService
 
     public function bookingCreated(Booking $booking, string $reference, string $paymentUrl): void
     {
+        $booking->loadMissing(['barber']);
+
+        $scheduled = $booking->scheduled_at
+            ? $booking->scheduled_at->format('d M Y, H:i') . ' WIB'
+            : '-';
+
         $message = implode("\n", [
-            'KREF Barber',
+            '💈 *KREF BARBERSHOP*',
+            '_Reservasi Baru Diterima_',
+            '─────────────────────────',
             '',
-            'Booking Anda berhasil dibuat.',
-            'Kode referensi: ' . $reference,
-            'Jadwal: ' . ($booking->scheduled_at?->format('d M Y, H:i') ?? '-'),
-            'Barber: ' . ($booking->barber?->name ?? '-'),
+            'Halo, *' . ($booking->name ?: 'Pelanggan') . '*! 👋',
+            'Terima kasih telah memesan layanan di *KREF Barbershop*. Reservasi Anda telah tercatat dan saat ini *menunggu pembayaran*.',
             '',
-            'Lanjutkan pembayaran melalui link berikut:',
-            $paymentUrl,
+            '📋 *Detail Reservasi:*',
+            '• *Kode Referensi:* `' . $reference . '`',
+            '• *Barber:* ' . ($booking->barber?->name ?? '-'),
+            '• *Jadwal:* ' . $scheduled,
+            '',
+            '💳 *Instruksi Pembayaran:*',
+            'Silakan selesaikan pembayaran Anda melalui tautan resmi berikut:',
+            '👉 ' . $paymentUrl,
+            '',
+            '─────────────────────────',
+            '_Harap selesaikan pembayaran sebelum batas waktu berakhir._',
+            '_Sampai jumpa di kursi barber! ✂️_',
         ]);
 
         $this->send($booking->phone, $message);
@@ -31,15 +47,36 @@ class BookingNotificationService
 
     public function paymentSucceeded(Booking $booking, string $reference, string $detailUrl): void
     {
+        $booking->loadMissing(['barber']);
+
+        $scheduled = $booking->scheduled_at
+            ? $booking->scheduled_at->format('d M Y, H:i') . ' WIB'
+            : '-';
+
+        $totalFormatted = 'Rp ' . number_format((int) $booking->total_amount, 0, ',', '.');
+
         $message = implode("\n", [
-            'KREF Barber',
+            '💈 *KREF BARBERSHOP*',
+            '_Pembayaran Berhasil Dikonfirmasi_',
+            '─────────────────────────',
             '',
-            'Pembayaran booking Anda berhasil.',
-            'Kode referensi: ' . $reference,
-            'Total: Rp ' . number_format((int) $booking->total_amount, 0, ',', '.'),
+            'Halo, *' . ($booking->name ?: 'Pelanggan') . '*! 🎉',
+            'Pembayaran untuk reservasi Anda telah *berhasil diverifikasi*. Slot jadwal Anda resmi terkunci!',
             '',
-            'Lihat detail booking:',
-            $detailUrl,
+            '✅ *Detail Reservasi:*',
+            '• *Kode Referensi:* `' . $reference . '`',
+            '• *Barber:* ' . ($booking->barber?->name ?? '-'),
+            '• *Jadwal:* ' . $scheduled,
+            '• *Total Pembayaran:* *' . $totalFormatted . '*',
+            '• *Status:* *TERKONFIRMASI*',
+            '',
+            '📄 *E-Receipt & Tiket Reservasi:*',
+            'Lihat rincian bukti pembayaran & status reservasi Anda di sini:',
+            '👉 ' . $detailUrl,
+            '',
+            '─────────────────────────',
+            '_Mohon hadir tepat waktu (disarankan 5-10 menit sebelum jadwal)._',
+            '_Terima kasih atas kepercayaan Anda di KREF Barbershop! ✂️_',
         ]);
 
         $this->send($booking->phone, $message);
@@ -53,29 +90,43 @@ class BookingNotificationService
     ): void {
         $booking->loadMissing(['barber']);
 
-        $title = $isPartial
-            ? 'Pengembalian dana sebagian (Partial Refund) untuk booking Anda telah berhasil diproses.'
-            : 'Pengembalian dana (Refund) untuk booking Anda telah berhasil diproses.';
+        $scheduled = $booking->scheduled_at
+            ? $booking->scheduled_at->format('d M Y, H:i') . ' WIB'
+            : '-';
 
-        $lines = [
-            'KREF Barber',
-            '',
-            $title,
-            'Nama: ' . $booking->name,
-            'Nominal Refund: Rp ' . number_format($refundAmount, 0, ',', '.'),
+        $refundFormatted = 'Rp ' . number_format($refundAmount, 0, ',', '.');
+        $statusText = $isPartial ? 'Pengembalian Dana Sebagian (Partial Refund)' : 'Pengembalian Dana (Refund Penuh)';
+
+        $details = [
+            '• *Nama Pelanggan:* ' . ($booking->name ?: '-'),
+            '• *Nominal Refund:* *' . $refundFormatted . '*',
         ];
 
         if ($refundNo) {
-            $lines[] = 'No. Refund: ' . $refundNo;
+            $details[] = '• *No. Refund:* `' . $refundNo . '`';
         }
 
-        $lines[] = 'Jadwal: ' . ($booking->scheduled_at?->format('d M Y, H:i') ?? '-');
-        $lines[] = 'Barber: ' . ($booking->barber?->name ?? '-');
-        $lines[] = '';
-        $lines[] = 'Dana telah dikembalikan ke metode pembayaran awal Anda sesuai ketentuan yang berlaku.';
-        $lines[] = 'Terima kasih telah memilih KREF Barber.';
+        $details[] = '• *Barber:* ' . ($booking->barber?->name ?? '-');
+        $details[] = '• *Jadwal Batal:* ' . $scheduled;
 
-        $message = implode("\n", $lines);
+        $message = implode("\n", [
+            '💈 *KREF BARBERSHOP*',
+            '_Pemberitahuan Pengembalian Dana_',
+            '─────────────────────────',
+            '',
+            'Halo, *' . ($booking->name ?: 'Pelanggan') . '*! 👋',
+            'Permintaan pembatalan booking telah diproses. Berikut rincian *' . $statusText . '* Anda:',
+            '',
+            '💸 *Rincian Refund:*',
+            ...$details,
+            '',
+            'ℹ️ *Informasi Pengembalian:*',
+            'Dana telah dikembalikan ke metode pembayaran awal Anda sesuai ketentuan penyedia pembayaran.',
+            '',
+            '─────────────────────────',
+            '_Terima kasih atas pengertian Anda._',
+            '_Kami siap melayani Anda kembali di kesempatan berikutnya! ✂️_',
+        ]);
 
         $this->send($booking->phone, $message);
     }
