@@ -152,7 +152,7 @@ class DokuWebhookController extends Controller
                 $notifications->paymentSucceeded(
                     $booking,
                     (string) $reference,
-                    route('booking.payment.return', ['reference' => $reference])
+                    route('booking.payment.detail', ['reference' => $reference])
                 );
             }
         }

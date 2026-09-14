@@ -10,7 +10,6 @@ return new class extends Migration
     {
         Schema::create('payments', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('booking_id')->constrained()->cascadeOnDelete();
             $table->unsignedInteger('amount');
             
             // Metode dan Provider
@@ -20,7 +19,7 @@ return new class extends Migration
             
             // Tujuan Pembayaran & Status
             $table->enum('purpose', ['dp', 'full_payment', 'pelunasan', 'walk_in']);
-            $table->enum('status', ['pending', 'paid', 'failed', 'expired', 'cancelled', 'refunded'])->default('pending');
+            $table->enum('status', ['pending', 'paid', 'failed', 'expired', 'cancelled'])->default('pending');
             
             // DOKU Specific Identifiers (Sesuai Spesifikasi DOKU SNAP / API)
             $table->string('partner_reference_no')->unique()->nullable(); // Unique Reference No dari Merchant ke DOKU
@@ -36,6 +35,10 @@ return new class extends Migration
             $table->foreignId('recorded_by')->nullable()->constrained('users')->nullOnDelete();
             
             $table->timestamps();
+
+            // Indexing
+            $table->index('status');
+            $table->index('purpose');
         });
     }
 

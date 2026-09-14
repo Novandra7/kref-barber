@@ -37,7 +37,6 @@ Route::domain('admin.' . config('app.domain', 'kref.test'))->group(function () {
     Route::middleware(['auth', 'admin'])->group(function () {
         // Dashboard
         Route::get('/', [DashboardController::class, 'index'])->name('admin.dashboard');
-        Route::get('/booking/{reference}', [DashboardController::class, 'show'])->name('admin.booking.show');
 
         // Barbers
         Route::resource('barbers', BarberController::class)
@@ -86,8 +85,10 @@ Route::domain('{subdomain?}' . config('app.domain', 'kref.test'))
     // Customer Booking Flow
     Route::get('/booking', [BookingController::class, 'index'])->name('booking.index');
     Route::post('/booking/checkout', [BookingController::class, 'checkout'])->name('booking.checkout');
-    Route::get('/booking/payment/{reference}', [BookingController::class, 'paymentReturn'])->name('booking.payment.return');
+    Route::get('/booking/payment/{reference}', [BookingController::class, 'paymentDetail'])->name('booking.payment.detail');
     Route::get('/booking/payment/{reference}/status', [BookingController::class, 'paymentStatus'])->name('booking.payment.status');
+    Route::post('/booking/cancel/{reference}', [BookingController::class, 'cancel'])->name('booking.cancel');
+    Route::get('/booking/reschedule/{reference}', [BookingController::class, 'reschedule'])->name('booking.reschedule');
 
     // DOKU Test Page
     Route::get('/testing-payment', [DokuTestController::class, 'index'])->name('doku-test.index');

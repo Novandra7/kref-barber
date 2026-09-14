@@ -5,13 +5,13 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Payment extends Model
 {
     use HasFactory;
 
     protected $fillable = [
-        'booking_id',
         'amount',
         'method',
         'provider',
@@ -36,9 +36,18 @@ class Payment extends Model
         ];
     }
 
-    public function booking(): BelongsTo
+    /*
+    |--------------------------------------------------------------------------
+    | Relasi Models
+    |--------------------------------------------------------------------------
+    */
+
+    /**
+     * Satu Payment bisa memiliki banyak Booking
+     */
+    public function bookings(): HasMany
     {
-        return $this->belongsTo(Booking::class);
+        return $this->hasMany(Booking::class);
     }
 
     public function recorder(): BelongsTo

@@ -6,13 +6,14 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-
+use Illuminate\Database\Eloquent\Casts\Attribute;
 class Booking extends Model
 {
     use HasFactory;
 
     protected $fillable = [
         'schedule_id',
+        'payment_id',
         'name',
         'phone',
         'description',
@@ -21,7 +22,6 @@ class Booking extends Model
         'source',
         'payment_type',
         'status',
-        'payment_status',
         'total_amount',
         'outstanding_amount',
         'scheduled_at',
@@ -37,6 +37,12 @@ class Booking extends Model
             'outstanding_amount' => 'integer',
         ];
     }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Relasi Models
+    |--------------------------------------------------------------------------
+    */
 
     public function barber(): BelongsTo
     {
@@ -58,35 +64,64 @@ class Booking extends Model
         return $this->hasMany(BookingItem::class);
     }
 
-    public function payments(): HasMany
+    /**
+     * Booking belongs to satu Payment (FK payment_id ada di tabel bookings)
+     */
+    public function payment(): BelongsTo
     {
-        return $this->hasMany(Payment::class);
+        return $this->belongsTo(Payment::class);
     }
 
-    public function reviews(): HasMany
+    /*
+    |--------------------------------------------------------------------------
+    | Accessors & Helper Methods
+    |--------------------------------------------------------------------------
+    */
+
+    /**
+     * Accessor dinamis untuk mendapatkan status transaksi dari relasi Payment
+     * Memungkinkan pemanggilan $booking->payment_status di Blade
+     */
+    public function getPaymentStatusAttribute(): ?string
     {
-        return $this->hasMany(Review::class);
+        return $this->payment?->status;
     }
-    
+
     public function isPaidFull(): bool
     {
-        return $this->payment_status === 'paid_full';
+        return $this->outstanding_amount === 0;
     }
 
-    // Helper untuk mengecek apakah ada sisa tagihan
     public function hasOutstanding(): bool
     {
         return $this->outstanding_amount > 0;
     }
 
-    // Scope untuk filter berdasarkan status pembayaran
+    public function isCancellationRequested(): bool
+    {
+        return $this->payment?->status === 'cancel_requested';
+    }
+
+    protected function formattedPhone(): Attribute
+    {
+        return Attribute::make(
+            get: fn () => $this->phone ? (str_starts_with($this->phone, '0') ? $this->phone : '0' . $this->phone) : '-'
+        );
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Local Scopes
+    |--------------------------------------------------------------------------
+    */
+
     public function scopePaid($query)
     {
-        return $query->where('payment_status', 'paid_full');
+        return $query->where('outstanding_amount', 0);
     }
 
     public function scopeUnpaid($query)
     {
-        return $query->whereIn('payment_status', ['unpaid', 'partial']);
+        return $query->where('outstanding_amount', '>', 0);
     }
 }

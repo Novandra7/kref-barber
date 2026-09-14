@@ -17,6 +17,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
+use Illuminate\Http\RedirectResponse;
 
 class BookingController extends Controller
 {
@@ -141,7 +142,6 @@ class BookingController extends Controller
                     'source'             => 'online',
                     'payment_type'       => strtolower($data['payment_type']) === 'dp' ? 'dp' : 'full',
                     'status'             => 'pending',
-                    'payment_status'     => 'unpaid',
                     'name'               => $guest['name'],
                     'phone'              => $guest['phone'],
                     'barber_id'          => $barber->id,
@@ -188,7 +188,7 @@ class BookingController extends Controller
             abort_if(! $qrContent, 502, 'DOKU did not return QRIS content.');
 
             // Buat URL default jika DOKU tidak mengembalikan paymentUrl
-            $paymentUrl = $dokuPaymentUrl ?: route('booking.payment.return', ['reference' => $reference]);
+            $paymentUrl = $dokuPaymentUrl ?: route('booking.payment.detail', ['reference' => $reference]);
 
             $remainingAmount = $amount;
             $validityPeriod  = data_get($response, 'additionalInfo.validityPeriod');
@@ -201,8 +201,7 @@ class BookingController extends Controller
             foreach ($bookingPayments as $index => [$booking, $guestTotal]) {
                 $paymentAmount = min($remainingAmount, $guestTotal);
 
-                Payment::create([
-                    'booking_id'          => $booking->id,
+                $payment = Payment::create([
                     'amount'              => $paymentAmount,
                     'method'              => 'qris_doku',
                     'provider'            => 'doku',
@@ -217,6 +216,9 @@ class BookingController extends Controller
                         'partnerReferenceNo' => $reference,
                     ]),
                 ]);
+
+                // Hubungkan booking ke payment yang baru dibuat
+                $booking->update(['payment_id' => $payment->id]);
 
                 $remainingAmount -= $paymentAmount;
             }
@@ -247,7 +249,7 @@ class BookingController extends Controller
      * Halaman redirect setelah user selesai membayar (dipanggil oleh DOKU
      * atau saat user kembali secara manual). Menampilkan status pembayaran.
      */
-    public function paymentReturn(string $reference): View
+    public function paymentDetail(string $reference): View
     {
         $payments = Payment::where('provider', 'doku')
             ->where(function ($query) use ($reference): void {
@@ -265,24 +267,67 @@ class BookingController extends Controller
                 ->where('item_type', 'service')
                 ->orderBy('id'),
         ])
-            ->whereIn('id', $payments->pluck('booking_id'))
+            ->whereIn('payment_id', $payments->pluck('id'))
             ->get();
 
-        // Jika ada minimal satu payment yang sudah "paid", anggap status keseluruhan "paid"
-        $status = $payments->contains(fn (Payment $payment) => $payment->status === 'paid')
+        // 1. Payment Status (dari transaksi DOKU)
+        $paymentStatus = $payments->contains(fn (Payment $payment) => $payment->status === 'paid')
             ? 'paid'
-            : $payments->first()->status;
+            : ($payments->first()->status ?? 'pending');
+
+        // 2. Booking Status (prioritaskan status pembatalan jika salah satu booking cancel)
+        $bookingStatus = $bookings->first()?->status ?? 'pending';
 
         $qrContent = $payments->pluck('qr_content')->filter()->first();
 
         return view('booking.payment-status', [
             'reference'     => $reference,
-            'status'        => $status,
+            'paymentStatus' => $paymentStatus,
+            'bookingStatus' => $bookingStatus,
             'qrContent'     => $qrContent,
             'paymentAmount' => $payments->sum('amount'),
             'bookings'      => $bookings,
             'expiresAt'     => $payments->pluck('expires_at')->filter()->first(),
         ]);
+    }
+
+    /**
+     * Mengajukan pembatalan booking (Menunggu Approval Admin).
+     */
+    public function cancel(Request $request, string $reference): RedirectResponse
+    {
+        $booking = Booking::with('payment')->find($request->input('booking_id'));
+        $payment = $booking?->payment;
+
+        $validReference = $payment && (
+            $payment->partner_reference_no === $reference ||
+            data_get($payment->provider_payload, 'partnerReferenceNo') === $reference
+        );
+
+        if (! $booking || ! $validReference) {
+            return $this->cancelFailed($reference, $booking ? 'Booking tidak terkait dengan transaksi ini.': 'Booking tidak ditemukan.');
+        }
+
+        if (in_array($booking->status, ['cancelled', 'cancel_requested'], true)) {
+            return $this->cancelFailed($reference, 'Booking ini sudah dibatalkan atau sedang dalam proses pembatalan.');
+        }
+
+        if ($booking->scheduled_at && ($booking->scheduled_at->isPast() || now()->diffInMinutes($booking->scheduled_at, false) < 180)) {
+            return $this->cancelFailed($reference, 'Pembatalan ditolak. Sudah memasuki batas H-3 jam sebelum jadwal layanan!');
+        }
+
+        $booking->update(['status' => 'cancel_requested']);
+
+        return redirect()
+            ->route('booking.payment.detail', ['reference' => $reference])
+            ->with('success', 'Permintaan pembatalan berhasil dikirim. Menunggu persetujuan admin.');
+    }
+
+    private function cancelFailed(string $reference, string $message): RedirectResponse
+    {
+        return redirect()
+            ->route('booking.payment.detail', ['reference' => $reference])
+            ->with('error', $message);
     }
 
     /**
@@ -305,7 +350,7 @@ class BookingController extends Controller
                 ? 'paid'
                 : $payments->first()->status,
             'payments'  => $payments->map(fn (Payment $payment) => [
-                'booking_id' => $payment->booking_id,
+                'payment_id' => $payment->id,
                 'status'     => $payment->status,
             ]),
         ]);

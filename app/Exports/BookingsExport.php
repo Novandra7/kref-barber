@@ -23,7 +23,7 @@ class BookingsExport implements FromQuery, WithHeadings, WithMapping, ShouldAuto
             ->with([
                 'barber:id,name,role',
                 'items:id,booking_id,item_type,service_name_snapshot,product_name_snapshot,qty,price_snapshot',
-                'payments:id,booking_id,amount,method,status',
+                'payment:id,amount,method,status',
             ])
             ->when($this->filters['search'] ?? null, function (Builder $query, string $search): void {
                 $search = trim($search);
@@ -35,7 +35,7 @@ class BookingsExport implements FromQuery, WithHeadings, WithMapping, ShouldAuto
             })
             ->when($this->filters['barber_id'] ?? null, fn (Builder $query, string $barberId) => $query->where('barber_id', $barberId))
             ->when($this->filters['status'] ?? null, fn (Builder $query, string $status) => $query->where('status', $status))
-            ->when($this->filters['payment_status'] ?? null, fn (Builder $query, string $paymentStatus) => $query->where('payment_status', $paymentStatus))
+            ->when($this->filters['payment_status'] ?? null, fn (Builder $query, string $paymentStatus) => $query->whereHas('payment', fn ($q) => $q->where('status', $paymentStatus)))
             ->when($this->filters['date_from'] ?? null, fn (Builder $query, string $date) => $query->where('scheduled_at', '>=', Carbon::parse($date)->startOfDay()))
             ->when($this->filters['date_to'] ?? null, fn (Builder $query, string $date) => $query->where('scheduled_at', '<=', Carbon::parse($date)->endOfDay()))
             ->latest('scheduled_at');
@@ -84,11 +84,11 @@ class BookingsExport implements FromQuery, WithHeadings, WithMapping, ShouldAuto
             $booking->barber?->role,
             $items,
             $booking->total_amount,
-            $booking->payments->where('status', 'paid')->sum('amount'),
+            $booking->payment && $booking->payment->status === 'paid' ? $booking->payment->amount : 0,
             $booking->outstanding_amount,
             $booking->payment_status,
             $booking->status,
-            $booking->payments->pluck('method')->filter()->unique()->implode(', '),
+            $booking->payment?->method ? strtoupper(str_replace('_', ' ', $booking->payment->method)) : '-',
             $booking->description,
         ];
     }

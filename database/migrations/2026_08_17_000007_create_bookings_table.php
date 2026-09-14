@@ -13,6 +13,7 @@ return new class extends Migration
 
             // Relasi Slot Waktu ke Table Schedules
             $table->foreignId('schedule_id')->constrained()->cascadeOnDelete();
+            $table->foreignId('payment_id')->nullable()->constrained('payments')->nullOnDelete();            
 
             // Identitas Pelanggan (Online Guest maupun Walk-in)
             $table->string('name');
@@ -27,21 +28,13 @@ return new class extends Migration
             $table->enum('source', ['online', 'walk_in']);
             $table->enum('payment_type', ['dp', 'full']);
             $table->enum('status', [
-                'pending',      // Menunggu konfirmasi admin / pembayaran awal
-                'confirmed',    // Jadwal sudah disetujui & slot terkunci
-                'in_progress',  // Customer sedang dicukur
-                'completed',    // Layanan selesai
-                'cancelled',    // Dibatalkan (oleh admin atau customer)
+                'pending',              // Menunggu pembayaran awal/DP via gateway
+                'confirmed',            // DP/Pembayaran berhasil, jadwal terkunci
+                'completed',            // Layanan selesai (pembayaran lunas)
+                'cancel_requested',     // Pelanggan minta pembatalan/refund (Menunggu approval Admin)
+                'reschedule_requested', // Pelanggan minta ubah jadwal (Menunggu approval Admin)
+                'cancelled',            // Booking batal
             ])->default('pending');
-
-            // Status Finansial / Pembayaran
-            $table->enum('payment_status', [
-                'unpaid',       // Belum ada pembayaran
-                'partial',      // DP (Down Payment) sudah diterima
-                'paid_full',    // Lunas 100%
-                'failed',       // Gagal bayar via gateway
-                'expired',      // Batas waktu pembayaran habis
-            ])->default('unpaid');
 
             // Financials
             $table->unsignedBigInteger('total_amount')->default(0); // Total biaya layanan
@@ -56,7 +49,6 @@ return new class extends Migration
             // Indexing
             $table->index(['barber_id', 'scheduled_at']);
             $table->index('status');
-            $table->index('payment_status');
             $table->index('source');
         });
     }
