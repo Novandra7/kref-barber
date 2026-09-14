@@ -127,6 +127,16 @@
                 ⚠️ {{ session('error') }}
             </div>
         @endif
+        @if (session('warning'))
+            <div class="rounded-xl border-2 border-gray-900 bg-amber-100 p-4 text-xs font-bold text-amber-900 shadow-[3px_3px_0px_0px_rgba(17,24,39,1)]">
+                ⚠️ {{ session('warning') }}
+            </div>
+        @endif
+        @if (session('info'))
+            <div class="rounded-xl border-2 border-gray-900 bg-blue-100 p-4 text-xs font-bold text-blue-900 shadow-[3px_3px_0px_0px_rgba(17,24,39,1)]">
+                ℹ️ {{ session('info') }}
+            </div>
+        @endif
 
         <!-- Table Outer Container Retro -->
         <div class="overflow-hidden rounded-2xl border-2 border-gray-900 bg-white shadow-[6px_6px_0px_0px_rgba(17,24,39,1)]">

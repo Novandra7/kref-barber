@@ -184,7 +184,8 @@ class DokuService
         string $originalReferenceNo,
         string $refundPartnerReferenceNo,
         int $refundAmount,
-        string $reason = 'Customer Request'
+        string $reason = 'Customer Request',
+        ?string $approvalCode = null
     ): array {
         $tokenResponse = $this->getB2BToken();
         $accessToken = $tokenResponse['accessToken'] ?? $tokenResponse['access_token'] ?? null;
@@ -206,10 +207,13 @@ class DokuService
                 'currency' => 'IDR',
             ],
             'reason' => $reason,
-            'additionalInfo' => [
-                'approvalCode' => (string) random_int(100000, 999999)
-            ]
         ];
+
+        if (!empty($approvalCode)) {
+            $body['additionalInfo'] = [
+                'approvalCode' => (string) $approvalCode,
+            ];
+        }
 
         $bodyJson = json_encode($body, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
         if ($bodyJson === false) {
