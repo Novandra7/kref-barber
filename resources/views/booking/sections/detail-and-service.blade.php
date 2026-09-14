@@ -5,7 +5,7 @@
     <!-- Alert Validasi -->
     <div
         x-cloak
-        x-show="validationAttempted && (!currentGuest.name || !currentGuest.phone || (!currentGuest.selectedHaircut && !currentGuest.selectedChemical && currentGuest.selectedTreatments.length === 0))"
+        x-show="validationAttempted && (!currentGuest.name || (!isAdditionalGuest() && !currentGuest.phone) || (!currentGuest.selectedHaircut && !currentGuest.selectedChemical && currentGuest.selectedTreatments.length === 0))"
         role="alert"
         class="mb-5 flex items-center gap-3 rounded-xl border-2 border-red-500 bg-red-100 px-4 py-3 text-sm font-bold text-red-800 shadow-sm"
     >
@@ -18,7 +18,7 @@
     <div class="flex flex-col md:flex-row gap-4">
         <!-- DETAIL ANDA -->
         <div class="w-full md:w-1/3 rounded-xl bg-base border border-gray-200 p-6">
-            <h2 class="pb-4 text-xl font-montserrat font-bold tracking-tight text-brand">DETAIL ANDA *</h2>
+            <h2 class="pb-4 text-xl font-montserrat font-bold tracking-tight text-brand" x-text="isAdditionalGuest() ? 'DETAIL TAMU *' : 'DETAIL ANDA *'">DETAIL ANDA *</h2>
             
             <!-- Input Nama -->
             <div class="mb-4">
@@ -35,28 +35,52 @@
 
             <!-- Input No. Telepon -->
             <div class="mb-4">
-                <label for="phone-input" class="mb-2 block text-sm font-semibold text-gray-700">Nomor Telepon / WhatsApp</label>
-                <div class="flex items-center">
-                    <span class="z-10 inline-flex shrink-0 items-center rounded-s-xl border border-e-0 border-gray-200 bg-gray-50 px-3 py-2.5 text-sm font-medium text-gray-900">
-                        <svg class="me-2 h-4 w-4 overflow-hidden rounded-full border border-gray-200" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-                            <rect width="16" height="8" fill="#E70011"/>
-                            <rect y="8" width="16" height="8" fill="#FFFFFF"/>
-                        </svg>
-                        +62
-                    </span>
+                <label for="phone-input" class="mb-2 block text-sm font-semibold text-gray-700">
+                    Nomor Telepon / WhatsApp
+                    <template x-if="isAdditionalGuest()">
+                        <span class="text-xs font-normal text-brand ml-1">(Otomatis mengikuti Tamu 1)</span>
+                    </template>
+                </label>
 
-                    <div class="relative w-full">
-                        <input
-                            type="tel"
-                            id="phone-input"
-                            x-model="currentGuest.phone"
-                            @input="currentGuest.phone = currentGuest.phone.replace(/^0+/, '').replace(/[^0-9]/g, '')"
-                            class="block w-full rounded-e-xl border border-gray-200 bg-base px-3 py-2.5 text-sm text-gray-900 placeholder:text-gray-400 focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/20"
-                            placeholder="81234567890"
-                            required
-                        />
+                <!-- Tampilan jika Tamu Tambahan (Tamu 2 dst): Read-only info box -->
+                <template x-if="isAdditionalGuest()">
+                    <div class="flex items-center justify-between rounded-xl border border-gray-200 bg-gray-50 px-3 py-2.5 text-sm text-gray-700">
+                        <div class="flex items-center">
+                            <span class="inline-flex shrink-0 items-center me-2 text-sm font-medium text-gray-500">
+                                +62
+                            </span>
+                            <span class="font-medium text-gray-900" x-text="getPrimaryPhone() || '-'"></span>
+                        </div>
+                        <span class="inline-flex items-center rounded-md bg-brand/10 px-2 py-0.5 text-xs font-medium text-brand">
+                            Tamu Utama
+                        </span>
                     </div>
-                </div>
+                </template>
+
+                <!-- Tampilan jika Tamu Utama (Tamu 1) -->
+                <template x-if="!isAdditionalGuest()">
+                    <div class="flex items-center">
+                        <span class="z-10 inline-flex shrink-0 items-center rounded-s-xl border border-e-0 border-gray-200 bg-gray-50 px-3 py-2.5 text-sm font-medium text-gray-900">
+                            <svg class="me-2 h-4 w-4 overflow-hidden rounded-full border border-gray-200" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <rect width="16" height="8" fill="#E70011"/>
+                                <rect y="8" width="16" height="8" fill="#FFFFFF"/>
+                            </svg>
+                            +62
+                        </span>
+
+                        <div class="relative w-full">
+                            <input
+                                type="tel"
+                                id="phone-input"
+                                x-model="currentGuest.phone"
+                                @input="currentGuest.phone = currentGuest.phone.replace(/^0+/, '').replace(/[^0-9]/g, '')"
+                                class="block w-full rounded-e-xl border border-gray-200 bg-base px-3 py-2.5 text-sm text-gray-900 placeholder:text-gray-400 focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/20"
+                                placeholder="81234567890"
+                                required
+                            />
+                        </div>
+                    </div>
+                </template>
             </div>
 
             <!-- Input Catatan -->

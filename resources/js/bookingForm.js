@@ -223,13 +223,27 @@ export default (
         );
     },
 
+    isAdditionalGuest() {
+        if (this.editingIndex !== null && this.editingIndex !== undefined) {
+            return this.editingIndex > 0;
+        }
+        return this.guests.length > 0;
+    },
+
+    getPrimaryPhone() {
+        if (this.guests.length > 0 && this.guests[0]?.phone) {
+            return this.guests[0].phone;
+        }
+        return "";
+    },
+
     createGuest() {
         return {
             barber: null,
             date: "",
             time: "",
             name: "",
-            phone: "",
+            phone: this.getPrimaryPhone(),
             notes: "",
             selectedHaircut: null,
             selectedChemical: null,
@@ -267,8 +281,22 @@ export default (
                 ...this.currentGuest,
                 selectedTreatments: [...this.currentGuest.selectedTreatments],
             };
+
+            // Jika mengedit tamu pertama (pemesan utama), sinkronkan nomor telepon ke tamu lainnya
+            if (this.editingIndex === 0) {
+                const primaryPhone = this.currentGuest.phone;
+                for (let i = 1; i < this.guests.length; i++) {
+                    this.guests[i].phone = primaryPhone;
+                }
+            }
+
             this.editingIndex = null;
         } else {
+            // Pastikan tamu tambahan selalu memakai primary phone jika kosong
+            if (this.guests.length > 0 && !this.currentGuest.phone) {
+                this.currentGuest.phone = this.getPrimaryPhone();
+            }
+
             this.guests.push({
                 ...this.currentGuest,
                 selectedTreatments: [...this.currentGuest.selectedTreatments],
@@ -459,13 +487,20 @@ export default (
     },
 
     validateStep2() {
-        if (
-            !this.currentGuest?.name ||
-            !this.currentGuest?.phone ||
-            (!this.currentGuest?.selectedHaircut &&
-                !this.currentGuest?.selectedChemical &&
-                this.currentGuest?.selectedTreatments.length === 0)
-        ) {
+        const isAdditional = this.isAdditionalGuest();
+        if (isAdditional && !this.currentGuest?.phone) {
+            this.currentGuest.phone = this.getPrimaryPhone();
+        }
+
+        const hasName = Boolean(this.currentGuest?.name && this.currentGuest.name.trim());
+        const hasPhone = isAdditional ? true : Boolean(this.currentGuest?.phone && this.currentGuest.phone.trim());
+        const hasService = Boolean(
+            this.currentGuest?.selectedHaircut ||
+            this.currentGuest?.selectedChemical ||
+            (Array.isArray(this.currentGuest?.selectedTreatments) && this.currentGuest.selectedTreatments.length > 0)
+        );
+
+        if (!hasName || !hasPhone || !hasService) {
             this.validationAttempted = true;
             return;
         }

@@ -73,8 +73,9 @@ class BookingController extends Controller
         $data = $request->validate([
             'payment_type'                      => ['required', 'in:DP,Full'],
             'guests'                            => ['required', 'array', 'min:1'],
+            'guests.0.phone'                    => ['required', 'string', 'max:30'],
             'guests.*.name'                     => ['required', 'string', 'max:255'],
-            'guests.*.phone'                    => ['required', 'string', 'max:30'],
+            'guests.*.phone'                    => ['nullable', 'string', 'max:30'],
             'guests.*.barber'                   => ['required'],
             'guests.*.date'                     => ['required', 'date_format:Y-m-d'],
             'guests.*.time'                     => ['required', 'date_format:H:i'],
@@ -91,6 +92,7 @@ class BookingController extends Controller
         $checkout = DB::transaction(function () use ($data, $doku) {
             $bookingPayments = [];
             $totalAmount = 0;
+            $primaryPhone = $data['guests'][0]['phone'] ?? null;
 
             foreach ($data['guests'] as $guest) {
 
@@ -143,7 +145,7 @@ class BookingController extends Controller
                     'payment_type'       => strtolower($data['payment_type']) === 'dp' ? 'dp' : 'full',
                     'status'             => 'pending',
                     'name'               => $guest['name'],
-                    'phone'              => $guest['phone'],
+                    'phone'              => !empty($guest['phone']) ? $guest['phone'] : $primaryPhone,
                     'barber_id'          => $barber->id,
                     'total_amount'       => $guestTotal,
                     'outstanding_amount' => $guestTotal,
