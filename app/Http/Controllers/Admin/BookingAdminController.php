@@ -316,10 +316,7 @@ class BookingAdminController extends Controller
                             $refundNo = 'RFD-' . Str::upper(Str::random(12));
 
                             $originalPartnerRef = $payment->partner_reference_no;
-                            $originalRef = data_get($payment->provider_payload, 'transaction.original_request_id')
-                                ?? data_get($payment->provider_payload, 'transaction.reference_no')
-                                ?? $payment->doku_reference_no
-                                ?? $originalPartnerRef;
+                            $originalRef = $payment->partner_reference_no;
 
                             $approvalCode = data_get($payment->provider_payload, 'emoney_payment.approval_code')
                                 ?? data_get($payment->provider_payload, 'approval_code')

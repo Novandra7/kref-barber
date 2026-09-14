@@ -99,9 +99,7 @@ class DokuWebhookController extends Controller
 
                     $wasPaid = $lockedPayment->status === 'paid';
 
-                    $dokuReference = data_get($payload, 'transaction.original_request_id')
-                        ?? data_get($payload, 'transaction.reference_no')
-                        ?? data_get($payload, 'reference_no')
+                    $dokuReference = data_get($payload, 'referenceNo')
                         ?? $lockedPayment->doku_reference_no;
 
                     $lockedPayment->update([
