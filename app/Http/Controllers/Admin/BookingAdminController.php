@@ -318,10 +318,8 @@ class BookingAdminController extends Controller
                             $originalPartnerRef = $payment->partner_reference_no;
                             $originalRef = $payment->partner_reference_no;
 
-                            $approvalCode = data_get($payment->provider_payload, 'emoney_payment.approval_code')
-                                ?? data_get($payment->provider_payload, 'approval_code')
-                                ?? data_get($payment->provider_payload, 'additionalInfo.approvalCode');
-
+                            $approvalCode = data_get($payment->provider_payload, 'emoney_payment.approval_code');
+                            
                             try {
                                 // Panggil DOKU QRIS Refund API
                                 $refundResponse = $doku->refundQrisPayment(
