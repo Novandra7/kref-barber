@@ -34,7 +34,7 @@ class ScheduleController extends Controller
                     'phone',
                     'payment_type',
                     'status',
-                ])->with(['items' => fn ($query) => $query->select([
+                ])->whereNotIn('status', ['cancelled'])->with(['items' => fn ($query) => $query->select([
                     'id',
                     'booking_id',
                     'item_type',

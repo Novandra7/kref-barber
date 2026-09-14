@@ -305,15 +305,17 @@ class BookingAdminController extends Controller
 
         try {
             DB::transaction(function () use ($booking, $data, $doku, &$isPartialRefund, &$refundNotificationData): void {
-                if ($data['status'] === 'cancelled') {
-                    $booking->load(['payment', 'schedule', 'barber']);
+                // Selalu load relasi yang diperlukan di awal agar data segar dari DB
+                $booking->load(['payment', 'schedule', 'barber']);
 
+                if ($data['status'] === 'cancelled') {
                     $payment = $booking->payment;
 
                     if ($payment) {
+                        // Booking yang masih "aktif" = selain cancelled dan cancel_requested
                         $otherActiveBookings = $payment->bookings()
                             ->where('id', '!=', $booking->id)
-                            ->where('status', '!=', 'cancelled')
+                            ->whereNotIn('status', ['cancelled', 'cancel_requested'])
                             ->exists();
 
                         $newPaymentStatus = $otherActiveBookings ? 'partially_refunded' : 'refunded';
@@ -399,11 +401,12 @@ class BookingAdminController extends Controller
                         }
                     }
 
-                    // Bebaskan slot jadwal barber
+                    // Bebaskan slot jadwal barber milik booking yang dibatalkan
                     if ($booking->schedule) {
                         $booking->schedule->update(['is_available' => true]);
                     }
                 } elseif ($booking->status === 'cancelled') {
+                    // Booking sebelumnya cancelled, di-restore → kunci kembali slot jadwalnya
                     if ($booking->schedule) {
                         $booking->schedule->update(['is_available' => false]);
                     }
