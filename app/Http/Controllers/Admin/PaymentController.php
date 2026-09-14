@@ -11,23 +11,38 @@ use Illuminate\Http\Request;
 
 class PaymentController extends Controller
 {
+    public const STATUS_OPTIONS = [
+        'pending'          => 'Pending',
+        'paid'             => 'Paid',
+        'cancel_requested' => 'Cancel Requested',
+        'refunded'         => 'Refunded',
+        'failed'           => 'Failed',
+        'expired'          => 'Expired',
+        'cancelled'        => 'Cancelled',
+    ];
+
+    public const METHOD_OPTIONS = [
+        'qris_doku'   => 'QRIS (DOKU)',
+        'qris_static' => 'QRIS (Static)',
+        'cash'        => 'Cash',
+    ];
+
+    public const PURPOSE_OPTIONS = [
+        'dp'           => 'Down Payment',
+        'full_payment' => 'Full Payment',
+        'pelunasan'    => 'Pelunasan',
+        'walk_in'      => 'Walk-in',
+    ];
+
     public function index(Request $request): View
     {
-        $request->validate([
-            'date_from' => ['nullable', 'date_format:Y-m-d'],
-            'date_to'   => ['nullable', 'date_format:Y-m-d'],
-        ]);
-
-        if ($request->filled('date_from') && $request->filled('date_to')
-            && $request->input('date_from') > $request->input('date_to')) {
-            $request->merge([
-                'date_from' => $request->input('date_to'),
-                'date_to'   => $request->input('date_from'),
-            ]);
-        }
+        $this->normalizeDateRange($request);
 
         $paymentsQuery = Payment::query()
-            ->with(['booking:id,name,phone,barber_id', 'booking.barber:id,name,role'])
+            ->with([
+                'bookings:id,payment_id,name,phone,barber_id',
+                'bookings.barber:id,name,role',
+            ])
             ->when($request->filled('search'), function (Builder $query) use ($request): void {
                 $search = trim((string) $request->input('search'));
                 $query->where(function (Builder $query) use ($search): void {
@@ -35,7 +50,7 @@ class PaymentController extends Controller
                         ->orWhere('partner_reference_no', 'like', "%{$search}%")
                         ->orWhere('doku_reference_no', 'like', "%{$search}%")
                         ->orWhere('payment_source', 'like', "%{$search}%")
-                        ->orWhereHas('booking', function (Builder $query) use ($search): void {
+                        ->orWhereHas('bookings', function (Builder $query) use ($search): void {
                             $query->where('name', 'like', "%{$search}%")
                                 ->orWhere('phone', 'like', "%{$search}%")
                                 ->orWhere('id', $search);
@@ -71,36 +86,32 @@ class PaymentController extends Controller
             'payments'       => $payments,
             'paymentCount'   => $payments->total(),
             'paidTotal'      => $paidTotal,
-            'currentFilters' => [
-                'search'         => (string) $request->input('search', ''),
-                'method'         => (string) $request->input('method', ''),
-                'payment_source' => (string) $request->input('payment_source', ''),
-                'status'         => (string) $request->input('status', ''),
-                'date_from'      => (string) $request->input('date_from', ''),
-                'date_to'        => (string) $request->input('date_to', ''),
-            ],
-            'methodOptions'  => [
-                'qris_doku'   => 'QRIS (DOKU)',
-                'qris_static' => 'QRIS (Static)',
-                'cash'        => 'Cash',
-            ],
+            'currentFilters' => $request->only(['search', 'method', 'payment_source', 'status', 'date_from', 'date_to']),
+            'methodOptions'  => self::METHOD_OPTIONS,
             'sourceOptions'  => $sourceOptions,
-            'statusOptions'  => [
-                'pending'   => 'Pending',
-                'paid'      => 'Paid',
-                'failed'    => 'Failed',
-                'expired'   => 'Expired',
-                'cancelled' => 'Cancelled',
-                'refunded'  => 'Refunded',
-            ],
-            'purposeOptions' => [
-                'dp'           => 'Down Payment',
-                'full_payment' => 'Full Payment',
-                'pelunasan'    => 'Pelunasan',
-                'walk_in'      => 'Walk-in',
-            ],
+            'statusOptions'  => self::STATUS_OPTIONS,
+            'purposeOptions' => self::PURPOSE_OPTIONS,
             'filterUrl'      => route('admin.payments.index'),
             'resetUrl'       => route('admin.payments.index'),
         ]);
+    }
+
+    /**
+     * Pastikan urutan rentang tanggal valid (date_from <= date_to).
+     */
+    private function normalizeDateRange(Request $request): void
+    {
+        $request->validate([
+            'date_from' => ['nullable', 'date_format:Y-m-d'],
+            'date_to'   => ['nullable', 'date_format:Y-m-d'],
+        ]);
+
+        if ($request->filled('date_from') && $request->filled('date_to')
+            && $request->input('date_from') > $request->input('date_to')) {
+            $request->merge([
+                'date_from' => $request->input('date_to'),
+                'date_to'   => $request->input('date_from'),
+            ]);
+        }
     }
 }

@@ -30,7 +30,7 @@
         </div>
 
         <!-- Filter Form Container Retro -->
-        <form method="GET" action="{{ $filterUrl ?? url()->current() }}" class="rounded-2xl border-2 border-gray-900 bg-white p-5 shadow-[4px_4px_0px_0px_rgba(17,24,39,1)]">
+        <form method="GET" action="{{ route('admin.payments.index') }}" class="rounded-2xl border-2 border-gray-900 bg-white p-5 shadow-[4px_4px_0px_0px_rgba(17,24,39,1)]">
             <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-6">
                 <div class="relative lg:col-span-2">
                     <label for="payment-search" class="sr-only">Search payments</label>
@@ -39,7 +39,7 @@
                             <path stroke="currentColor" stroke-linecap="round" stroke-width="2.5" d="m21 21-4.35-4.35m2.35-5.65a8 8 0 1 1-16 0 8 8 0 0 1 16 0Z"/>
                         </svg>
                     </div>
-                    <input type="search" name="search" id="payment-search" value="{{ $currentFilters['search'] }}"
+                    <input type="search" name="search" id="payment-search" value="{{ $currentFilters['search'] ?? '' }}"
                            placeholder="Search customer, phone, booking ID, or reference"
                            class="block w-full rounded-xl border-2 border-gray-900 py-2.5 ps-10 text-xs font-bold text-gray-900 placeholder:text-gray-400 focus:border-brand focus:ring-0">
                 </div>
@@ -47,14 +47,14 @@
                 <select name="method" class="rounded-xl border-2 border-gray-900 text-xs font-bold text-gray-900 focus:border-brand focus:ring-0">
                     <option value="">All Methods</option>
                     @foreach ($methodOptions as $value => $label)
-                        <option value="{{ $value }}" @selected($currentFilters['method'] === $value)>{{ $label }}</option>
+                        <option value="{{ $value }}" @selected(($currentFilters['method'] ?? '') === $value)>{{ $label }}</option>
                     @endforeach
                 </select>
 
                 <select name="payment_source" class="rounded-xl border-2 border-gray-900 text-xs font-bold text-gray-900 focus:border-brand focus:ring-0">
                     <option value="">All Sources</option>
                     @foreach ($sourceOptions as $value => $label)
-                        <option value="{{ $value }}" @selected($currentFilters['payment_source'] === $value)>
+                        <option value="{{ $value }}" @selected(($currentFilters['payment_source'] ?? '') === $value)>
                             {{ strtoupper($label) }}
                         </option>
                     @endforeach
@@ -63,7 +63,7 @@
                 <select name="status" class="rounded-xl border-2 border-gray-900 text-xs font-bold text-gray-900 focus:border-brand focus:ring-0">
                     <option value="">All Status</option>
                     @foreach ($statusOptions as $value => $label)
-                        <option value="{{ $value }}" @selected($currentFilters['status'] === $value)>{{ $label }}</option>
+                        <option value="{{ $value }}" @selected(($currentFilters['status'] ?? '') === $value)>{{ $label }}</option>
                     @endforeach
                 </select>
 
@@ -74,7 +74,7 @@
                                 <path d="M20 4a2 2 0 0 0-2-2h-2V1a1 1 0 0 0-2 0v1H8V1a1 1 0 0 0-2 0v1H4a2 2 0 0 0-2 2v2h18V4ZM0 18a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V8H0v10Zm5-8h2a1 1 0 0 1 1 1v2a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1v-2a1 1 0 0 1 1-1Z"/>
                             </svg>
                         </div>
-                        <input name="date_from" type="text" data-date-format="yyyy-mm-dd" value="{{ $currentFilters['date_from'] }}" placeholder="Start date" autocomplete="off"
+                        <input name="date_from" type="text" data-date-format="yyyy-mm-dd" value="{{ $currentFilters['date_from'] ?? '' }}" placeholder="Start date" autocomplete="off"
                                class="block w-full rounded-xl border-2 border-gray-900 bg-white p-2.5 ps-10 text-xs font-bold text-gray-900 focus:border-brand focus:ring-0">
                     </div>
                     <span class="text-xs font-black text-gray-500">to</span>
@@ -84,7 +84,7 @@
                                 <path d="M20 4a2 2 0 0 0-2-2h-2V1a1 1 0 0 0-2 0v1H8V1a1 1 0 0 0-2 0v1H4a2 2 0 0 0-2 2v2h18V4ZM0 18a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V8H0v10Zm5-8h2a1 1 0 0 1 1 1v2a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1v-2a1 1 0 0 1 1-1Z"/>
                             </svg>
                         </div>
-                        <input name="date_to" type="text" data-date-format="yyyy-mm-dd" value="{{ $currentFilters['date_to'] }}" placeholder="End date" autocomplete="off"
+                        <input name="date_to" type="text" data-date-format="yyyy-mm-dd" value="{{ $currentFilters['date_to'] ?? '' }}" placeholder="End date" autocomplete="off"
                                class="block w-full rounded-xl border-2 border-gray-900 bg-white p-2.5 ps-10 text-xs font-bold text-gray-900 focus:border-brand focus:ring-0">
                     </div>
                 </div>
@@ -93,7 +93,7 @@
             <div class="mt-4 flex flex-wrap items-center justify-between gap-3 border-t-2 border-dashed border-gray-200 pt-3">
                 <p class="text-[11px] font-semibold text-gray-500">Search by customer name, phone number, booking ID, or payment reference.</p>
                 <div class="flex gap-2">
-                    <a href="{{ $resetUrl ?? url()->current() }}" 
+                    <a href="{{ route('admin.payments.index') }}" 
                        class="inline-flex items-center rounded-xl border-2 border-gray-900 bg-white px-4 py-2 text-xs font-black uppercase text-gray-700 shadow-[3px_3px_0px_0px_rgba(17,24,39,1)] transition-all hover:-translate-x-0.5 hover:-translate-y-0.5 hover:bg-gray-100 hover:shadow-[5px_5px_0px_0px_rgba(17,24,39,1)] active:translate-x-0 active:translate-y-0 active:shadow-none">
                         Reset
                     </a>
@@ -134,9 +134,6 @@
                     </thead>
                     <tbody class="divide-y divide-gray-200">
                         @forelse ($payments as $payment)
-                            @php
-                                $booking = $payment->booking;
-                            @endphp
                             <tr class="bg-white hover:bg-gray-50">
                                 <td class="px-5 py-4 align-top">
                                     <div class="font-mono font-bold text-gray-900">#PAY-{{ $payment->id }}</div>
@@ -147,11 +144,20 @@
                                     @endif
                                 </td>
                                 <td class="px-5 py-4 align-top">
-                                    <div class="font-semibold text-gray-900">
-                                        #BK-{{ $booking->id ?? $payment->booking_id }} · {{ $booking->name ?? '-' }}
-                                    </div>
-                                    <div class="text-xs text-gray-500">{{ $booking->phone ?? '-' }}</div>
-                                    <div class="text-xs text-gray-400">{{ $booking?->barber?->name ?? '-' }}</div>
+                                    @forelse ($payment->bookings as $booking)
+                                        <div class="{{ !$loop->first ? 'mt-2 pt-2 border-t border-dashed border-gray-100' : '' }}">
+                                            <div class="font-semibold text-gray-900">
+                                                <a href="{{ route('admin.bookings.show', $booking) }}" class="hover:text-brand hover:underline">
+                                                    #BK-{{ $booking->id }}
+                                                </a>
+                                                &bull; {{ $booking->name }}
+                                            </div>
+                                            <div class="text-xs text-gray-500">{{ $booking->phone }}</div>
+                                            <div class="text-xs text-gray-400">{{ $booking->barber?->name ?? '-' }}</div>
+                                        </div>
+                                    @empty
+                                        <span class="text-xs text-gray-400">No booking linked</span>
+                                    @endforelse
                                 </td>
                                 <td class="px-5 py-4 align-top">
                                     <div class="font-semibold text-gray-900">{{ $methodOptions[$payment->method] ?? str_replace('_', ' ', ucfirst($payment->method)) }}</div>
@@ -169,7 +175,8 @@
                                     <span class="inline-flex rounded-full px-2.5 py-1 text-xs font-semibold
                                         {{ $payment->status === 'paid' ? 'bg-green-100 text-green-700' : '' }}
                                         {{ $payment->status === 'pending' ? 'bg-amber-100 text-amber-700' : '' }}
-                                        {{ $payment->status === 'refunded' ? 'bg-blue-100 text-blue-700' : '' }}
+                                        {{ $payment->status === 'refunded' ? 'bg-purple-100 text-purple-700' : '' }}
+                                        {{ $payment->status === 'cancel_requested' ? 'bg-orange-100 text-orange-700' : '' }}
                                         {{ in_array($payment->status, ['failed', 'expired', 'cancelled'], true) ? 'bg-red-100 text-red-700' : '' }}">
                                         {{ $statusOptions[$payment->status] ?? str_replace('_', ' ', ucfirst($payment->status)) }}
                                     </span>
