@@ -146,14 +146,17 @@
                                 <td class="px-5 py-4 align-top">
                                     @forelse ($payment->bookings as $booking)
                                         <div class="{{ !$loop->first ? 'mt-2 pt-2 border-t border-dashed border-gray-100' : '' }}">
-                                            <div class="font-semibold text-gray-900">
-                                                <a href="{{ route('admin.bookings.show', $booking) }}" class="hover:text-brand hover:underline">
+                                            <div class="flex items-center gap-1 font-semibold text-gray-900">
+                                                <a href="{{ route('admin.bookings.show', $booking) }}" class="shrink-0 hover:text-brand hover:underline">
                                                     #BK-{{ $booking->id }}
                                                 </a>
-                                                &bull; {{ $booking->name }}
+                                                <span>&bull;</span>
+                                                <span class="truncate block max-w-30" title="{{ $booking->name }}">
+                                                    {{ $booking->name }}
+                                                </span>
                                             </div>
-                                            <div class="text-xs text-gray-500">{{ $booking->phone }}</div>
-                                            <div class="text-xs text-gray-400">{{ $booking->barber?->name ?? '-' }}</div>
+                                            <div class="text-xs text-gray-500">{{ $booking->formatted_phone ?? $booking->phone }}</div>
+                                            <div class="text-xs text-gray-400 truncate max-w-37.5">{{ $booking->barber?->name ?? '-' }}</div>
                                         </div>
                                     @empty
                                         <span class="text-xs text-gray-400">No booking linked</span>
@@ -175,9 +178,9 @@
                                     <span class="inline-flex rounded-full px-2.5 py-1 text-xs font-semibold
                                         {{ $payment->status === 'paid' ? 'bg-green-100 text-green-700' : '' }}
                                         {{ $payment->status === 'pending' ? 'bg-amber-100 text-amber-700' : '' }}
+                                        {{ $payment->status === 'partially_refunded' ? 'bg-indigo-100 text-indigo-700' : '' }}
                                         {{ $payment->status === 'refunded' ? 'bg-purple-100 text-purple-700' : '' }}
-                                        {{ $payment->status === 'cancel_requested' ? 'bg-orange-100 text-orange-700' : '' }}
-                                        {{ in_array($payment->status, ['failed', 'expired', 'cancelled'], true) ? 'bg-red-100 text-red-700' : '' }}">
+                                        {{ in_array($payment->status, ['failed', 'expired'], true) ? 'bg-red-100 text-red-700' : '' }}">
                                         {{ $statusOptions[$payment->status] ?? str_replace('_', ' ', ucfirst($payment->status)) }}
                                     </span>
                                 </td>

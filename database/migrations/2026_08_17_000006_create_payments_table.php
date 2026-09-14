@@ -19,7 +19,7 @@ return new class extends Migration
             
             // Tujuan Pembayaran & Status
             $table->enum('purpose', ['dp', 'full_payment', 'pelunasan', 'walk_in']);
-            $table->enum('status', ['pending', 'paid', 'failed', 'expired', 'cancelled'])->default('pending');
+            $table->enum('status', ['pending', 'paid', 'partially_refunded', 'refunded', 'failed', 'expired'])->default('pending');
             
             // DOKU Specific Identifiers (Sesuai Spesifikasi DOKU SNAP / API)
             $table->string('partner_reference_no')->unique()->nullable(); // Unique Reference No dari Merchant ke DOKU

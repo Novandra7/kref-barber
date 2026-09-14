@@ -117,8 +117,13 @@ class DokuWebhookController extends Controller
                         }
 
                         if ($isPaid) {
+                            $bookingCount = max(1, $bookings->count());
+                            $isDp = $lockedPayment->purpose === 'dp';
+                            $dpPerBooking = $isDp ? (int) round($lockedPayment->amount / $bookingCount) : 0;
+                            $outstanding = $isDp ? max(0, $booking->total_amount - $dpPerBooking) : 0;
+
                             $booking->update([
-                                'outstanding_amount' => max(0, $booking->total_amount - (int) $lockedPayment->amount),
+                                'outstanding_amount' => $outstanding,
                                 'status'             => 'confirmed',
                             ]);
                         } else {

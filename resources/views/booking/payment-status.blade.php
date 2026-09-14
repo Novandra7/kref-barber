@@ -85,7 +85,7 @@
                                     <p class="text-xs font-semibold text-gray-600">
                                         Barber: <span class="text-gray-900">{{ $booking->barber?->name ?? '-' }}</span>
                                     </p>
-                                    <span class="shrink-0 rounded-full border border-gray-900 px-2 py-0.5 text-[10px] font-black uppercase tracking-wider {{ $bookingStatusColor }}">
+                                    <span class="shrink-0 rounded-full border border-gray-900 px-2 py-0.5 text-2xs font-black uppercase tracking-wider {{ $bookingStatusColor }}">
                                         {{ str_replace('_', ' ', $bStatus) }}
                                     </span>
                                 </div>

@@ -12,13 +12,12 @@ use Illuminate\Http\Request;
 class PaymentController extends Controller
 {
     public const STATUS_OPTIONS = [
-        'pending'          => 'Pending',
-        'paid'             => 'Paid',
-        'cancel_requested' => 'Cancel Requested',
-        'refunded'         => 'Refunded',
-        'failed'           => 'Failed',
-        'expired'          => 'Expired',
-        'cancelled'        => 'Cancelled',
+        'pending'            => 'Pending',
+        'paid'               => 'Paid',
+        'partially_refunded' => 'Partially Refunded',
+        'refunded'           => 'Refunded',
+        'failed'             => 'Failed',
+        'expired'            => 'Expired',
     ];
 
     public const METHOD_OPTIONS = [

@@ -169,8 +169,10 @@ class BookingController extends Controller
                 $schedule->update(['is_available' => false]);
             }
 
-            // --- Hitung jumlah yang harus dibayar (DP atau Full) ---
-            $amount = strtolower($data['payment_type']) === 'dp' ? 1000 : $totalAmount;
+            // --- Hitung jumlah yang harus dibayar (DP per tamu atau Full) ---
+            $isDp = strtolower($data['payment_type']) === 'dp';
+            $guestCount = count($bookingPayments);
+            $amount = $isDp ? (1000 * $guestCount) : $totalAmount;
             if ($amount > $totalAmount) {
                 abort(422, 'DP amount cannot exceed the booking total.');
             }
@@ -190,37 +192,31 @@ class BookingController extends Controller
             // Buat URL default jika DOKU tidak mengembalikan paymentUrl
             $paymentUrl = $dokuPaymentUrl ?: route('booking.payment.detail', ['reference' => $reference]);
 
-            $remainingAmount = $amount;
             $validityPeriod  = data_get($response, 'additionalInfo.validityPeriod');
-
             $expiresAt = $validityPeriod
                 ? Carbon::parse($validityPeriod)->setTimezone(config('app.timezone'))
                 : now()->addMinutes(30);
 
-            // --- Distribusikan jumlah pembayaran ke tiap booking tamu ---
-            foreach ($bookingPayments as $index => [$booking, $guestTotal]) {
-                $paymentAmount = min($remainingAmount, $guestTotal);
+            // Buat 1 Payment tunggal yang menaungi seluruh booking tamu
+            $payment = Payment::create([
+                'amount'              => $amount,
+                'method'              => 'qris_doku',
+                'provider'            => 'doku',
+                'purpose'             => $isDp ? 'dp' : 'full_payment',
+                'status'              => 'pending',
+                'partner_reference_no'=> $reference,
+                'doku_reference_no'   => $providerId,
+                'payment_url'         => $paymentUrl,
+                'expires_at'          => $response['validityPeriod'] ?? $expiresAt,
+                'qr_content'          => $qrContent,
+                'provider_payload'    => array_merge($response, [
+                    'partnerReferenceNo' => $reference,
+                ]),
+            ]);
 
-                $payment = Payment::create([
-                    'amount'              => $paymentAmount,
-                    'method'              => 'qris_doku',
-                    'provider'            => 'doku',
-                    'purpose'             => $data['payment_type'] === 'DP' ? 'dp' : 'full_payment',
-                    'status'              => 'pending',
-                    'partner_reference_no'=> $index === 0 ? $reference : null,
-                    'doku_reference_no'   => $providerId,
-                    'payment_url'         => $paymentUrl,
-                    'expires_at'          => $response['validityPeriod'] ?? $expiresAt,
-                    'qr_content'          => $qrContent,
-                    'provider_payload'    => array_merge($response, [
-                        'partnerReferenceNo' => $reference,
-                    ]),
-                ]);
-
-                // Hubungkan booking ke payment yang baru dibuat
+            // Hubungkan semua booking ke payment yang baru dibuat
+            foreach ($bookingPayments as [$booking, $guestTotal]) {
                 $booking->update(['payment_id' => $payment->id]);
-
-                $remainingAmount -= $paymentAmount;
             }
 
             return [

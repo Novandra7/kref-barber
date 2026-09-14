@@ -127,11 +127,6 @@
                 ⚠️ {{ session('error') }}
             </div>
         @endif
-        @if (session('warning'))
-            <div class="rounded-xl border-2 border-gray-900 bg-amber-100 p-4 text-xs font-bold text-amber-900 shadow-[3px_3px_0px_0px_rgba(17,24,39,1)]">
-                ⚠️ {{ session('warning') }}
-            </div>
-        @endif
         @if (session('info'))
             <div class="rounded-xl border-2 border-gray-900 bg-blue-100 p-4 text-xs font-bold text-blue-900 shadow-[3px_3px_0px_0px_rgba(17,24,39,1)]">
                 ℹ️ {{ session('info') }}
@@ -203,9 +198,9 @@
                                     <span class="inline-flex rounded-full px-2.5 py-1 text-xs font-semibold
                                         {{ $paymentStatus === 'paid' ? 'bg-green-100 text-green-700' : '' }}
                                         {{ $paymentStatus === 'pending' ? 'bg-amber-100 text-amber-700' : '' }}
-                                        {{ in_array($paymentStatus, ['failed', 'expired', 'cancelled']) ? 'bg-red-100 text-red-700' : '' }}
-                                        {{ $paymentStatus === 'refunded' ? 'bg-purple-100 text-purple-700' : '' }}
-                                        {{ $paymentStatus === 'cancel_requested' ? 'bg-orange-100 text-orange-700' : '' }}">
+                                        {{ $paymentStatus === 'partially_refunded' ? 'bg-indigo-100 text-indigo-700' : '' }}
+                                        {{ in_array($paymentStatus, ['failed', 'expired']) ? 'bg-red-100 text-red-700' : '' }}
+                                        {{ $paymentStatus === 'refunded' ? 'bg-purple-100 text-purple-700' : '' }}">
                                         {{ $paymentStatusOptions[$paymentStatus] ?? ucfirst(str_replace('_', ' ', $paymentStatus)) }}
                                     </span>
                                 </td>

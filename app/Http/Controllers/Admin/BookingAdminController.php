@@ -16,7 +16,6 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Maatwebsite\Excel\Facades\Excel;
@@ -33,12 +32,12 @@ class BookingAdminController extends Controller
     ];
 
     public const PAYMENT_STATUS_OPTIONS = [
-        'pending'          => 'Pending',
-        'paid'             => 'Paid',
-        'cancel_requested' => 'Cancel Requested',
-        'refunded'         => 'Refunded',
-        'failed'           => 'Failed',
-        'expired'          => 'Expired',
+        'pending'            => 'Pending',
+        'paid'               => 'Paid',
+        'partially_refunded' => 'Partially Refunded',
+        'refunded'           => 'Refunded',
+        'failed'             => 'Failed',
+        'expired'            => 'Expired',
     ];
 
     public function index(Request $request): View
@@ -70,7 +69,7 @@ class BookingAdminController extends Controller
             'search'         => ['nullable', 'string', 'max:255'],
             'barber_id'      => ['nullable', 'integer', 'exists:barbers,id'],
             'status'         => ['nullable', 'in:pending,confirmed,in_progress,completed,cancel_requested,cancelled'],
-            'payment_status' => ['nullable', 'in:pending,paid,cancel_requested,refunded,failed,expired'],
+            'payment_status' => ['nullable', 'in:pending,paid,partially_refunded,refunded,failed,expired'],
             'date_from'      => ['nullable', 'date_format:Y-m-d'],
             'date_to'        => ['nullable', 'date_format:Y-m-d'],
         ]);
@@ -296,71 +295,92 @@ class BookingAdminController extends Controller
             return back()->with('info', 'Booking status is already set to the selected value.');
         }
 
-        $refundResult = [
-            'attempted' => false,
-            'success'   => false,
-            'message'   => null,
-        ];
+        $isPartialRefund = false;
 
         try {
-            DB::transaction(function () use ($booking, $data, $doku, &$refundResult): void {
+            DB::transaction(function () use ($booking, $data, $doku, &$isPartialRefund): void {
                 if ($data['status'] === 'cancelled') {
                     $booking->load(['payment', 'schedule']);
 
                     $payment = $booking->payment;
 
                     if ($payment) {
-                        // Jika pembayaran sudah LUNAS (paid) dan butuh refund otomatis via DOKU
-                        if (in_array($payment->status, ['cancel_requested', 'paid'], true) && $payment->provider === 'doku') {
-                            $refundResult['attempted'] = true;
-                            $refundNo = 'RFD-' . Str::upper(Str::random(12));
+                        $otherActiveBookings = $payment->bookings()
+                            ->where('id', '!=', $booking->id)
+                            ->where('status', '!=', 'cancelled')
+                            ->exists();
 
-                            $originalPartnerRef = $payment->partner_reference_no;
-                            $originalRef = $payment->partner_reference_no;
+                        $newPaymentStatus = $otherActiveBookings ? 'partially_refunded' : 'refunded';
+                        $isPartialRefund = $otherActiveBookings;
 
-                            $approvalCode = data_get($payment->provider_payload, 'emoney_payment.approval_code');
-                            
-                            try {
+                        // 1. Cek riwayat dana yang sudah di-refund sebelumnya
+                        $refundHistory = data_get($payment->provider_payload, 'refund_history', []);
+                        $alreadyRefunded = (int) collect($refundHistory)->sum('amount');
+                        $remainingPaymentAmount = max(0, (int) $payment->amount - $alreadyRefunded);
+
+                        // 2. Tentukan nominal refund sesuai tipe pembayaran (DP dibagi rata vs Full Payment sesuai items)
+                        $isDp = $payment->purpose === 'dp' || strtolower((string) $booking->payment_type) === 'dp';
+
+                        if ($isDp) {
+                            // Down Payment: Dibagi rata sejumlah total booking awal pada transaksi ini
+                            $initialBookingCount = max(1, $payment->bookings()->count());
+                            $dpPerBooking = (int) round($payment->amount / $initialBookingCount);
+
+                            // Jika ini booking terakhir yang dibatalkan, ambil seluruh sisa dana transaksi
+                            $refundAmount = $otherActiveBookings
+                                ? min($remainingPaymentAmount, $dpPerBooking)
+                                : $remainingPaymentAmount;
+                        } else {
+                            // Full Payment: Refund sesuai dengan total biaya booking items dari tamu yang dibatalkan
+                            $bookingCost = (int) $booking->total_amount;
+
+                            $refundAmount = $otherActiveBookings
+                                ? min($remainingPaymentAmount, $bookingCost)
+                                : $remainingPaymentAmount;
+                        }
+                        $refundAmount = max(1, $refundAmount);
+
+                        // Jika pembayaran sudah LUNAS (paid atau partially_refunded) dan butuh refund
+                        if (in_array($payment->status, ['paid', 'partially_refunded'], true)) {
+                            if ($payment->provider === 'doku') {
+                                $refundNo = 'RFD-' . Str::upper(Str::random(12));
+                                $approvalCode = data_get($payment->provider_payload, 'emoney_payment.approval_code');
+
                                 // Panggil DOKU QRIS Refund API
                                 $refundResponse = $doku->refundQrisPayment(
-                                    originalPartnerReferenceNo: $originalPartnerRef,
-                                    originalReferenceNo: $originalRef,
+                                    originalPartnerReferenceNo: $payment->partner_reference_no,
+                                    originalReferenceNo: $payment->doku_reference_no,
                                     refundPartnerReferenceNo: $refundNo,
-                                    refundAmount: (int) $payment->amount,
-                                    reason: 'Admin Approved Refund',
-                                    approvalCode: $approvalCode ? (string) $approvalCode : null
+                                    refundAmount: $refundAmount,
+                                    reason: $otherActiveBookings ? 'Admin Approved Partial Refund' : 'Admin Approved Refund',
+                                    approvalCode: $approvalCode ? (string) $approvalCode : null,
                                 );
 
-                                // Update status payment menjadi refunded
+                                // Simpan histori refund ke provider_payload
+                                $refundHistory = data_get($payment->provider_payload, 'refund_history', []);
+                                $refundHistory[] = [
+                                    'booking_id'      => $booking->id,
+                                    'refund_no'       => $refundNo,
+                                    'amount'          => $refundAmount,
+                                    'refund_response' => $refundResponse,
+                                    'refunded_at'     => now()->toIso8601String(),
+                                ];
+
+                                // Update status payment menjadi partially_refunded atau refunded
                                 $payment->update([
-                                    'status'           => 'refunded',
+                                    'status'           => $newPaymentStatus,
                                     'provider_payload' => array_merge($payment->provider_payload ?? [], [
                                         'refund_response' => $refundResponse,
+                                        'refund_history'  => $refundHistory,
                                     ]),
                                 ]);
-
-                                $refundResult['success'] = true;
-                                $refundResult['message'] = 'Pengembalian dana (refund) DOKU QRIS berhasil diproses otomatis.';
-                            } catch (\Throwable $refundEx) {
-                                Log::warning('DOKU auto-refund failed for Payment ID ' . $payment->id . ': ' . $refundEx->getMessage(), [
-                                    'payment_id' => $payment->id,
-                                    'booking_id' => $booking->id,
-                                    'error'      => $refundEx->getMessage(),
-                                ]);
-
-                                // Tetap batalkan status payment dan simpan catatan error dari DOKU
-                                $payment->update([
-                                    'status'           => 'cancelled',
-                                    'provider_payload' => array_merge($payment->provider_payload ?? [], [
-                                        'refund_error' => $refundEx->getMessage(),
-                                    ]),
-                                ]);
-
-                                $refundResult['success'] = false;
-                                $refundResult['message'] = 'Auto-refund DOKU gagal (' . $refundEx->getMessage() . '). Mohon lakukan refund secara manual kepada pelanggan.';
+                            } else {
+                                $payment->update(['status' => $newPaymentStatus]);
                             }
                         } elseif ($payment->status === 'pending') {
-                            $payment->update(['status' => 'cancelled']);
+                            if (! $otherActiveBookings) {
+                                $payment->update(['status' => 'expired']);
+                            }
                         }
                     }
 
@@ -377,18 +397,14 @@ class BookingAdminController extends Controller
                 $booking->update(['status' => $data['status']]);
             });
         } catch (\Throwable $e) {
-            return back()->with('error', 'Gagal memperbarui status booking: ' . $e->getMessage());
+            return back()->with('error', 'Gagal memproses refund DOKU: ' . $e->getMessage());
         }
 
-        if ($refundResult['attempted']) {
-            if ($refundResult['success']) {
-                return back()->with('success', 'Status booking berhasil dibatalkan dan ' . $refundResult['message']);
-            }
+        $successMessage = $isPartialRefund
+            ? 'Status booking berhasil dibatalkan dan pengembalian dana parsial (partial refund) berhasil diproses.'
+            : 'Status booking dan refund berhasil diproses.';
 
-            return back()->with('warning', 'Status booking berhasil dibatalkan dan slot jadwal dibebaskan. ' . $refundResult['message']);
-        }
-
-        return back()->with('success', 'Status booking berhasil diperbarui.');
+        return back()->with('success', $successMessage);
     }
 
     private function bookingFormData(?Booking $booking = null): array
