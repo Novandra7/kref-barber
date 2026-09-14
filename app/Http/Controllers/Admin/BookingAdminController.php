@@ -9,6 +9,7 @@ use App\Models\Booking;
 use App\Models\Payment;
 use App\Models\Schedule;
 use App\Models\Service;
+use App\Services\BookingNotificationService;
 use App\Services\DokuService;
 use Carbon\Carbon;
 use Illuminate\Contracts\View\View;
@@ -285,8 +286,12 @@ class BookingAdminController extends Controller
     /**
      * Memperbarui status booking & menangani approval pembatalan oleh Admin.
      */
-    public function updateStatus(Request $request, Booking $booking, DokuService $doku): RedirectResponse
-    {
+    public function updateStatus(
+        Request $request,
+        Booking $booking,
+        DokuService $doku,
+        BookingNotificationService $notifications,
+    ): RedirectResponse {
         $data = $request->validate([
             'status' => ['required', 'in:pending,confirmed,in_progress,completed,cancel_requested,reschedule_requested,cancelled'],
         ]);
@@ -296,11 +301,12 @@ class BookingAdminController extends Controller
         }
 
         $isPartialRefund = false;
+        $refundNotificationData = null;
 
         try {
-            DB::transaction(function () use ($booking, $data, $doku, &$isPartialRefund): void {
+            DB::transaction(function () use ($booking, $data, $doku, &$isPartialRefund, &$refundNotificationData): void {
                 if ($data['status'] === 'cancelled') {
-                    $booking->load(['payment', 'schedule']);
+                    $booking->load(['payment', 'schedule', 'barber']);
 
                     $payment = $booking->payment;
 
@@ -342,8 +348,9 @@ class BookingAdminController extends Controller
 
                         // Jika pembayaran sudah LUNAS (paid atau partially_refunded) dan butuh refund
                         if (in_array($payment->status, ['paid', 'partially_refunded'], true)) {
+                            $refundNo = 'RFD-' . Str::upper(Str::random(12));
+
                             if ($payment->provider === 'doku') {
-                                $refundNo = 'RFD-' . Str::upper(Str::random(12));
                                 $approvalCode = data_get($payment->provider_payload, 'emoney_payment.approval_code');
 
                                 // Panggil DOKU QRIS Refund API
@@ -377,6 +384,14 @@ class BookingAdminController extends Controller
                             } else {
                                 $payment->update(['status' => $newPaymentStatus]);
                             }
+
+                            // Siapkan data notifikasi WhatsApp setelah transaksi DB berhasil
+                            $refundNotificationData = [
+                                'booking'      => $booking,
+                                'refundAmount' => $refundAmount,
+                                'refundNo'     => $refundNo,
+                                'isPartial'    => $otherActiveBookings,
+                            ];
                         } elseif ($payment->status === 'pending') {
                             if (! $otherActiveBookings) {
                                 $payment->update(['status' => 'expired']);
@@ -398,6 +413,16 @@ class BookingAdminController extends Controller
             });
         } catch (\Throwable $e) {
             return back()->with('error', 'Gagal memproses refund DOKU: ' . $e->getMessage());
+        }
+
+        // Kirim pesan WhatsApp ke pelanggan jika refund berhasil diproses
+        if ($refundNotificationData) {
+            $notifications->bookingRefunded(
+                booking: $refundNotificationData['booking'],
+                refundAmount: $refundNotificationData['refundAmount'],
+                refundNo: $refundNotificationData['refundNo'],
+                isPartial: $refundNotificationData['isPartial'],
+            );
         }
 
         $successMessage = $isPartialRefund

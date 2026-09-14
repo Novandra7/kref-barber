@@ -45,6 +45,41 @@ class BookingNotificationService
         $this->send($booking->phone, $message);
     }
 
+    public function bookingRefunded(
+        Booking $booking,
+        int $refundAmount,
+        ?string $refundNo = null,
+        bool $isPartial = false,
+    ): void {
+        $booking->loadMissing(['barber']);
+
+        $title = $isPartial
+            ? 'Pengembalian dana sebagian (Partial Refund) untuk booking Anda telah berhasil diproses.'
+            : 'Pengembalian dana (Refund) untuk booking Anda telah berhasil diproses.';
+
+        $lines = [
+            'KREF Barber',
+            '',
+            $title,
+            'Nama: ' . $booking->name,
+            'Nominal Refund: Rp ' . number_format($refundAmount, 0, ',', '.'),
+        ];
+
+        if ($refundNo) {
+            $lines[] = 'No. Refund: ' . $refundNo;
+        }
+
+        $lines[] = 'Jadwal: ' . ($booking->scheduled_at?->format('d M Y, H:i') ?? '-');
+        $lines[] = 'Barber: ' . ($booking->barber?->name ?? '-');
+        $lines[] = '';
+        $lines[] = 'Dana telah dikembalikan ke metode pembayaran awal Anda sesuai ketentuan yang berlaku.';
+        $lines[] = 'Terima kasih telah memilih KREF Barber.';
+
+        $message = implode("\n", $lines);
+
+        $this->send($booking->phone, $message);
+    }
+
     private function send(string $phone, string $message): void
     {
         try {
