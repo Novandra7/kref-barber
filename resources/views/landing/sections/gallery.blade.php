@@ -10,9 +10,9 @@
             <div class="flex flex-col gap-4">
                 <div class="h-48 md:h-52 overflow-hidden rounded-2xl">
                     <img 
-                        src={{ asset("images/hero1.jpg") }}
+                        src={{ asset("images/gallery1.png") }}
                         alt="Barber chair" 
-                        class="w-full h-full object-cover"
+                        class="w-full h-full object-cover object-[50%_75%]"
                     />
                 </div>
 
