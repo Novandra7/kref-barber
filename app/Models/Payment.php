@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class Payment extends Model
 {
@@ -48,6 +49,14 @@ class Payment extends Model
     public function bookings(): HasMany
     {
         return $this->hasMany(Booking::class);
+    }
+
+    /**
+     * Booking utama (pertama) terkait Payment ini (helper backward-compatibility)
+     */
+    public function booking(): HasOne
+    {
+        return $this->hasOne(Booking::class)->oldestOfMany();
     }
 
     public function recorder(): BelongsTo

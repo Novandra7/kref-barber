@@ -66,15 +66,15 @@ class DokuWebhookController extends Controller
         }
 
         // 4. Update Database Aplikasi
-        $payment = Payment::where('provider', 'doku')
+        $payments = Payment::where('provider', 'doku')
             ->where(function ($query) use ($reference): void {
                 $query->where('partner_reference_no', $reference)
                     ->orWhere('doku_reference_no', $reference)
                     ->orWhereJsonContains('provider_payload->partnerReferenceNo', $reference);
             })
-            ->first();
+            ->get();
 
-        if (! $payment) {
+        if ($payments->isEmpty()) {
             Log::error('DOKU webhook payment not found.', ['reference' => $reference]);
 
             return response()->json(['message' => 'Order Not Found'], 404);
@@ -88,44 +88,53 @@ class DokuWebhookController extends Controller
         $shouldNotify = false;
 
         if ($isPaid || $isFailed) {
-            $bookingId = DB::transaction(function () use ($payment, $paymentSource, $payload, $isPaid, &$shouldNotify): ?int {
-                $lockedPayment = Payment::query()->lockForUpdate()->find($payment->id);
-                if (! $lockedPayment) {
-                    return null;
+            $bookingId = DB::transaction(function () use ($payments, $paymentSource, $payload, $isPaid, &$shouldNotify): ?int {
+                $firstBookingId = null;
+
+                foreach ($payments as $payment) {
+                    $lockedPayment = Payment::query()->lockForUpdate()->find($payment->id);
+                    if (! $lockedPayment) {
+                        continue;
+                    }
+
+                    $wasPaid = $lockedPayment->status === 'paid';
+
+                    $lockedPayment->update([
+                        'status'           => $isPaid ? 'paid' : 'failed',
+                        'provider_payload' => $payload,
+                        'payment_source'   => $paymentSource,
+                    ]);
+
+                    $bookings = $lockedPayment->bookings()->lockForUpdate()->get();
+
+                    foreach ($bookings as $booking) {
+                        if (! $firstBookingId) {
+                            $firstBookingId = $booking->id;
+                        }
+
+                        if ($isPaid) {
+                            $booking->update([
+                                'outstanding_amount' => max(0, $booking->total_amount - (int) $lockedPayment->amount),
+                                'status'             => 'confirmed',
+                            ]);
+                        } else {
+                            $booking->update([
+                                'status' => 'cancelled',
+                            ]);
+
+                            // Kalau pembayaran gagal/kedaluwarsa, lepas kembali slot jadwal
+                            if ($booking->schedule) {
+                                $booking->schedule->update(['is_available' => true]);
+                            }
+                        }
+                    }
+
+                    if ($isPaid && ! $wasPaid) {
+                        $shouldNotify = true;
+                    }
                 }
 
-                $wasPaid = $lockedPayment->status === 'paid';
-
-                $lockedPayment->update([
-                    'status' => $isPaid ? 'paid' : 'failed',
-                    'provider_payload' => $payload,
-                    'payment_source' => $paymentSource,
-                ]);
-
-                $booking = $lockedPayment->booking()->lockForUpdate()->first();
-                if (! $booking) {
-                    return null;
-                }
-
-                $paid = $booking->payments()->where('status', 'paid')->sum('amount');
-
-                $booking->update([
-                    'payment_status' => $paid >= $booking->total_amount
-                        ? 'paid_full'
-                        : ($paid > 0 ? 'partial' : 'unpaid'),
-                    'outstanding_amount' => max(0, $booking->total_amount - $paid),
-                    'status' => $paid > 0 ? 'confirmed' : 'cancelled',
-                ]);
-
-                // Kalau pembayaran gagal/kedaluwarsa, lepas kembali slot jadwal
-                // supaya bisa dipesan orang lain.
-                if (! $isPaid) {
-                    $booking->schedule()->update(['is_available' => true]);
-                }
-
-                $shouldNotify = $isPaid && ! $wasPaid;
-
-                return $booking->id;
+                return $firstBookingId;
             });
         }
         Log::info('DOKU Webhook Processed', [
