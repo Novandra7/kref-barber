@@ -206,6 +206,9 @@ class DokuService
                 'currency' => 'IDR',
             ],
             'reason' => $reason,
+            'additionalInfo' => [
+                'approvalCode' => (string) random_int(100000, 999999)
+            ]
         ];
 
         $bodyJson = json_encode($body, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
