@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 class Booking extends Model
 {
@@ -70,6 +71,14 @@ class Booking extends Model
     public function payment(): BelongsTo
     {
         return $this->belongsTo(Payment::class);
+    }
+
+    /**
+     * Satu booking hanya punya satu refund record
+     */
+    public function refund(): HasOne
+    {
+        return $this->hasOne(Refund::class);
     }
 
     /*

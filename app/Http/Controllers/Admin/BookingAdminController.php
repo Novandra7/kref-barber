@@ -7,6 +7,7 @@ use App\Exports\BookingsExport;
 use App\Models\Barber;
 use App\Models\Booking;
 use App\Models\Payment;
+use App\Models\Refund;
 use App\Models\Schedule;
 use App\Models\Service;
 use App\Services\BookingNotificationService;
@@ -301,10 +302,11 @@ class BookingAdminController extends Controller
         }
 
         $isPartialRefund = false;
+        $isManualRefund = false;
         $refundNotificationData = null;
 
         try {
-            DB::transaction(function () use ($booking, $data, $doku, &$isPartialRefund, &$refundNotificationData): void {
+            DB::transaction(function () use ($booking, $data, $doku, &$isPartialRefund, &$refundNotificationData, &$isManualRefund): void {
                 // Selalu load relasi yang diperlukan di awal agar data segar dari DB
                 $booking->load(['payment', 'schedule', 'barber']);
 
@@ -321,9 +323,8 @@ class BookingAdminController extends Controller
                         $newPaymentStatus = $otherActiveBookings ? 'partially_refunded' : 'refunded';
                         $isPartialRefund = $otherActiveBookings;
 
-                        // 1. Cek riwayat dana yang sudah di-refund sebelumnya
-                        $refundHistory = data_get($payment->provider_payload, 'refund_history', []);
-                        $alreadyRefunded = (int) collect($refundHistory)->sum('amount');
+                        // 1. Cek riwayat dana yang sudah di-refund sebelumnya (dari tabel refunds)
+                        $alreadyRefunded = $payment->totalRefunded();
                         $remainingPaymentAmount = max(0, (int) $payment->amount - $alreadyRefunded);
 
                         // 2. Tentukan nominal refund sesuai tipe pembayaran (DP dibagi rata vs Full Payment sesuai items)
@@ -351,8 +352,11 @@ class BookingAdminController extends Controller
                         // Jika pembayaran sudah LUNAS (paid atau partially_refunded) dan butuh refund
                         if (in_array($payment->status, ['paid', 'partially_refunded'], true)) {
                             $refundNo = 'RFD-' . Str::upper(Str::random(12));
+                            $canAutoRefund = $payment->canBeRefundedViaDoku();
+                            $isManualRefund = ! $canAutoRefund;
+                            $refundReason = $otherActiveBookings ? 'Admin Approved Partial Refund' : 'Admin Approved Refund';
 
-                            if ($payment->provider === 'doku') {
+                            if ($canAutoRefund) {
                                 $approvalCode = data_get($payment->provider_payload, 'emoney_payment.approval_code');
 
                                 // Panggil DOKU QRIS Refund API
@@ -361,29 +365,39 @@ class BookingAdminController extends Controller
                                     originalReferenceNo: $payment->doku_reference_no,
                                     refundPartnerReferenceNo: $refundNo,
                                     refundAmount: $refundAmount,
-                                    reason: $otherActiveBookings ? 'Admin Approved Partial Refund' : 'Admin Approved Refund',
+                                    reason: $refundReason,
                                     approvalCode: $approvalCode ? (string) $approvalCode : null,
                                 );
 
-                                // Simpan histori refund ke provider_payload
-                                $refundHistory = data_get($payment->provider_payload, 'refund_history', []);
-                                $refundHistory[] = [
-                                    'booking_id'      => $booking->id,
-                                    'refund_no'       => $refundNo,
-                                    'amount'          => $refundAmount,
-                                    'refund_response' => $refundResponse,
-                                    'refunded_at'     => now()->toIso8601String(),
-                                ];
-
-                                // Update status payment menjadi partially_refunded atau refunded
-                                $payment->update([
-                                    'status'           => $newPaymentStatus,
-                                    'provider_payload' => array_merge($payment->provider_payload ?? [], [
-                                        'refund_response' => $refundResponse,
-                                        'refund_history'  => $refundHistory,
-                                    ]),
+                                // Simpan ke tabel refunds (auto-refund langsung completed)
+                                Refund::create([
+                                    'payment_id'        => $payment->id,
+                                    'booking_id'        => $booking->id,
+                                    'refund_no'         => $refundNo,
+                                    'amount'            => $refundAmount,
+                                    'type'              => 'auto_doku',
+                                    'status'            => 'completed',
+                                    'reason'            => $refundReason,
+                                    'provider_response' => $refundResponse,
+                                    'completed_at'      => now(),
+                                    'recorded_by'       => auth()->id(),
                                 ]);
+
+                                $payment->update(['status' => $newPaymentStatus]);
                             } else {
+                                // Manual Refund: Sumber pembayaran belum didukung oleh DOKU auto-refund API
+                                // Status 'pending' sampai admin konfirmasi transfer manual
+                                Refund::create([
+                                    'payment_id'        => $payment->id,
+                                    'booking_id'        => $booking->id,
+                                    'refund_no'         => $refundNo,
+                                    'amount'            => $refundAmount,
+                                    'type'              => 'manual',
+                                    'status'            => 'pending',
+                                    'reason'            => 'Issuer not supported by DOKU API (' . ($payment->payment_source ?? 'unknown') . ')',
+                                    'recorded_by'       => auth()->id(),
+                                ]);
+
                                 $payment->update(['status' => $newPaymentStatus]);
                             }
 
@@ -393,6 +407,7 @@ class BookingAdminController extends Controller
                                 'refundAmount' => $refundAmount,
                                 'refundNo'     => $refundNo,
                                 'isPartial'    => $otherActiveBookings,
+                                'isManual'     => ! $canAutoRefund,
                             ];
                         } elseif ($payment->status === 'pending') {
                             if (! $otherActiveBookings) {
@@ -425,14 +440,37 @@ class BookingAdminController extends Controller
                 refundAmount: $refundNotificationData['refundAmount'],
                 refundNo: $refundNotificationData['refundNo'],
                 isPartial: $refundNotificationData['isPartial'],
+                isManual: $refundNotificationData['isManual'] ?? false,
             );
         }
 
-        $successMessage = $isPartialRefund
-            ? 'Status booking berhasil dibatalkan dan pengembalian dana parsial (partial refund) berhasil diproses.'
-            : 'Status booking dan refund berhasil diproses.';
+        if ($isManualRefund) {
+            $successMessage = 'Status booking berhasil dibatalkan. Sumber pembayaran ini tidak didukung auto-refund DOKU, pastikan pengembalian dana manual telah/akan ditransfer ke rekening pelanggan.';
+        } else {
+            $successMessage = $isPartialRefund
+                ? 'Status booking berhasil dibatalkan dan pengembalian dana parsial (partial refund) berhasil diproses.'
+                : 'Status booking dan refund berhasil diproses.';
+        }
 
         return back()->with('success', $successMessage);
+    }
+
+    /**
+     * Admin konfirmasi bahwa transfer manual refund sudah dilakukan.
+     */
+    public function confirmManualRefund(Refund $refund): RedirectResponse
+    {
+        if ($refund->type !== 'manual' || $refund->status !== 'pending') {
+            return back()->with('error', 'Refund ini tidak memerlukan konfirmasi manual.');
+        }
+
+        $refund->update([
+            'status'       => 'completed',
+            'completed_at' => now(),
+            'recorded_by'  => auth()->id(),
+        ]);
+
+        return back()->with('success', 'Refund manual berhasil dikonfirmasi. Pengembalian dana telah ditandai selesai.');
     }
 
     private function bookingFormData(?Booking $booking = null): array

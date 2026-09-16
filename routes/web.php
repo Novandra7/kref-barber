@@ -62,6 +62,8 @@ Route::domain('admin.' . config('app.domain', 'kref.test'))->group(function () {
             ->names('admin.bookings');
         Route::patch('bookings/{booking}/status', [BookingAdminController::class, 'updateStatus'])
             ->name('admin.bookings.update-status');
+        Route::patch('refunds/{refund}/confirm', [BookingAdminController::class, 'confirmManualRefund'])
+            ->name('admin.refunds.confirm');
 
         // Payments
         Route::get('/payments', [PaymentController::class, 'index'])->name('admin.payments.index');

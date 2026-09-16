@@ -314,7 +314,44 @@ class BookingController extends Controller
             return $this->cancelFailed($reference, 'Pembatalan ditolak. Sudah memasuki batas H-3 jam sebelum jadwal layanan!');
         }
 
+        $booking->loadMissing(['barber']);
         $booking->update(['status' => 'cancel_requested']);
+
+        // Jika sumber pembayaran belum didukung refund otomatis via DOKU, sediakan link WA Admin
+        $isDokuRefundSupported = $payment?->canBeRefundedViaDoku() ?? false;
+
+        if (! $isDokuRefundSupported) {
+            $adminPhone = config('services.kref.admin_phone', '6283862681541');
+            $adminPhoneFormatted = preg_replace('/\D+/', '', $adminPhone);
+            if (str_starts_with($adminPhoneFormatted, '0')) {
+                $adminPhoneFormatted = '62' . substr($adminPhoneFormatted, 1);
+            }
+
+            $waText = implode("\n", [
+                'Halo Admin KREF Barber, saya mengajukan pembatalan booking (Refund Manual):',
+                '',
+                '• Kode Ref: ' . $reference,
+                '• Nama: ' . $booking->name,
+                '• Jadwal: ' . ($booking->scheduled_at?->format('d M Y, H:i') ?? '-') . ' WIB',
+                '• Barber: ' . ($booking->barber?->name ?? '-'),
+                '• Sumber Pembayaran: ' . ($payment?->payment_source ?: 'QRIS'),
+                '• Nominal: Rp ' . number_format($booking->total_amount, 0, ',', '.'),
+                '',
+                'Berikut rekening/e-wallet saya untuk pengembalian dana:',
+                '• Bank/E-Wallet: ',
+                '• No. Rekening: ',
+                '• Atas Nama: ',
+                '',
+                'Terima kasih!',
+            ]);
+
+            $waUrl = 'https://wa.me/' . $adminPhoneFormatted . '?text=' . urlencode($waText);
+
+            return redirect()
+                ->route('booking.payment.detail', ['reference' => $reference])
+                ->with('success', 'Permintaan pembatalan diajukan. Silakan kirim rincian rekening pengembalian dana ke WhatsApp Admin.')
+                ->with('wa_refund_url', $waUrl);
+        }
 
         return redirect()
             ->route('booking.payment.detail', ['reference' => $reference])

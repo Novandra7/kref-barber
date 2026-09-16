@@ -59,8 +59,55 @@ class Payment extends Model
         return $this->hasOne(Booking::class)->oldestOfMany();
     }
 
+    public function refunds(): HasMany
+    {
+        return $this->hasMany(Refund::class);
+    }
+
     public function recorder(): BelongsTo
     {
         return $this->belongsTo(User::class, 'recorded_by');
+    }
+
+    /**
+     * Total amount yang sudah di-refund (completed) dari tabel refunds
+     */
+    public function totalRefunded(): int
+    {
+        return (int) $this->refunds()->where('status', 'completed')->sum('amount');
+    }
+
+    /**
+     * Sisa amount yang masih bisa di-refund
+     */
+    public function remainingRefundable(): int
+    {
+        return max(0, (int) $this->amount - $this->totalRefunded());
+    }
+
+    /**
+     * Mengecek apakah sumber pembayaran didukung oleh SNAP DOKU QRIS MPM Refund
+     */
+    public function canBeRefundedViaDoku(): bool
+    {
+        if ($this->provider !== 'doku') {
+            return false;
+        }
+
+        $source = strtoupper(preg_replace('/[^a-zA-Z0-9]/', '', (string) $this->payment_source));
+        if (empty($source)) {
+            return false;
+        }
+
+        $supportedIssuers = config('services.doku.supported_refund_issuers');
+
+        foreach ($supportedIssuers as $issuer) {
+            $normalizedIssuer = strtoupper(preg_replace('/[^a-zA-Z0-9]/', '', (string) $issuer));
+            if (!empty($normalizedIssuer) && str_contains($source, $normalizedIssuer)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 }

@@ -39,6 +39,9 @@ return [
         'session'  => env('WAHA_SESSION', 'default'),
         'api_key'  => env('WAHA_API_KEY'),
     ],
+    'kref' => [
+        'admin_phone' => env('KREF_ADMIN_PHONE', '6283862681541'),
+    ],
     'doku' => [
         'base_url' => env('DOKU_BASE_URL', 'https://api-sandbox.doku.com'),
         'client_id' => env('DOKU_CLIENT_ID'),
@@ -48,5 +51,16 @@ return [
         'terminal_id' => env('DOKU_TERMINAL_ID'),
         'webhook_secret' => env('DOKU_WEBHOOK_SECRET'),
         'postal_code' => env('DOKU_POSTAL_CODE', '75121'),
+        'supported_refund_issuers' => [
+            // --- Non-Banks (e-Wallets) ---
+            'ASTRAPAY', 'LINKAJA', 'GOPAY', 'KASPRO', 'OVO', 'SHOPEEPAY', 'AIRPAY', 'BIMASAKTI', 'DANA', 'VIRGO', 
+            'GUDANG VOUCHER', 'BLUEPAY', 'PAYTREN', 'OTTOCASH', 'TMONEY', 'ISAKU', 'DIPAY', 'SALDOMU', 'PAC CASH', 'GDC PAY', 
+            'DUTAMONEY', 'WHIZ', 'EZEELINK', 'FINPAY', 'QOIN', 'NUSAPAY', 'PAKAI DONK', 'YOURPAY', 'JAWARA MOBILE', 'YOOPAY', 'SINGAPAY',
+
+            // --- Banking Institutions ---
+            'BRI', 'DANAMON', 'PERMATA', 'BCA', 'CENTRAL ASIA', 'BCA DIGITAL', 'BCA SYARIAH', 'PAPUA', 'MAYBANK', 'NEO COMMERCE', 'CIMB', 
+            'JATENG', 'SEABANK', 'JAGO', 'BJB', 'ALADIN', 'BPD JATIM', 'MANDIRI TASPEN', 'SMBC', 'JENIUS', 'BENGKULU', 'SULUTGO', 'KROM', 
+            'SINARMAS', 'BPD DIY', 'YOGYAKARTA', 'UOB', 'SUPERBANK',
+        ],
     ],
 ];

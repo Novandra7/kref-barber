@@ -87,6 +87,7 @@ class BookingNotificationService
         int $refundAmount,
         ?string $refundNo = null,
         bool $isPartial = false,
+        bool $isManual = false,
     ): void {
         $booking->loadMissing(['barber']);
 
@@ -95,7 +96,9 @@ class BookingNotificationService
             : '-';
 
         $refundFormatted = 'Rp ' . number_format($refundAmount, 0, ',', '.');
-        $statusText = $isPartial ? 'Pengembalian Dana Sebagian (Partial Refund)' : 'Pengembalian Dana (Refund Penuh)';
+        $statusText = $isPartial
+            ? ($isManual ? 'Pengembalian Dana Sebagian (Manual Refund)' : 'Pengembalian Dana Sebagian (Partial Refund)')
+            : ($isManual ? 'Pengembalian Dana (Manual Refund)' : 'Pengembalian Dana (Refund Penuh)');
 
         $details = [
             '• *Nama Pelanggan:* ' . ($booking->name ?: '-'),
@@ -109,6 +112,10 @@ class BookingNotificationService
         $details[] = '• *Barber:* ' . ($booking->barber?->name ?? '-');
         $details[] = '• *Jadwal Batal:* ' . $scheduled;
 
+        $infoText = $isManual
+            ? 'Dana pengembalian telah/akan ditransfer secara manual oleh Admin KREF Barber ke rekening/e-wallet Anda. Silakan hubungi admin via WhatsApp jika ada kendala.'
+            : 'Dana telah dikembalikan ke metode pembayaran awal Anda sesuai ketentuan penyedia pembayaran.';
+
         $message = implode("\n", [
             '💈 *KREF BARBERSHOP*',
             '_Pemberitahuan Pengembalian Dana_',
@@ -121,7 +128,7 @@ class BookingNotificationService
             ...$details,
             '',
             'ℹ️ *Informasi Pengembalian:*',
-            'Dana telah dikembalikan ke metode pembayaran awal Anda sesuai ketentuan penyedia pembayaran.',
+            $infoText,
             '',
             '─────────────────────────',
             '_Terima kasih atas pengertian Anda._',

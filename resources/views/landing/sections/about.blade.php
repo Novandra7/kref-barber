@@ -12,7 +12,7 @@
             </p>
         </div>
         <div class="w-full md:w-1/3 py-5 md:p-5 md:pr-0 flex items-end justify-center">
-            <img src="{{ asset('images/about.jpg') }}" alt="About Us" class="w-full h-50 md:h-96 object-cover object-[70%_80%] rounded-lg mt-4 md:mt-0 md:ml-6">
+            <img src="{{ asset('images/gallery1.png') }}" alt="About Us" class="w-full h-50 md:h-96 object-cover object-[50%_80%] rounded-lg mt-4 md:mt-0 md:ml-6">
         </div>
     </div>
 </section>
