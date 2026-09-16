@@ -280,28 +280,14 @@ class BookingController extends Controller
 
         $qrContent = $payments->pluck('qr_content')->filter()->first();
 
-        // 3. Ambil slot jadwal masa depan yang tersedia untuk barber terkait (untuk modal reschedule)
+        // 3. Ambil slot jadwal yang tersedia di database untuk barber terkait (untuk modal reschedule)
         $barberIds = $bookings->pluck('barber_id')->unique()->filter();
-        $availableSchedules = Schedule::query()
+        $availableSchedules = Schedule::with('barber')
             ->whereIn('barber_id', $barberIds)
             ->where('is_available', true)
-            ->where(function ($query): void {
-                $query->whereDate('date', '>', now()->toDateString())
-                    ->orWhere(function ($sub): void {
-                        $sub->whereDate('date', now()->toDateString())
-                            ->whereTime('slot_time', '>', now()->format('H:i:s'));
-                    });
-            })
             ->orderBy('date')
             ->orderBy('slot_time')
-            ->get()
-            ->map(fn (Schedule $s) => [
-                'id'        => $s->id,
-                'barber_id' => $s->barber_id,
-                'date'      => $s->date->format('Y-m-d'),
-                'time'      => $s->slot_time->format('H:i'),
-            ])
-            ->values();
+            ->get();
 
         return view('booking.payment-status', [
             'reference'          => $reference,
@@ -340,15 +326,17 @@ class BookingController extends Controller
             return $this->cancelFailed($reference, 'Pembatalan ditolak. Sudah memasuki batas H-3 jam sebelum jadwal layanan!');
         }
 
-        $booking->loadMissing(['barber']);
-        $booking->update(['status' => 'cancel_requested']);
+        DB::transaction(function () use ($booking): void {
+            $booking->update([
+                'status' => 'cancel_requested',
+            ]);
+        });
 
-        // Jika sumber pembayaran belum didukung refund otomatis via DOKU, sediakan link WA Admin
-        $isDokuRefundSupported = $payment?->canBeRefundedViaDoku() ?? false;
+        $adminPhone = config('services.admin.phone');
+        $isManualRefund = ! ($payment?->canBeRefundedViaDoku() ?? false);
 
-        if (! $isDokuRefundSupported) {
-            $adminPhone = config('services.kref.admin_phone', '6283862681541');
-            $adminPhoneFormatted = preg_replace('/\D+/', '', $adminPhone);
+        if ($isManualRefund && $adminPhone) {
+            $adminPhoneFormatted = preg_replace('/[^0-9]/', '', (string) $adminPhone);
             if (str_starts_with($adminPhoneFormatted, '0')) {
                 $adminPhoneFormatted = '62' . substr($adminPhoneFormatted, 1);
             }
@@ -432,11 +420,6 @@ class BookingController extends Controller
 
         if (! $newSchedule) {
             return $this->rescheduleFailed($reference, 'Slot jadwal yang dipilih sudah tidak tersedia. Silakan pilih slot waktu lain.');
-        }
-
-        $newScheduleDateTime = Carbon::parse($newSchedule->date->format('Y-m-d') . ' ' . $newSchedule->slot_time->format('H:i:s'));
-        if ($newScheduleDateTime->isPast()) {
-            return $this->rescheduleFailed($reference, 'Slot jadwal yang dipilih sudah lewat.');
         }
 
         DB::transaction(function () use ($booking, $newSchedule): void {

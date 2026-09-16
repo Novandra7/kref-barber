@@ -22,5 +22,7 @@
 </head>
 <body class="bg-white px-4 md:px-8 lg:px-14 overflow-x-hidden">
     @yield('content')
+
+    @stack('scripts')
 </body>
 </html>
