@@ -215,7 +215,7 @@
 
                 <!-- Tombol Close -->
                 <button type="button"
-                        class="absolute top-3 inset-e-3 inline-flex h-8 w-8 items-center justify-center rounded-lg border-2 border-gray-900 bg-transparent text-sm text-gray-900 shadow-[2px_2px_0px_0px_rgba(17,24,39,1)] transition-all hover:bg-gray-200"
+                        class="absolute top-4 right-4 md:top-6 md:right-6 inline-flex h-8 w-8 items-center justify-center border-2 border-gray-900 bg-white text-gray-900 shadow-[2px_2px_0px_0px_rgba(17,24,39,1)] transition-all hover:bg-gray-100 hover:-translate-x-0.5 hover:-translate-y-0.5 hover:shadow-[3px_3px_0px_0px_rgba(17,24,39,1)] active:translate-x-0.5 active:translate-y-0.5 active:shadow-[1px_1px_0px_0px_rgba(17,24,39,1)] cursor-pointer"
                         data-modal-hide="cancel-modal">
                     <svg class="h-4 w-4" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                         <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18 17.94 6M18 18 6.06 6"/>
@@ -298,22 +298,24 @@
             <div class="relative max-h-full w-full max-w-md p-4">
                 <div class="relative rounded-2xl border-2 border-gray-900 bg-[#FAF8F5] p-4 text-gray-900 shadow-[6px_6px_0px_0px_rgba(17,24,39,1)] md:p-6">
 
-                    <!-- Tombol Close -->
-                    <button type="button"
-                            class="absolute top-3 inset-e-3 inline-flex h-8 w-8 items-center justify-center rounded-lg border-2 border-gray-900 bg-transparent text-sm text-gray-900 shadow-[2px_2px_0px_0px_rgba(17,24,39,1)] transition-all hover:bg-gray-200 cursor-pointer"
-                            data-modal-hide="reschedule-modal">
-                        <svg class="h-4 w-4" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                            <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18 17.94 6M18 18 6.06 6"/>
-                        </svg>
-                        <span class="sr-only">Close modal</span>
-                    </button>
-
                     <!-- Header Modal -->
-                    <div class="flex items-center gap-2 border-b-2 border-dashed border-gray-300 pb-3">
-                        <span class="inline-block rounded-full border border-gray-900 bg-blue-200 px-2.5 py-0.5 text-2xs font-black uppercase tracking-wider text-blue-900">
-                            Jadwal Ulang
-                        </span>
-                        <h3 class="font-montserrat text-lg font-black uppercase text-gray-900">Reschedule Booking</h3>
+                    <div class="flex items-center justify-between gap-3 border-b-2 border-dashed border-gray-300 pb-3">
+                        <div class="flex flex-wrap items-center gap-2">
+                            <span class="inline-block rounded-full border border-gray-900 bg-blue-200 px-2.5 py-0.5 text-2xs font-black uppercase tracking-wider text-blue-900">
+                                Jadwal Ulang
+                            </span>
+                            <h3 class="font-montserrat text-base sm:text-lg font-black uppercase text-gray-900">Reschedule Booking</h3>
+                        </div>
+
+                        <!-- Tombol Close -->
+                        <button type="button"
+                                class="shrink-0 inline-flex h-8 w-8 items-center justify-center border-2 border-gray-900 bg-white text-gray-900 shadow-[2px_2px_0px_0px_rgba(17,24,39,1)] transition-all hover:bg-gray-100 hover:-translate-x-0.5 hover:-translate-y-0.5 hover:shadow-[3px_3px_0px_0px_rgba(17,24,39,1)] active:translate-x-0.5 active:translate-y-0.5 active:shadow-[1px_1px_0px_0px_rgba(17,24,39,1)] cursor-pointer"
+                                data-modal-hide="reschedule-modal">
+                            <svg class="h-4 w-4" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18 17.94 6M18 18 6.06 6"/>
+                            </svg>
+                            <span class="sr-only">Close modal</span>
+                        </button>
                     </div>
 
                     <form method="POST" action="{{ route('booking.reschedule', ['reference' => $reference]) }}" class="mt-4">
