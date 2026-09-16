@@ -13,6 +13,7 @@ return new class extends Migration
 
             // Relasi Slot Waktu ke Table Schedules
             $table->foreignId('schedule_id')->constrained()->cascadeOnDelete();
+            $table->foreignId('requested_schedule_id')->nullable()->constrained('schedules')->nullOnDelete();
             $table->foreignId('payment_id')->nullable()->constrained('payments')->nullOnDelete();            
 
             // Identitas Pelanggan (Online Guest maupun Walk-in)

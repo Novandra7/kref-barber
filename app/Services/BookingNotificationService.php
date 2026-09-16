@@ -17,7 +17,7 @@ class BookingNotificationService
         $booking->loadMissing(['barber']);
 
         $scheduled = $booking->scheduled_at
-            ? $booking->scheduled_at->format('d M Y, H:i') . ' WIB'
+            ? $booking->scheduled_at->format('d M Y, H:i') . ' WITA'
             : '-';
 
         $message = implode("\n", [
@@ -50,7 +50,7 @@ class BookingNotificationService
         $booking->loadMissing(['barber']);
 
         $scheduled = $booking->scheduled_at
-            ? $booking->scheduled_at->format('d M Y, H:i') . ' WIB'
+            ? $booking->scheduled_at->format('d M Y, H:i') . ' WITA'
             : '-';
 
         $totalFormatted = 'Rp ' . number_format((int) $booking->total_amount, 0, ',', '.');
@@ -92,7 +92,7 @@ class BookingNotificationService
         $booking->loadMissing(['barber']);
 
         $scheduled = $booking->scheduled_at
-            ? $booking->scheduled_at->format('d M Y, H:i') . ' WIB'
+            ? $booking->scheduled_at->format('d M Y, H:i') . ' WITA'
             : '-';
 
         $refundFormatted = 'Rp ' . number_format($refundAmount, 0, ',', '.');
@@ -134,6 +134,43 @@ class BookingNotificationService
             '─────────────────────────',
             '_Terima kasih atas pengertian Anda._',
             '_Kami siap melayani Anda kembali di kesempatan berikutnya! ✂️_',
+        ]);
+
+        $this->send($booking->phone, $message);
+    }
+
+    public function bookingRescheduled(
+        Booking $booking,
+        ?\DateTimeInterface $oldScheduledAt = null,
+    ): void {
+        $booking->loadMissing(['barber']);
+
+        $newScheduled = $booking->scheduled_at
+            ? $booking->scheduled_at->format('d M Y, H:i') . ' WITA'
+            : '-';
+
+        $oldScheduled = $oldScheduledAt
+            ? $oldScheduledAt->format('d M Y, H:i') . ' WITA'
+            : '-';
+
+        $message = implode("\n", [
+            '💈 *KREF BARBERSHOP*',
+            '_Perubahan Jadwal Berhasil Dikonfirmasi_',
+            '─────────────────────────',
+            '',
+            'Halo, *' . ($booking->name ?: 'Pelanggan') . '*! 👋',
+            'Permintaan perubahan jadwal (reschedule) Anda telah *disetujui oleh admin*.',
+            '',
+            '🗓️ *Rincian Jadwal Baru:*',
+            '• *Nama Pelanggan:* ' . ($booking->name ?: '-'),
+            '• *Barber:* ' . ($booking->barber?->name ?? '-'),
+            '• *Jadwal Baru:* *' . $newScheduled . '*',
+            '• *Jadwal Sebelumnya:* ~' . $oldScheduled . '~',
+            '• *Status:* *TERKONFIRMASI*',
+            '',
+            '─────────────────────────',
+            '_Mohon hadir tepat waktu (disarankan 5-10 menit sebelum jadwal baru)._',
+            '_Sampai jumpa di kursi barber! ✂️_',
         ]);
 
         $this->send($booking->phone, $message);

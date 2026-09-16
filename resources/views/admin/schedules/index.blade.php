@@ -97,6 +97,18 @@
             </div>
         @endif
 
+        <!-- Drag & Drop Hint Banner Retro -->
+        <div class="rounded-xl border-2 border-dashed border-gray-900 bg-amber-50 p-3 text-xs font-bold text-gray-900 flex items-center justify-between gap-3">
+            <div class="flex items-center gap-2">
+                <span class="flex h-6 w-6 shrink-0 items-center justify-center rounded-lg border border-gray-900 bg-amber-300 font-black text-xs">
+                    💡
+                </span>
+                <span>
+                    <strong>Reschedule Cepat:</strong> Tarik (drag) kotak booking abu-abu ke kolom hari mana pun. Waktu booking akan berpindah otomatis tanpa menimpa jadwal available lainnya (hanya mengisi jika sudah ada slot kosong di jam yang sama).
+                </span>
+            </div>
+        </div>
+
         <!-- Grid Matrix Container Retro -->
         <div class="overflow-hidden rounded-2xl border-2 border-gray-900 bg-white shadow-[6px_6px_0px_0px_rgba(17,24,39,1)]">
             <div class="overflow-x-auto">
@@ -134,7 +146,16 @@
                                         fn ($schedule) => $schedule->date->isSameDay($day)
                                     );
                                 @endphp
-                                <div class="group border-l border-gray-100 p-2">
+                                <div class="day-drop-zone group relative border-l border-gray-100 p-2 transition-all min-h-[110px] rounded-xl"
+                                     data-target-barber-id="{{ $barber->id }}"
+                                     data-target-barber-name="{{ $barber->name }}"
+                                     data-target-date-raw="{{ $day->toDateString() }}"
+                                     data-target-date="{{ $day->format('d M Y') }}"
+                                     data-schedules='@json($daySchedules->values()->map(fn ($s) => [
+                                         "id" => $s->id,
+                                         "time" => $s->slot_time->format("H:i"),
+                                         "is_available" => (bool) $s->is_available
+                                     ]))'>
                                     <div class="space-y-1">
                                         @forelse ($daySchedules as $schedule)
                                             @php
@@ -142,13 +163,13 @@
                                             @endphp
                                             <div class="group/slot relative" x-data="{ tooltipOpen: false }" @click.outside="tooltipOpen = false">
                                                 @if ($schedule->is_available)
-                                                    <div class="flex items-center justify-between gap-1 rounded-lg bg-green-50 px-2 py-1.5 text-xs text-green-700">
+                                                    <div class="flex items-center justify-between gap-1 rounded-lg border-2 border-transparent bg-green-50 px-2 py-1.5 text-xs text-green-700 transition-all">
                                                         <button type="button" data-modal-target="schedule-modal" data-modal-toggle="schedule-modal"
                                                                 data-barber-id="{{ $barber->id }}" data-date="{{ $day->toDateString() }}"
                                                                 data-slot-time="{{ $schedule->slot_time->format('H:i') }}"
                                                                 data-schedule-id="{{ $schedule->id }}"
                                                                 data-update-url="{{ route('admin.schedules.update', $schedule) }}"
-                                                                class="hover:underline">
+                                                                class="hover:underline font-bold">
                                                             {{ $schedule->slot_time->format('H:i') }}
                                                         </button>
                                                         <form method="POST" action="{{ route('admin.schedules.destroy', $schedule) }}" onsubmit="return confirm('Delete this schedule slot?')">
@@ -157,28 +178,51 @@
                                                         </form>
                                                     </div>
                                                 @else
-                                                    <div class="flex items-center justify-between gap-1 rounded-lg bg-gray-100 px-2 py-1.5 text-xs text-gray-500">
-                                                        <span>{{ $schedule->slot_time->format('H:i') }}</span>
-                                                        @if ($booking?->payment_type === 'dp')
-                                                            <button type="button" @click.stop="tooltipOpen = !tooltipOpen" class="rounded-full bg-amber-100 px-2 py-0.5 font-semibold text-amber-700">
-                                                                DP
-                                                            </button>
-                                                        @elseif ($booking?->payment_type === 'full')
-                                                            <button type="button" @click.stop="tooltipOpen = !tooltipOpen" class="rounded-full bg-blue-100 px-2 py-0.5 font-semibold text-blue-700">
-                                                                FULL
-                                                            </button>
-                                                        @else
-                                                            <button type="button" @click.stop="tooltipOpen = !tooltipOpen" class="rounded-full bg-gray-200 px-2 py-0.5 font-semibold text-gray-600">
-                                                                BOOKED
-                                                            </button>
-                                                        @endif
-                                                    </div>
                                                     @if ($booking)
+                                                        <div draggable="true"
+                                                             title="Tarik (drag) ke kolom hari mana pun untuk reschedule"
+                                                             data-booking-id="{{ $booking->id }}"
+                                                             data-customer-name="{{ $booking->name ?? 'Customer' }}"
+                                                             data-customer-phone="0{{ $booking->phone ?? '-' }}"
+                                                             data-source-schedule-id="{{ $schedule->id }}"
+                                                             data-source-barber-id="{{ $barber->id }}"
+                                                             data-source-barber-name="{{ $barber->name }}"
+                                                             data-source-date-raw="{{ $day->toDateString() }}"
+                                                             data-source-date="{{ $day->format('d M Y') }}"
+                                                             data-source-time="{{ $schedule->slot_time->format('H:i') }}"
+                                                             class="booked-drag-item cursor-grab active:cursor-grabbing flex items-center justify-between gap-1 rounded-lg border-2 border-transparent bg-gray-100 hover:border-gray-900 px-2 py-1.5 text-xs text-gray-700 transition-all select-none">
+                                                            
+                                                            <div class="flex items-center gap-1 font-bold text-gray-900">
+                                                                <span class="text-gray-400">⠿</span>
+                                                                <span>{{ $schedule->slot_time->format('H:i') }}</span>
+                                                            </div>
+
+                                                            @if ($booking->payment_type === 'dp')
+                                                                <button type="button" @click.stop="tooltipOpen = !tooltipOpen" class="rounded-full bg-amber-100 px-2 py-0.5 font-semibold text-amber-700">
+                                                                    DP
+                                                                </button>
+                                                            @elseif ($booking->payment_type === 'full')
+                                                                <button type="button" @click.stop="tooltipOpen = !tooltipOpen" class="rounded-full bg-blue-100 px-2 py-0.5 font-semibold text-blue-700">
+                                                                    FULL
+                                                                </button>
+                                                            @else
+                                                                <button type="button" @click.stop="tooltipOpen = !tooltipOpen" class="rounded-full bg-gray-200 px-2 py-0.5 font-semibold text-gray-600">
+                                                                    BOOKED
+                                                                </button>
+                                                            @endif
+                                                        </div>
+
                                                         <div x-show="tooltipOpen" x-cloak
                                                              class="py-3 pointer-events-none absolute bottom-full left-1/2 z-20 hidden w-full -translate-x-1/2 rounded-lg bg-gray-900 text-center text-xs text-white shadow-lg md:block! md:opacity-0 md:group-hover/slot:opacity-100">
                                                             <p class="font-semibold">{{ $booking->name ?? 'Customer' }}</p>
                                                             <p class="mt-1 text-gray-300">0{{ $booking->phone ?? 'Phone unavailable' }}</p>
+                                                            <p class="mt-1 text-2xs text-amber-300">⠿ Drag & drop ke hari lain untuk reschedule</p>
                                                             <span class="absolute left-1/2 top-full -translate-x-1/2 border-4 border-transparent border-t-gray-900"></span>
+                                                        </div>
+                                                    @else
+                                                        <div class="flex items-center justify-between gap-1 rounded-lg bg-gray-100 px-2 py-1.5 text-xs text-gray-500">
+                                                            <span>{{ $schedule->slot_time->format('H:i') }}</span>
+                                                            <span class="rounded-full bg-gray-200 px-2 py-0.5 font-semibold text-gray-600">UNAVAIL</span>
                                                         </div>
                                                     @endif
                                                 @endif
@@ -212,7 +256,7 @@
                     <h3 id="schedule-modal-title" class="font-league text-2xl font-black uppercase text-gray-900">Add schedule slot</h3>
                     <button type="button" data-modal-hide="schedule-modal" class="rounded-lg border-2 border-gray-900 bg-white px-2 py-0.5 font-black">&times;</button>
                 </div>
-                <form method="POST" action="{{ route('admin.schedules.store') }}" id="schedule-form" class="mt-4 space-y-4">
+                <form method="POST" action="{{ route('admin.schedules.store') }}" data-store-url="{{ route('admin.schedules.store') }}" id="schedule-form" class="mt-4 space-y-4">
                     @csrf
                     <input type="hidden" name="_method" id="schedule-form-method" value="">
                     <input type="hidden" name="barber_id" id="schedule-barber-id">
@@ -291,36 +335,108 @@
             </div>
         </div>
     </div>
+
+    <!-- Trigger Modal Drag Reschedule (Hidden) -->
+    <button id="open-drag-modal-btn" type="button" data-modal-target="drag-reschedule-modal" data-modal-toggle="drag-reschedule-modal" class="hidden"></button>
+
+    <!-- Modal Konfirmasi Drag & Drop Reschedule -->
+    <div id="drag-reschedule-modal" tabindex="-1" aria-hidden="true" class="fixed inset-0 z-50 hidden h-full w-full items-center justify-center overflow-y-auto bg-gray-900/60 p-4 backdrop-blur-xs">
+        <div class="relative w-full max-w-lg">
+            <div class="relative rounded-2xl border-2 border-gray-900 bg-[#FAF8F5] p-6 shadow-[6px_6px_0px_0px_rgba(17,24,39,1)]">
+                <!-- Header Modal -->
+                <div class="flex items-center justify-between border-b-2 border-gray-900 pb-3">
+                    <div class="flex items-center gap-2">
+                        <span class="flex h-8 w-8 items-center justify-center rounded-lg border-2 border-gray-900 bg-brand text-white shadow-[2px_2px_0px_0px_rgba(17,24,39,1)]">
+                            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/>
+                            </svg>
+                        </span>
+                        <div>
+                            <h3 class="text-base font-black uppercase tracking-wider text-gray-900">Konfirmasi Reschedule</h3>
+                            <p class="text-[11px] font-bold text-gray-500">Pindahkan pesanan pelanggan ke slot jadwal baru</p>
+                        </div>
+                    </div>
+                    <button type="button" data-modal-hide="drag-reschedule-modal" class="rounded-lg border-2 border-gray-900 bg-white px-2.5 py-1 text-sm font-black hover:bg-gray-100 shadow-[1px_1px_0px_0px_rgba(17,24,39,1)] active:translate-x-0.5 active:translate-y-0.5">&times;</button>
+                </div>
+
+                <form method="POST" action="{{ route('admin.schedules.reschedule-booking') }}" class="mt-5 space-y-4">
+                    @csrf
+                    <input type="hidden" name="booking_id" id="drag-booking-id">
+                    <input type="hidden" name="target_schedule_id" id="drag-target-schedule-id">
+                    <input type="hidden" name="target_barber_id" id="drag-target-barber-id">
+                    <input type="hidden" name="target_date" id="drag-target-date">
+                    <input type="hidden" name="target_time" id="drag-target-time">
+
+                    <!-- Customer Info Box -->
+                    <div class="rounded-xl border-2 border-gray-900 bg-white p-3 shadow-[2px_2px_0px_0px_rgba(17,24,39,1)]">
+                        <span class="text-[10px] font-black uppercase text-gray-400 tracking-wider">Pelanggan</span>
+                        <div class="mt-1 flex items-center justify-between">
+                            <p id="drag-modal-customer-name" class="font-black text-gray-900 text-sm">-</p>
+                            <span id="drag-modal-customer-phone" class="rounded-md border border-gray-900 bg-amber-100 px-2 py-0.5 text-xs font-bold text-gray-900">-</span>
+                        </div>
+                    </div>
+
+                    <!-- From -> To Grid -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3 items-center">
+                        <!-- Dari Jadwal Semula -->
+                        <div class="rounded-xl border-2 border-gray-900 bg-red-50 p-3 shadow-[2px_2px_0px_0px_rgba(17,24,39,1)]">
+                            <div class="flex items-center justify-between mb-1.5">
+                                <span class="text-[10px] font-black uppercase text-red-600 tracking-wider">Jadwal Semula</span>
+                                <span class="rounded bg-red-200 px-1.5 py-0.5 text-[9px] font-black text-red-800 uppercase">Lama</span>
+                            </div>
+                            <p id="drag-modal-source-barber" class="font-bold text-gray-900 text-xs">-</p>
+                            <p id="drag-modal-source-date" class="text-xs text-gray-600 font-semibold mt-0.5">-</p>
+                            <p id="drag-modal-source-time" class="text-xs font-black text-red-700 mt-0.5">-</p>
+                        </div>
+
+                        <!-- Ke Jadwal Baru -->
+                        <div class="rounded-xl border-2 border-gray-900 bg-green-50 p-3 shadow-[2px_2px_0px_0px_rgba(17,24,39,1)]">
+                            <div class="flex items-center justify-between mb-1.5">
+                                <span class="text-[10px] font-black uppercase text-green-700 tracking-wider">Jadwal Baru</span>
+                                <span class="rounded bg-green-200 px-1.5 py-0.5 text-[9px] font-black text-green-800 uppercase">Baru</span>
+                            </div>
+                            <p id="drag-modal-target-barber" class="font-bold text-gray-900 text-xs">-</p>
+                            <p id="drag-modal-target-date" class="text-xs text-gray-600 font-semibold mt-0.5">-</p>
+                            <p id="drag-modal-target-time" class="text-xs font-black text-green-700 mt-0.5">-</p>
+                        </div>
+                    </div>
+
+                    <!-- Dynamic Note Container -->
+                    <div id="drag-modal-note"></div>
+
+                    <!-- Release Old Slot Checkbox -->
+                    <label class="flex items-start gap-3 cursor-pointer rounded-xl border-2 border-gray-900 bg-white p-3 shadow-[2px_2px_0px_0px_rgba(17,24,39,1)] hover:bg-gray-50 transition">
+                        <input type="checkbox" name="release_old_slot" value="1" checked class="mt-0.5 h-4 w-4 rounded border-2 border-gray-900 text-brand focus:ring-0">
+                        <div class="text-xs">
+                            <span class="font-black text-gray-900">Bebaskan Slot Jadwal Lama</span>
+                            <p class="text-gray-500 font-medium text-[11px] mt-0.5">Jadikan slot jadwal asal berstatus tersedia (hijau) agar dapat dipesan pelanggan lain.</p>
+                        </div>
+                    </label>
+
+                    <!-- WhatsApp Notification Checkbox -->
+                    <label class="flex items-start gap-3 cursor-pointer rounded-xl border-2 border-gray-900 bg-white p-3 shadow-[2px_2px_0px_0px_rgba(17,24,39,1)] hover:bg-gray-50 transition">
+                        <input type="checkbox" name="notify_customer" value="1" checked class="mt-0.5 h-4 w-4 rounded border-2 border-gray-900 text-brand focus:ring-0">
+                        <div class="text-xs">
+                            <span class="font-black text-gray-900">Kirim Notifikasi WhatsApp</span>
+                            <p class="text-gray-500 font-medium text-[11px] mt-0.5">Otomatis kirim detail jadwal baru ke nomor WhatsApp pelanggan.</p>
+                        </div>
+                    </label>
+
+                    <!-- Modal Actions -->
+                    <div class="flex items-center justify-end gap-2 pt-2 border-t-2 border-gray-900">
+                        <button type="button" data-modal-hide="drag-reschedule-modal" class="rounded-xl border-2 border-gray-900 bg-white px-4 py-2.5 text-xs font-black uppercase text-gray-900 shadow-[2px_2px_0px_0px_rgba(17,24,39,1)] hover:bg-gray-100 active:shadow-none active:translate-x-0.5 active:translate-y-0.5">
+                            Batal
+                        </button>
+                        <button type="submit" class="rounded-xl border-2 border-gray-900 bg-brand px-5 py-2.5 text-xs font-black uppercase text-white shadow-[2px_2px_0px_0px_rgba(17,24,39,1)] hover:opacity-90 active:shadow-none active:translate-x-0.5 active:translate-y-0.5">
+                            Ya, Pindahkan Jadwal
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
 @endsection
 
 @push('scripts')
-    <script>
-        document.querySelectorAll('[data-barber-id][data-date]').forEach((button) => {
-            button.addEventListener('click', () => {
-                const form = document.getElementById('schedule-form');
-                const isEdit = Boolean(button.dataset.scheduleId);
-
-                form.action = isEdit
-                    ? button.dataset.updateUrl
-                    : @json(route('admin.schedules.store'));
-                document.getElementById('schedule-form-method').value = isEdit ? 'PATCH' : '';
-                document.getElementById('schedule-modal-title').textContent = isEdit
-                    ? 'Edit schedule slot'
-                    : 'Add schedule slot';
-                document.getElementById('schedule-submit').textContent = isEdit
-                    ? 'Update slot'
-                    : 'Save slot';
-                document.getElementById('schedule-barber-id').value = button.dataset.barberId;
-                document.getElementById('schedule-date').value = button.dataset.date;
-                document.getElementById('schedule-slot-time').value = button.dataset.slotTime || '';
-            });
-        });
-        document.addEventListener('DOMContentLoaded', () => {
-            const dateInput = document.querySelector('[name="week"]');
-
-            dateInput.addEventListener('changeDate', () => {
-                dateInput.form.submit();
-            });
-        });
-    </script>
+    <script src="{{ asset('js/admin/schedules.js') }}"></script>
 @endpush

@@ -196,9 +196,15 @@
                             <span class="font-semibold text-gray-900">{{ $req['barber'] }}</span>
                         </div>
                         <div class="flex justify-between">
-                            <span class="font-bold text-gray-500">Schedule:</span>
+                            <span class="font-bold text-gray-500">Jadwal Lama:</span>
                             <span class="font-semibold text-gray-900">{{ $req['schedule'] }}</span>
                         </div>
+                        @if ($req['type'] === 'reschedule_requested' && !empty($req['requested_schedule']))
+                            <div class="flex justify-between border-t border-dashed border-gray-200 pt-1.5 -mx-3 px-3 py-1.5 bg-blue-50 rounded-lg">
+                                <span class="font-bold text-blue-900">Jadwal Baru Diminta:</span>
+                                <span class="font-black text-blue-900">{{ $req['requested_schedule'] }}</span>
+                            </div>
+                        @endif
                         <div class="flex justify-between border-t border-dashed border-gray-200 pt-1.5">
                             <span class="font-bold text-gray-500">Amount:</span>
                             <span class="font-black text-gray-900">{{ $req['amount'] }}</span>
@@ -234,30 +240,29 @@
                     @else
                         <!-- Tindakan Reschedule Request -->
                         <div class="mt-4 text-xs font-semibold text-gray-600">
-                            <p>Pelanggan meminta perubahan jadwal. Anda dapat:</p>
+                            <p>Menyetujui perubahan jadwal ini akan:</p>
                             <ul class="mt-1 list-disc list-inside space-y-0.5 text-gray-700">
-                                <li>Mengubah tanggal & jam baru melalui <strong>Edit Booking</strong></li>
-                                <li>Atau langsung menyetujui jika jadwal telah disepakati</li>
+                                <li>Memindahkan booking ke jadwal baru: <strong class="text-blue-700">{{ $req['requested_schedule'] ?? 'Jadwal Baru' }}</strong></li>
+                                <li>Membebaskan slot jadwal lama barber</li>
+                                <li>Mengirim notifikasi WhatsApp konfirmasi ke pelanggan</li>
                             </ul>
                         </div>
 
-                        <div class="mt-6 space-y-2">
-                            <a href="{{ $req['edit_url'] }}" class="block w-full text-center rounded-xl border-2 border-gray-900 bg-brand px-4 py-2.5 text-xs font-black uppercase tracking-wider text-white shadow-[2px_2px_0px_0px_rgba(17,24,39,1)] transition-all hover:-translate-x-0.5 hover:-translate-y-0.5 hover:shadow-[4px_4px_0px_0px_rgba(17,24,39,1)] active:translate-x-0 active:translate-y-0 active:shadow-none">
-                                Atur Jadwal Baru (Edit Booking)
-                            </a>
-                            <div class="flex gap-2">
-                                <form method="POST" action="{{ $req['action_url'] }}" class="flex-1">
-                                    @csrf
-                                    @method('PATCH')
-                                    <input type="hidden" name="status" value="confirmed">
-                                    <button type="submit" class="w-full rounded-xl border-2 border-gray-900 bg-emerald-400 px-3 py-2 text-xs font-black uppercase tracking-wider text-gray-900 shadow-[2px_2px_0px_0px_rgba(17,24,39,1)] transition-all hover:-translate-x-0.5 hover:-translate-y-0.5 hover:shadow-[3px_3px_0px_0px_rgba(17,24,39,1)] active:translate-x-0 active:translate-y-0 active:shadow-none cursor-pointer">
-                                        Accept (Confirmed)
-                                    </button>
-                                </form>
-                                <button type="button" data-modal-hide="processModal-{{ $req['id'] }}" class="flex-1 rounded-xl border-2 border-gray-900 bg-white px-3 py-2 text-xs font-black uppercase tracking-wider text-gray-700 shadow-[2px_2px_0px_0px_rgba(17,24,39,1)] transition-all hover:-translate-x-0.5 hover:-translate-y-0.5 hover:shadow-[3px_3px_0px_0px_rgba(17,24,39,1)] active:translate-x-0 active:translate-y-0 active:shadow-none cursor-pointer">
-                                    Batal
+                        <div class="mt-6 flex flex-col gap-2 sm:flex-row">
+                            <form method="POST" action="{{ $req['action_url'] }}" class="flex-1">
+                                @csrf
+                                @method('PATCH')
+                                <input type="hidden" name="status" value="confirmed">
+                                <button type="submit" class="w-full rounded-xl border-2 border-gray-900 bg-emerald-400 px-4 py-2.5 text-xs font-black uppercase tracking-wider text-gray-900 shadow-[2px_2px_0px_0px_rgba(17,24,39,1)] transition-all hover:-translate-x-0.5 hover:-translate-y-0.5 hover:shadow-[4px_4px_0px_0px_rgba(17,24,39,1)] active:translate-x-0 active:translate-y-0 active:shadow-none cursor-pointer">
+                                    Accept & Reschedule
                                 </button>
-                            </div>
+                            </form>
+                            <a href="{{ $req['edit_url'] }}" class="rounded-xl border-2 border-gray-900 bg-amber-200 px-4 py-2.5 text-center text-xs font-black uppercase tracking-wider text-gray-900 shadow-[2px_2px_0px_0px_rgba(17,24,39,1)] transition-all hover:-translate-x-0.5 hover:-translate-y-0.5 hover:shadow-[3px_3px_0px_0px_rgba(17,24,39,1)] active:translate-x-0 active:translate-y-0 active:shadow-none">
+                                Edit Manual
+                            </a>
+                            <button type="button" data-modal-hide="processModal-{{ $req['id'] }}" class="flex-1 rounded-xl border-2 border-gray-900 bg-white px-4 py-2.5 text-xs font-black uppercase tracking-wider text-gray-700 shadow-[2px_2px_0px_0px_rgba(17,24,39,1)] transition-all hover:-translate-x-0.5 hover:-translate-y-0.5 hover:shadow-[4px_4px_0px_0px_rgba(17,24,39,1)] active:translate-x-0 active:translate-y-0 active:shadow-none cursor-pointer">
+                                Tutup
+                            </button>
                         </div>
                     @endif
 

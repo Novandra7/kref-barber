@@ -55,6 +55,7 @@ Route::domain('admin.' . config('app.domain', 'kref.test'))->group(function () {
         Route::delete('/schedules/{schedule}', [ScheduleController::class, 'destroy'])->name('admin.schedules.destroy');
         Route::post('/schedules/bulk', [ScheduleController::class, 'bulkStore'])->name('admin.schedules.bulk');
         Route::post('/schedules/copy-previous-week', [ScheduleController::class, 'copyPreviousWeek'])->name('admin.schedules.copy-previous-week');
+        Route::post('/schedules/reschedule-booking', [ScheduleController::class, 'rescheduleBooking'])->name('admin.schedules.reschedule-booking');
 
         // Bookings
         Route::get('/bookings/export', [BookingAdminController::class, 'export'])->name('admin.bookings.export');
@@ -90,7 +91,7 @@ Route::domain('{subdomain?}' . config('app.domain', 'kref.test'))
     Route::get('/booking/payment/{reference}', [BookingController::class, 'paymentDetail'])->name('booking.payment.detail');
     Route::get('/booking/payment/{reference}/status', [BookingController::class, 'paymentStatus'])->name('booking.payment.status');
     Route::post('/booking/cancel/{reference}', [BookingController::class, 'cancel'])->name('booking.cancel');
-    Route::get('/booking/reschedule/{reference}', [BookingController::class, 'reschedule'])->name('booking.reschedule');
+    Route::post('/booking/reschedule/{reference}', [BookingController::class, 'requestReschedule'])->name('booking.reschedule');
 
     // DOKU Test Page
     Route::get('/testing-payment', [DokuTestController::class, 'index'])->name('doku-test.index');

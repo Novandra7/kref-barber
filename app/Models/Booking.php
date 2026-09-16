@@ -14,6 +14,7 @@ class Booking extends Model
 
     protected $fillable = [
         'schedule_id',
+        'requested_schedule_id',
         'payment_id',
         'name',
         'phone',
@@ -53,6 +54,11 @@ class Booking extends Model
     public function schedule(): BelongsTo
     {
         return $this->belongsTo(Schedule::class);
+    }
+
+    public function requestedSchedule(): BelongsTo
+    {
+        return $this->belongsTo(Schedule::class, 'requested_schedule_id');
     }
 
     public function creator(): BelongsTo

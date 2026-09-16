@@ -4,7 +4,10 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Barber;
+use App\Models\Booking;
 use App\Models\Schedule;
+use App\Services\BookingNotificationService;
+use Carbon\Carbon;
 use Carbon\CarbonImmutable;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
@@ -175,6 +178,96 @@ class ScheduleController extends Controller
         });
 
         return back()->with('success', 'Previous week schedule copied successfully.');
+    }
+
+    /**
+     * Reschedule booking melalui aksi drag-and-drop jadwal oleh admin.
+     */
+    public function rescheduleBooking(Request $request, BookingNotificationService $notifications): RedirectResponse
+    {
+        $data = $request->validate([
+            'booking_id'         => ['required', 'integer', 'exists:bookings,id'],
+            'target_schedule_id' => ['nullable', 'integer', 'exists:schedules,id'],
+            'target_barber_id'   => ['required_without:target_schedule_id', 'nullable', 'integer', 'exists:barbers,id'],
+            'target_date'        => ['required_without:target_schedule_id', 'nullable', 'date_format:Y-m-d'],
+            'target_time'        => ['required_without:target_schedule_id', 'nullable', 'date_format:H:i'],
+            'release_old_slot'   => ['nullable', 'boolean'],
+            'notify_customer'    => ['nullable', 'boolean'],
+        ]);
+
+        $booking = Booking::with(['schedule', 'barber'])->findOrFail($data['booking_id']);
+
+        // Cari atau tentukan target schedule
+        $targetSchedule = null;
+        if (!empty($data['target_schedule_id'])) {
+            $targetSchedule = Schedule::with('barber')->findOrFail($data['target_schedule_id']);
+        } elseif (!empty($data['target_barber_id']) && !empty($data['target_date']) && !empty($data['target_time'])) {
+            $targetSchedule = Schedule::with('barber')
+                ->where('barber_id', $data['target_barber_id'])
+                ->where('date', $data['target_date'])
+                ->where('slot_time', $data['target_time'])
+                ->first();
+        }
+
+        // Jika slot di target day sudah ada dan tidak available (sudah dibooking orang lain)
+        if ($targetSchedule && ! $targetSchedule->is_available && $targetSchedule->id !== $booking->schedule_id) {
+            return back()->with('error', 'Gagal memindahkan jadwal: Slot jam ' . $targetSchedule->slot_time->format('H:i') . ' pada tanggal tersebut sudah terisi oleh pesanan pelanggan lain.');
+        }
+
+        if ($targetSchedule && $booking->schedule_id === $targetSchedule->id) {
+            return back()->with('info', 'Booking sudah berada di slot jadwal yang dipilih.');
+        }
+
+        $oldScheduledAt = $booking->scheduled_at;
+        $oldSchedule = $booking->schedule;
+
+        DB::transaction(function () use ($booking, &$targetSchedule, $oldSchedule, $data): void {
+            // 1. Tangani slot jadwal lama
+            if ($oldSchedule) {
+                if ($data['release_old_slot'] ?? true) {
+                    $oldSchedule->update(['is_available' => true]);
+                } else {
+                    $oldSchedule->delete();
+                }
+            }
+
+            // 2. Kunci atau buat slot jadwal baru
+            if ($targetSchedule) {
+                $targetSchedule->update(['is_available' => false]);
+            } else {
+                $targetSchedule = Schedule::create([
+                    'barber_id'    => $data['target_barber_id'],
+                    'date'         => $data['target_date'],
+                    'slot_time'    => $data['target_time'],
+                    'is_available' => false,
+                ]);
+                $targetSchedule->load('barber');
+            }
+
+            // 3. Pindahkan booking ke jadwal dan barber baru
+            $dateStr = $targetSchedule->date instanceof \DateTimeInterface
+                ? $targetSchedule->date->format('Y-m-d')
+                : Carbon::parse($targetSchedule->date)->format('Y-m-d');
+            $timeStr = $targetSchedule->slot_time instanceof \DateTimeInterface
+                ? $targetSchedule->slot_time->format('H:i:s')
+                : Carbon::parse($targetSchedule->slot_time)->format('H:i:s');
+            $newDateTime = Carbon::parse("{$dateStr} {$timeStr}");
+
+            $booking->update([
+                'schedule_id'           => $targetSchedule->id,
+                'barber_id'             => $targetSchedule->barber_id,
+                'scheduled_at'          => $newDateTime,
+                'requested_schedule_id' => null,
+                'status'                => in_array($booking->status, ['reschedule_requested', 'pending'], true) ? 'confirmed' : $booking->status,
+            ]);
+        });
+
+        // 4. Kirim notifikasi WhatsApp ke pelanggan jika dicentang
+        if ($request->boolean('notify_customer', true)) {
+            $notifications->bookingRescheduled($booking, $oldScheduledAt);
+        }
+
+        return back()->with('success', "Booking #BK-{$booking->id} ({$booking->name}) berhasil dipindahkan ke {$targetSchedule->barber->name} pada {$targetSchedule->date->format('d M Y')}, {$targetSchedule->slot_time->format('H:i')} WITA.");
     }
 
     private function weekStart(?string $date): CarbonImmutable

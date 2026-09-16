@@ -28,9 +28,10 @@ class BookingAdminController extends Controller
         'pending'          => 'Pending',
         'confirmed'        => 'Confirmed',
         'in_progress'      => 'In Progress',
-        'completed'        => 'Completed',
-        'cancel_requested' => 'Cancel Requested',
-        'cancelled'        => 'Cancelled',
+        'completed'            => 'Completed',
+        'cancel_requested'     => 'Cancel Requested',
+        'reschedule_requested' => 'Reschedule Requested',
+        'cancelled'            => 'Cancelled',
     ];
 
     public const PAYMENT_STATUS_OPTIONS = [
@@ -226,7 +227,7 @@ class BookingAdminController extends Controller
             'service_ids'   => ['required', 'array', 'min:1'],
             'service_ids.*' => ['integer', 'distinct', 'exists:services,id'],
             'payment_type'  => ['required', 'in:dp,full'],
-            'status'        => ['required', 'in:pending,confirmed,in_progress,completed,cancel_requested,cancelled'],
+            'status'        => ['required', 'in:pending,confirmed,in_progress,completed,cancel_requested,reschedule_requested,cancelled'],
             'description'   => ['nullable', 'string'],
         ]);
 
@@ -303,14 +304,22 @@ class BookingAdminController extends Controller
 
         $isPartialRefund = false;
         $isManualRefund = false;
+        $isRescheduleApproved = false;
         $refundNotificationData = null;
+        $rescheduleNotificationData = null;
 
         try {
-            DB::transaction(function () use ($booking, $data, $doku, &$isPartialRefund, &$refundNotificationData, &$isManualRefund): void {
+            DB::transaction(function () use ($booking, $data, $doku, &$isPartialRefund, &$refundNotificationData, &$isManualRefund, &$isRescheduleApproved, &$rescheduleNotificationData): void {
                 // Selalu load relasi yang diperlukan di awal agar data segar dari DB
-                $booking->load(['payment', 'schedule', 'barber']);
+                $booking->load(['payment', 'schedule', 'barber', 'requestedSchedule']);
 
                 if ($data['status'] === 'cancelled') {
+                    // Jika ada slot baru yang sempat di-hold saat permintaan reschedule, bebaskan kembali
+                    if ($booking->requested_schedule_id) {
+                        Schedule::whereKey($booking->requested_schedule_id)->update(['is_available' => true]);
+                        $booking->requested_schedule_id = null;
+                    }
+
                     $payment = $booking->payment;
 
                     if ($payment) {
@@ -425,12 +434,38 @@ class BookingAdminController extends Controller
                     if ($booking->schedule) {
                         $booking->schedule->update(['is_available' => false]);
                     }
+                } elseif ($booking->status === 'reschedule_requested' && $data['status'] === 'confirmed') {
+                    // Admin menyetujui permintaan reschedule
+                    if ($booking->requested_schedule_id) {
+                        $newSchedule = Schedule::find($booking->requested_schedule_id);
+                        if ($newSchedule) {
+                            // 1. Bebaskan slot jadwal lama
+                            if ($booking->schedule) {
+                                $booking->schedule->update(['is_available' => true]);
+                            }
+                            // 2. Kunci slot jadwal baru
+                            $newSchedule->update(['is_available' => false]);
+
+                            $oldScheduledAt = $booking->scheduled_at;
+
+                            // 3. Pindahkan booking ke slot jadwal baru
+                            $booking->schedule_id = $newSchedule->id;
+                            $booking->scheduled_at = Carbon::parse($newSchedule->date->format('Y-m-d') . ' ' . $newSchedule->slot_time->format('H:i:s'));
+                            $booking->requested_schedule_id = null;
+
+                            $rescheduleNotificationData = [
+                                'booking'        => $booking,
+                                'oldScheduledAt' => $oldScheduledAt,
+                            ];
+                            $isRescheduleApproved = true;
+                        }
+                    }
                 }
 
                 $booking->update(['status' => $data['status']]);
             });
         } catch (\Throwable $e) {
-            return back()->with('error', 'Gagal memproses refund DOKU: ' . $e->getMessage());
+            return back()->with('error', 'Gagal memproses perubahan status: ' . $e->getMessage());
         }
 
         // Kirim pesan WhatsApp ke pelanggan jika refund berhasil diproses
@@ -444,7 +479,17 @@ class BookingAdminController extends Controller
             );
         }
 
-        if ($isManualRefund) {
+        // Kirim pesan WhatsApp ke pelanggan jika reschedule berhasil disetujui
+        if ($rescheduleNotificationData) {
+            $notifications->bookingRescheduled(
+                booking: $rescheduleNotificationData['booking'],
+                oldScheduledAt: $rescheduleNotificationData['oldScheduledAt'],
+            );
+        }
+
+        if ($isRescheduleApproved) {
+            $successMessage = 'Perubahan jadwal booking berhasil disetujui dan jadwal baru telah dikonfirmasi.';
+        } elseif ($isManualRefund) {
             $successMessage = 'Status booking berhasil dibatalkan. Sumber pembayaran ini tidak didukung auto-refund DOKU, pastikan pengembalian dana manual telah/akan ditransfer ke rekening pelanggan.';
         } else {
             $successMessage = $isPartialRefund

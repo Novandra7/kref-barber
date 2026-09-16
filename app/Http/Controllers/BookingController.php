@@ -261,6 +261,8 @@ class BookingController extends Controller
 
         $bookings = Booking::with([
             'barber',
+            'schedule',
+            'requestedSchedule',
             'items' => fn ($query) => $query
                 ->where('item_type', 'service')
                 ->orderBy('id'),
@@ -278,14 +280,38 @@ class BookingController extends Controller
 
         $qrContent = $payments->pluck('qr_content')->filter()->first();
 
+        // 3. Ambil slot jadwal masa depan yang tersedia untuk barber terkait (untuk modal reschedule)
+        $barberIds = $bookings->pluck('barber_id')->unique()->filter();
+        $availableSchedules = Schedule::query()
+            ->whereIn('barber_id', $barberIds)
+            ->where('is_available', true)
+            ->where(function ($query): void {
+                $query->whereDate('date', '>', now()->toDateString())
+                    ->orWhere(function ($sub): void {
+                        $sub->whereDate('date', now()->toDateString())
+                            ->whereTime('slot_time', '>', now()->format('H:i:s'));
+                    });
+            })
+            ->orderBy('date')
+            ->orderBy('slot_time')
+            ->get()
+            ->map(fn (Schedule $s) => [
+                'id'        => $s->id,
+                'barber_id' => $s->barber_id,
+                'date'      => $s->date->format('Y-m-d'),
+                'time'      => $s->slot_time->format('H:i'),
+            ])
+            ->values();
+
         return view('booking.payment-status', [
-            'reference'     => $reference,
-            'paymentStatus' => $paymentStatus,
-            'bookingStatus' => $bookingStatus,
-            'qrContent'     => $qrContent,
-            'paymentAmount' => $payments->sum('amount'),
-            'bookings'      => $bookings,
-            'expiresAt'     => $payments->pluck('expires_at')->filter()->first(),
+            'reference'          => $reference,
+            'paymentStatus'      => $paymentStatus,
+            'bookingStatus'      => $bookingStatus,
+            'qrContent'          => $qrContent,
+            'paymentAmount'      => $payments->sum('amount'),
+            'bookings'           => $bookings,
+            'expiresAt'          => $payments->pluck('expires_at')->filter()->first(),
+            'availableSchedules' => $availableSchedules,
         ]);
     }
 
@@ -335,7 +361,7 @@ class BookingController extends Controller
                 '',
                 '• Kode Ref: ' . $reference,
                 '• Nama: ' . $booking->name,
-                '• Jadwal: ' . ($booking->scheduled_at?->format('d M Y, H:i') ?? '-') . ' WIB',
+                '• Jadwal: ' . ($booking->scheduled_at?->format('d M Y, H:i') ?? '-') . ' WITA',
                 '• Barber: ' . ($booking->barber?->name ?? '-'),
                 '• Sumber Pembayaran: ' . ($payment?->payment_source ?: 'QRIS'),
                 '• Jenis Pembayaran: ' . $paymentTypeLabel,
@@ -363,6 +389,77 @@ class BookingController extends Controller
     }
 
     private function cancelFailed(string $reference, string $message): RedirectResponse
+    {
+        return redirect()
+            ->route('booking.payment.detail', ['reference' => $reference])
+            ->with('error', $message);
+    }
+
+    /**
+     * Mengajukan reschedule booking (Menunggu Approval Admin).
+     */
+    public function requestReschedule(Request $request, string $reference): RedirectResponse
+    {
+        $data = $request->validate([
+            'booking_id'  => ['required', 'integer', 'exists:bookings,id'],
+            'schedule_id' => ['required', 'integer', 'exists:schedules,id'],
+        ]);
+
+        $booking = Booking::with('payment')->find($data['booking_id']);
+        $payment = $booking?->payment;
+
+        $validReference = $payment && (
+            $payment->partner_reference_no === $reference ||
+            data_get($payment->provider_payload, 'partnerReferenceNo') === $reference
+        );
+
+        if (! $booking || ! $validReference) {
+            return $this->rescheduleFailed($reference, $booking ? 'Booking tidak terkait dengan transaksi ini.' : 'Booking tidak ditemukan.');
+        }
+
+        if (in_array($booking->status, ['cancelled', 'cancel_requested', 'completed'], true)) {
+            return $this->rescheduleFailed($reference, 'Booking ini sudah tidak dapat dijadwalkan ulang.');
+        }
+
+        if ($booking->scheduled_at && ($booking->scheduled_at->isPast() || now()->diffInMinutes($booking->scheduled_at, false) < 180)) {
+            return $this->rescheduleFailed($reference, 'Jadwal ulang ditolak. Sudah memasuki batas H-3 jam sebelum jadwal layanan!');
+        }
+
+        $newSchedule = Schedule::whereKey($data['schedule_id'])
+            ->where('barber_id', $booking->barber_id)
+            ->where('is_available', true)
+            ->first();
+
+        if (! $newSchedule) {
+            return $this->rescheduleFailed($reference, 'Slot jadwal yang dipilih sudah tidak tersedia. Silakan pilih slot waktu lain.');
+        }
+
+        $newScheduleDateTime = Carbon::parse($newSchedule->date->format('Y-m-d') . ' ' . $newSchedule->slot_time->format('H:i:s'));
+        if ($newScheduleDateTime->isPast()) {
+            return $this->rescheduleFailed($reference, 'Slot jadwal yang dipilih sudah lewat.');
+        }
+
+        DB::transaction(function () use ($booking, $newSchedule): void {
+            // Jika ada slot yang sebelumnya sempat di-hold, bebaskan kembali
+            if ($booking->requested_schedule_id && $booking->requested_schedule_id !== $newSchedule->id) {
+                Schedule::whereKey($booking->requested_schedule_id)->update(['is_available' => true]);
+            }
+
+            // Kunci slot baru sementara agar tidak dipesan pelanggan lain
+            $newSchedule->update(['is_available' => false]);
+
+            $booking->update([
+                'status'                => 'reschedule_requested',
+                'requested_schedule_id' => $newSchedule->id,
+            ]);
+        });
+
+        return redirect()
+            ->route('booking.payment.detail', ['reference' => $reference])
+            ->with('success', 'Permintaan jadwal ulang berhasil diajukan untuk tanggal ' . $newSchedule->date->format('d M Y') . ' pukul ' . $newSchedule->slot_time->format('H:i') . ' WITA. Menunggu persetujuan admin.');
+    }
+
+    private function rescheduleFailed(string $reference, string $message): RedirectResponse
     {
         return redirect()
             ->route('booking.payment.detail', ['reference' => $reference])

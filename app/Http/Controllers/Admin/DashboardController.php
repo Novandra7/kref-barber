@@ -43,23 +43,29 @@ class DashboardController extends Controller
             });
 
         // Ambil booking yang membutuhkan tindakan admin (Cancel / Reschedule)
-        $pendingRequests = Booking::with(['payment', 'barber'])
+        $pendingRequests = Booking::with(['payment', 'barber', 'requestedSchedule'])
             ->whereIn('status', ['cancel_requested', 'reschedule_requested'])
             ->latest('scheduled_at')
             ->limit(10)
             ->get()
             ->map(function (Booking $booking): array {
+                $requestedScheduleStr = null;
+                if ($booking->requestedSchedule) {
+                    $requestedScheduleStr = $booking->requestedSchedule->date->format('d M Y') . ', ' . $booking->requestedSchedule->slot_time->format('H:i') . ' WITA';
+                }
+
                 return [
-                    'id'         => $booking->id,
-                    'customer'   => $booking->name ?: '-',
-                    'phone'      => $booking->formattedPhone ?: '-',
-                    'barber'     => $booking->barber?->name ?: '-',
-                    'schedule'   => $booking->scheduled_at?->format('d M Y H:i') ?: '-',
-                    'amount'     => $booking->total_amount === null ? '-' : 'Rp ' . number_format($booking->total_amount, 0, ',', '.'),
-                    'type'       => $booking->status, // 'cancel_requested' atau 'reschedule_requested'
-                    'payment'    => $booking->payment,
-                    'edit_url'   => route('admin.bookings.edit', $booking),
-                    'action_url' => route('admin.bookings.update-status', $booking),
+                    'id'                 => $booking->id,
+                    'customer'           => $booking->name ?: '-',
+                    'phone'              => $booking->formattedPhone ?: '-',
+                    'barber'             => $booking->barber?->name ?: '-',
+                    'schedule'           => $booking->scheduled_at?->format('d M Y, H:i') . ' WITA' ?: '-',
+                    'requested_schedule' => $requestedScheduleStr,
+                    'amount'             => $booking->total_amount === null ? '-' : 'Rp ' . number_format($booking->total_amount, 0, ',', '.'),
+                    'type'               => $booking->status, // 'cancel_requested' atau 'reschedule_requested'
+                    'payment'            => $booking->payment,
+                    'edit_url'           => route('admin.bookings.edit', $booking),
+                    'action_url'         => route('admin.bookings.update-status', $booking),
                 ];
             });
 

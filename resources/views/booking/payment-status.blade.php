@@ -67,8 +67,12 @@
                         @foreach ($bookings as $booking)
                             @php
                                 $bStatus = $booking->status ?? 'pending';
-                                $isCancelledOrRequested = in_array(strtolower($bStatus), ['cancel_requested', 'cancelled']);
-                                $bookingStatusColor = $isCancelledOrRequested ? 'bg-red-100 text-red-900' : 'bg-blue-100 text-blue-900';
+                                $bookingStatusColor = match (strtolower((string) $bStatus)) {
+                                    'cancel_requested', 'cancelled' => 'bg-red-100 text-red-900',
+                                    'reschedule_requested'          => 'bg-amber-100 text-amber-900',
+                                    'confirmed'                     => 'bg-emerald-100 text-emerald-900',
+                                    default                         => 'bg-blue-100 text-blue-900',
+                                };
                             @endphp
                             <div class="rounded-xl border-2 border-gray-900 bg-white p-4 shadow-[2px_2px_0px_0px_rgba(17,24,39,1)]">
 
@@ -89,6 +93,17 @@
                                         {{ str_replace('_', ' ', $bStatus) }}
                                     </span>
                                 </div>
+
+                                @if (strtolower((string) $bStatus) === 'reschedule_requested' && $booking->requestedSchedule)
+                                    <div class="mt-2.5 rounded-lg border border-amber-300 bg-amber-50 p-2 text-2xs font-semibold text-amber-900 flex items-center gap-1.5">
+                                        <svg class="size-3.5 shrink-0 text-amber-700" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                        </svg>
+                                        <span>
+                                            Pengajuan Jadwal Baru: <strong>{{ $booking->requestedSchedule->date->format('d M Y') }}, {{ $booking->requestedSchedule->slot_time->format('H:i') }} WITA</strong> (Menunggu approval admin)
+                                        </span>
+                                    </div>
+                                @endif
 
                                 @if ($booking->items->isNotEmpty())
                                     <div class="mt-3 space-y-2 pt-1">
@@ -173,18 +188,13 @@
                                 class="w-full flex-1 cursor-not-allowed rounded-xl border-2 border-gray-400 bg-gray-200 px-4 py-3 text-center text-xs font-black uppercase tracking-wider text-gray-500 opacity-80 shadow-none">
                             Reschedule
                         </button>
-                    @elseif ($reschedulableBookings->count() > 1)
+                    @else
                         <button data-modal-target="reschedule-modal"
                                 data-modal-toggle="reschedule-modal"
                                 class="w-full flex-1 rounded-xl border-2 border-gray-900 bg-brand px-4 py-3 text-center text-xs font-black uppercase tracking-wider text-white shadow-[2px_2px_0px_0px_rgba(17,24,39,1)] transition-all hover:-translate-x-0.5 hover:-translate-y-0.5 hover:shadow-[4px_4px_0px_0px_rgba(17,24,39,1)] active:translate-x-0.5 active:translate-y-0.5 active:shadow-[1px_1px_0px_0px_rgba(17,24,39,1)]"
                                 type="button">
                             Reschedule
                         </button>
-                    @else
-                        <a href="{{ route('booking.reschedule', ['reference' => $reschedulableBookings->first()?->id ?? $reference]) }}"
-                           class="w-full flex-1 rounded-xl border-2 border-gray-900 bg-brand px-4 py-3 text-center text-xs font-black uppercase tracking-wider text-white shadow-[2px_2px_0px_0px_rgba(17,24,39,1)] transition-all hover:-translate-x-0.5 hover:-translate-y-0.5 hover:shadow-[4px_4px_0px_0px_rgba(17,24,39,1)] active:translate-x-0.5 active:translate-y-0.5 active:shadow-[1px_1px_0px_0px_rgba(17,24,39,1)]">
-                            Reschedule
-                        </a>
                     @endif
                 </div>
 
@@ -282,9 +292,20 @@
         </div>
     </div>
 
-    {{-- Modal Reschedule (hanya muncul jika lebih dari 1 booking yang dapat di-reschedule) --}}
-    @if ($reschedulableBookings->count() > 1)
-        <div id="reschedule-modal" tabindex="-1" class="backdrop-blur-xs fixed top-0 right-0 left-0 z-50 hidden h-[calc(100%-1rem)] max-h-full w-full items-center justify-center overflow-y-auto overflow-x-hidden bg-gray-900/50 md:inset-0">
+    {{-- Modal Reschedule (Interactive Date & Time Picker) --}}
+    @if ($hasReschedulable)
+        <div id="reschedule-modal" tabindex="-1"
+             x-data="rescheduleModal({
+                 bookings: @js($reschedulableBookings->map(fn($b) => [
+                     'id'               => (int) $b->id,
+                     'name'             => $b->name,
+                     'barber_id'        => (int) $b->barber_id,
+                     'barber_name'      => $b->barber?->name ?? 'Barber',
+                     'current_schedule' => $b->scheduled_at ? $b->scheduled_at->format('d M Y, H:i') . ' WITA' : '-',
+                 ])->values()),
+                 schedules: @js($availableSchedules ?? []),
+             })"
+             class="backdrop-blur-xs fixed top-0 right-0 left-0 z-50 hidden h-[calc(100%-1rem)] max-h-full w-full items-center justify-center overflow-y-auto overflow-x-hidden bg-gray-900/50 md:inset-0">
             <div class="relative max-h-full w-full max-w-md p-4">
                 <div class="relative rounded-2xl border-2 border-gray-900 bg-[#FAF8F5] p-4 text-gray-900 shadow-[6px_6px_0px_0px_rgba(17,24,39,1)] md:p-6">
 
@@ -298,38 +319,117 @@
                         <span class="sr-only">Close modal</span>
                     </button>
 
-                    <!-- Isi Modal -->
-                    <div class="p-2 text-center md:p-4">
-                        <div class="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-xl border-2 border-gray-900 bg-brand/20 text-gray-900 shadow-[2px_2px_0px_0px_rgba(17,24,39,1)]">
-                            <svg class="h-8 w-8" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 10h16M8 14h.01M12 14h.01M16 14h.01M5 20h14a1 1 0 0 0 1-1V5a1 1 0 0 0-1-1H5a1 1 0 0 0-1 1v14a1 1 0 0 0 1 1Z"/>
-                            </svg>
+                    <!-- Header Modal -->
+                    <div class="flex items-center gap-2 border-b-2 border-dashed border-gray-300 pb-3">
+                        <span class="inline-block rounded-full border border-gray-900 bg-blue-200 px-2.5 py-0.5 text-2xs font-black uppercase tracking-wider text-blue-900">
+                            Jadwal Ulang
+                        </span>
+                        <h3 class="font-montserrat text-lg font-black uppercase text-gray-900">Reschedule Booking</h3>
+                    </div>
+
+                    <form method="POST" action="{{ route('booking.reschedule', ['reference' => $reference]) }}" class="mt-4">
+                        @csrf
+                        <input type="hidden" name="booking_id" :value="selectedBookingId">
+                        <input type="hidden" name="schedule_id" :value="selectedScheduleId">
+
+                        {{-- Pilihan Booking jika > 1 --}}
+                        <template x-if="bookings.length > 1">
+                            <div class="mb-4 text-left">
+                                <label class="mb-1 block text-xs font-black uppercase tracking-wider text-gray-700">
+                                    Pilih Booking Tamu
+                                </label>
+                                <select x-model="selectedBookingId"
+                                        @change="onBookingChange()"
+                                        class="w-full rounded-xl border-2 border-gray-900 bg-white px-3 py-2.5 text-xs font-bold text-gray-900 shadow-[2px_2px_0px_0px_rgba(17,24,39,1)] focus:outline-none">
+                                    <template x-for="b in bookings" :key="b.id">
+                                        <option :value="b.id" x-text="`${b.name} (${b.barber_name})`"></option>
+                                    </template>
+                                </select>
+                            </div>
+                        </template>
+
+                        <!-- Info Jadwal Saat Ini -->
+                        <div class="mb-4 rounded-xl border-2 border-gray-900 bg-white p-3 text-left shadow-[2px_2px_0px_0px_rgba(17,24,39,1)] space-y-1">
+                            <div class="flex justify-between items-center">
+                                <span class="text-2xs font-black uppercase tracking-wider text-gray-500">Jadwal Saat Ini:</span>
+                                <span class="text-xs font-black text-gray-900" x-text="currentBooking?.current_schedule"></span>
+                            </div>
+                            <div class="flex justify-between items-center text-xs">
+                                <span class="font-bold text-gray-500">Barber:</span>
+                                <span class="font-bold text-gray-900" x-text="currentBooking?.barber_name"></span>
+                            </div>
                         </div>
 
-                        <h3 class="text-md mb-4 font-semibold text-gray-900">
-                            Pilih booking yang ingin di-reschedule
-                        </h3>
-
+                        <!-- Date Picker (Pilih Tanggal Baru) -->
                         <div class="mb-4 text-left">
                             <label class="mb-1 block text-xs font-black uppercase tracking-wider text-gray-700">
-                                Pilih Booking
+                                1. Pilih Tanggal Baru
                             </label>
-                            <select id="reschedule-select"
-                                    class="w-full rounded-xl border-2 border-gray-900 bg-white px-3 py-2.5 text-sm font-semibold text-gray-900 shadow-[2px_2px_0px_0px_rgba(17,24,39,1)] focus:outline-none">
-                                @foreach ($reschedulableBookings as $rb)
-                                    <option value="{{ $rb->id }}">
-                                        {{ $rb->name }} — {{ $rb->scheduled_at?->format('d M Y, H:i') ?? '-' }}
-                                        ({{ $rb->barber?->name ?? '-' }})
-                                    </option>
-                                @endforeach
-                            </select>
+                            <template x-if="availableDates.length === 0">
+                                <div class="rounded-xl border border-red-300 bg-red-50 p-2.5 text-xs font-medium text-red-700">
+                                    Belum ada slot jadwal tersedia untuk barber ini.
+                                </div>
+                            </template>
+                            <template x-if="availableDates.length > 0">
+                                <select x-model="selectedDate"
+                                        @change="selectedScheduleId = null"
+                                        class="w-full rounded-xl border-2 border-gray-900 bg-white px-3 py-2.5 text-xs font-bold text-gray-900 shadow-[2px_2px_0px_0px_rgba(17,24,39,1)] focus:outline-none">
+                                    <option value="">-- Pilih Tanggal Baru --</option>
+                                    <template x-for="d in availableDates" :key="d.date">
+                                        <option :value="d.date" x-text="d.formatted"></option>
+                                    </template>
+                                </select>
+                            </template>
                         </div>
 
-                        <a id="reschedule-link" href="#"
-                           class="block w-full rounded-xl border-2 border-gray-900 bg-brand px-4 py-2.5 text-xs font-black uppercase tracking-wider text-white shadow-[2px_2px_0px_0px_rgba(17,24,39,1)] transition-all hover:-translate-x-0.5 hover:-translate-y-0.5 hover:shadow-[4px_4px_0px_0px_rgba(17,24,39,1)] active:translate-x-0.5 active:translate-y-0.5 active:shadow-[1px_1px_0px_0px_rgba(17,24,39,1)]">
-                            Lanjut Reschedule
-                        </a>
-                    </div>
+                        <!-- Time Picker (Pilih Jam Baru) -->
+                        <div class="mb-4 text-left" x-show="selectedDate">
+                            <label class="mb-1.5 block text-xs font-black uppercase tracking-wider text-gray-700">
+                                2. Pilih Jam Baru
+                            </label>
+                            <template x-if="availableTimeSlots.length === 0">
+                                <p class="text-xs text-gray-500">Tidak ada slot jam yang tersedia pada tanggal ini.</p>
+                            </template>
+                            <div class="grid grid-cols-4 gap-2 max-h-36 overflow-y-auto pr-1">
+                                <template x-for="slot in availableTimeSlots" :key="slot.id">
+                                    <button type="button"
+                                            @click="selectedScheduleId = slot.id"
+                                            :class="selectedScheduleId === slot.id ? 'bg-brand text-white border-gray-900 shadow-[2px_2px_0px_0px_rgba(17,24,39,1)]' : 'bg-white text-gray-900 border-gray-300 hover:border-gray-900'"
+                                            class="cursor-pointer rounded-lg border-2 py-1.5 text-center text-xs font-black tracking-wider transition-all">
+                                        <span x-text="slot.time"></span>
+                                    </button>
+                                </template>
+                            </div>
+                        </div>
+
+                        <!-- Pratinjau Perubahan Jadwal -->
+                        <div x-show="selectedScheduleId" class="mb-5 rounded-xl border-2 border-emerald-600 bg-emerald-50 p-3 text-left shadow-[2px_2px_0px_0px_rgba(5,150,105,1)]">
+                            <div class="text-2xs font-black uppercase tracking-wider text-emerald-900 flex items-center gap-1">
+                                <svg class="size-3.5 text-emerald-700" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                                </svg>
+                                <span>Jadwal Baru yang Diajukan</span>
+                            </div>
+                            <div class="mt-1 text-xs font-black text-emerald-900" x-text="selectedScheduleSummary"></div>
+                            <p class="mt-1 text-2xs text-emerald-800 leading-relaxed">
+                                Slot ini akan diajukan ke admin KREF Barber untuk persetujuan.
+                            </p>
+                        </div>
+
+                        <!-- Action Buttons -->
+                        <div class="flex items-center justify-center gap-3">
+                            <button type="submit"
+                                    :disabled="!selectedScheduleId"
+                                    :class="!selectedScheduleId ? 'opacity-50 cursor-not-allowed bg-gray-400' : 'bg-brand hover:-translate-x-0.5 hover:-translate-y-0.5 hover:shadow-[4px_4px_0px_0px_rgba(17,24,39,1)] cursor-pointer'"
+                                    class="flex-1 rounded-xl border-2 border-gray-900 px-4 py-2.5 text-xs font-black uppercase tracking-wider text-white shadow-[2px_2px_0px_0px_rgba(17,24,39,1)] transition-all">
+                                Ajukan Jadwal Ulang
+                            </button>
+                            <button data-modal-hide="reschedule-modal" type="button"
+                                    class="flex-1 rounded-xl border-2 border-gray-900 bg-white px-4 py-2.5 text-center text-xs font-black uppercase tracking-wider text-gray-900 shadow-[2px_2px_0px_0px_rgba(17,24,39,1)] transition-all hover:-translate-x-0.5 hover:-translate-y-0.5 hover:shadow-[4px_4px_0px_0px_rgba(17,24,39,1)] cursor-pointer">
+                                Batal
+                            </button>
+                        </div>
+                    </form>
 
                 </div>
             </div>
@@ -338,6 +438,73 @@
 
     @push('scripts')
         <script>
+            function rescheduleModal(config) {
+                return {
+                    bookings: config.bookings || [],
+                    schedules: config.schedules || [],
+                    selectedBookingId: (config.bookings && config.bookings.length > 0) ? config.bookings[0].id : null,
+                    selectedDate: '',
+                    selectedScheduleId: null,
+
+                    onBookingChange() {
+                        this.selectedDate = '';
+                        this.selectedScheduleId = null;
+                    },
+
+                    get currentBooking() {
+                        return this.bookings.find(b => b.id == this.selectedBookingId) || null;
+                    },
+
+                    get availableDates() {
+                        if (!this.currentBooking) return [];
+                        const barberId = this.currentBooking.barber_id;
+                        const dates = [];
+                        const seen = new Set();
+
+                        this.schedules
+                            .filter(s => s.barber_id == barberId)
+                            .forEach(s => {
+                                if (!seen.has(s.date)) {
+                                    seen.add(s.date);
+                                    const parts = s.date.split('-');
+                                    const dateObj = new Date(parts[0], parts[1] - 1, parts[2]);
+                                    const formatted = dateObj.toLocaleDateString('id-ID', {
+                                        weekday: 'short',
+                                        day: 'numeric',
+                                        month: 'short',
+                                        year: 'numeric'
+                                    });
+                                    dates.push({ date: s.date, formatted: formatted });
+                                }
+                            });
+
+                        return dates;
+                    },
+
+                    get availableTimeSlots() {
+                        if (!this.currentBooking || !this.selectedDate) return [];
+                        const barberId = this.currentBooking.barber_id;
+                        return this.schedules.filter(s => s.barber_id == barberId && s.date === this.selectedDate);
+                    },
+
+                    get selectedScheduleSummary() {
+                        if (!this.selectedScheduleId) return '';
+                        const slot = this.schedules.find(s => s.id == this.selectedScheduleId);
+                        if (!slot) return '';
+                        const parts = slot.date.split('-');
+                        const dateObj = new Date(parts[0], parts[1] - 1, parts[2]);
+                        const dateFormatted = dateObj.toLocaleDateString('id-ID', {
+                            weekday: 'long',
+                            day: 'numeric',
+                            month: 'long',
+                            year: 'numeric'
+                        });
+                        return `${dateFormatted} pukul ${slot.time} WITA`;
+                    }
+                };
+            }
+            window.rescheduleModal = rescheduleModal;
+
             document.addEventListener('DOMContentLoaded', function () {
                 // Toast notification
                 const toastEl = document.getElementById('toast-notification');
@@ -352,19 +519,6 @@
                         toastEl.classList.add('translate-y-8', 'opacity-0');
                         setTimeout(() => toastEl.remove(), 500);
                     }, 4000);
-                }
-
-                // Reschedule modal: update link saat dropdown berubah
-                const rescheduleSelect = document.getElementById('reschedule-select');
-                const rescheduleLink   = document.getElementById('reschedule-link');
-
-                if (rescheduleSelect && rescheduleLink) {
-                    const updateLink = () => {
-                        const bookingId = rescheduleSelect.value;
-                        rescheduleLink.href = bookingId ? `/booking/reschedule/${bookingId}` : '#';
-                    };
-                    rescheduleSelect.addEventListener('change', updateLink);
-                    updateLink(); // set initial
                 }
 
                 @if (session('wa_refund_url'))
