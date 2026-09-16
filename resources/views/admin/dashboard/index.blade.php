@@ -189,7 +189,7 @@
                     </div>
 
                     <!-- Detail Booking Ringkas -->
-                    <div class="mt-4 rounded-xl border-2 border-gray-900 bg-white p-3 text-xs shadow-[2px_2px_0px_0px_rgba(17,24,39,1)] space-y-1.5">
+                    <div class="mt-4 rounded-xl border-2 border-gray-900 bg-white p-3.5 text-xs shadow-[2px_2px_0px_0px_rgba(17,24,39,1)] space-y-2">
                         <div class="flex justify-between">
                             <span class="font-bold text-gray-500">Customer:</span>
                             <span class="font-black text-gray-900">{{ $req['customer'] }} ({{ $req['phone'] }})</span>
@@ -198,16 +198,29 @@
                             <span class="font-bold text-gray-500">Barber:</span>
                             <span class="font-semibold text-gray-900">{{ $req['barber'] }}</span>
                         </div>
-                        @if ($req['type'] === 'cancel_requested')
-                            <div class="flex justify-between border-t border-dashed border-gray-200 pt-1.5">
-                                <span class="font-bold text-gray-500">Jadwal:</span>
-                                <span class="font-semibold text-gray-900">{{ $req['schedule'] }}</span>
-                            </div>
-                        @endif
-                        <div class="flex justify-between border-t border-dashed border-gray-200 pt-1.5">
+                        <div class="flex justify-between">
                             <span class="font-bold text-gray-500">Amount:</span>
                             <span class="font-black text-gray-900">{{ $req['amount'] }}</span>
                         </div>
+                        @if ($req['type'] === 'cancel_requested')
+                            <div class="flex justify-between border-t border-dashed border-gray-200 pt-2">
+                                <span class="font-bold text-gray-500">Jadwal:</span>
+                                <span class="font-semibold text-gray-900">{{ $req['schedule'] }}</span>
+                            </div>
+                        @else
+                            <div class="border-t border-dashed border-gray-200 pt-2 space-y-1.5">
+                                <div class="flex items-center justify-between">
+                                    <span class="font-bold text-gray-400">Jadwal Semula:</span>
+                                    <span class="font-medium text-gray-400 line-through">{{ $req['schedule'] }}</span>
+                                </div>
+                                <div class="flex items-center justify-between">
+                                    <span class="font-black text-gray-900">Jadwal Baru:</span>
+                                    <span class="font-black text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-300">
+                                        {{ $req['requested_schedule'] ?? '-' }}
+                                    </span>
+                                </div>
+                            </div>
+                        @endif
                     </div>
 
                     @if ($req['type'] === 'cancel_requested')
@@ -237,74 +250,9 @@
                             </button>
                         </div>
                     @else
-                        <!-- Visual Perbandingan Perubahan Jadwal -->
-                        <div class="mt-4 rounded-xl border-2 border-gray-900 bg-white p-3.5 shadow-[3px_3px_0px_0px_rgba(17,24,39,1)]">
-                            <div class="mb-3 flex items-center justify-between border-b-2 border-dashed border-gray-200 pb-2">
-                                <div class="flex items-center gap-1.5">
-                                    <svg class="h-4 w-4 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                                    </svg>
-                                    <span class="text-2xs font-black uppercase tracking-wider text-gray-700">Perubahan Jadwal Layanan</span>
-                                </div>
-                                <span class="rounded border border-blue-900 bg-blue-100 px-2 py-0.5 text-3xs font-black uppercase tracking-wider text-blue-900 shadow-[1px_1px_0px_0px_rgba(17,24,39,1)]">
-                                    Reschedule
-                                </span>
-                            </div>
-
-                            <div class="grid grid-cols-1 gap-2 sm:grid-cols-[1fr_auto_1fr] sm:items-center">
-                                <!-- Jadwal Semula (Lama) -->
-                                <div class="relative rounded-xl border-2 border-red-300 bg-red-50/70 p-3 text-center transition-all">
-                                    <span class="inline-flex items-center gap-1 rounded-full bg-red-100 px-2 py-0.5 text-3xs font-black uppercase tracking-wider text-red-700">
-                                        <span class="h-1.5 w-1.5 rounded-full bg-red-500"></span>
-                                        Jadwal Semula
-                                    </span>
-                                    <p class="mt-1.5 text-xs font-black text-gray-800 line-through decoration-red-500 decoration-2">
-                                        {{ $req['schedule'] }}
-                                    </p>
-                                    <span class="mt-1 block text-3xs font-bold text-red-600">
-                                        ❌ Dilepas kembali
-                                    </span>
-                                </div>
-
-                                <!-- Arrow Indicator -->
-                                <div class="flex items-center justify-center py-1 sm:py-0">
-                                    <div class="flex h-8 w-8 items-center justify-center rounded-full border-2 border-gray-900 bg-amber-300 text-gray-900 shadow-[2px_2px_0px_0px_rgba(17,24,39,1)]">
-                                        <svg class="h-4 w-4 transform rotate-90 sm:rotate-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M14 5l7 7m0 0l-7 7m7-7H3" />
-                                        </svg>
-                                    </div>
-                                </div>
-
-                                <!-- Jadwal Baru Diajukan -->
-                                <div class="relative rounded-xl border-2 border-emerald-500 bg-emerald-50 p-3 text-center shadow-[2px_2px_0px_0px_rgba(16,185,129,1)] transition-all">
-                                    <span class="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2 py-0.5 text-3xs font-black uppercase tracking-wider text-emerald-800">
-                                        <span class="h-1.5 w-1.5 rounded-full bg-emerald-600 animate-pulse"></span>
-                                        Jadwal Baru Diminta
-                                    </span>
-                                    <p class="mt-1.5 text-xs font-black text-emerald-950">
-                                        {{ $req['requested_schedule'] ?? '-' }}
-                                    </p>
-                                    <span class="mt-1 block text-3xs font-bold text-emerald-700">
-                                        ✨ Slot yang diajukan
-                                    </span>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Keterangan Reschedule -->
-                        <div class="mt-4 rounded-xl border-2 border-blue-400 bg-blue-50 p-3 text-xs text-blue-950 shadow-[2px_2px_0px_0px_rgba(59,130,246,1)]">
-                            <p class="font-bold flex items-center gap-1.5">
-                                <svg class="h-4 w-4 shrink-0 text-blue-700" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                </svg>
-                                Konfirmasi Persetujuan
-                            </p>
-                            <ul class="mt-1.5 list-disc list-inside space-y-0.5 text-2xs text-blue-900 font-semibold leading-relaxed">
-                                <li>Booking dipindahkan ke: <strong>{{ $req['requested_schedule'] ?? 'Jadwal Baru' }}</strong></li>
-                                <li>Slot lama dibebaskan kembali untuk tamu lain</li>
-                                <li>Notifikasi WhatsApp konfirmasi dikirim otomatis ke pelanggan</li>
-                            </ul>
-                        </div>
+                        <p class="mt-4 text-center text-2xs text-gray-500 leading-relaxed">
+                            Menyetujui akan memindahkan booking ke jadwal baru dan mengirim konfirmasi WhatsApp ke pelanggan.
+                        </p>
 
                         <!-- Action Buttons: Accept & Tutup Saja (Tanpa Edit Manual) -->
                         <div class="mt-6 flex items-center justify-center gap-3">
