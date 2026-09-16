@@ -327,6 +327,9 @@ class BookingController extends Controller
                 $adminPhoneFormatted = '62' . substr($adminPhoneFormatted, 1);
             }
 
+            $paymentTypeLabel = strtolower((string) $booking->payment_type) === 'dp' ? 'Down Payment (DP)' : 'Full Payment';
+            $paidAmount = (int) ($payment?->amount ?? $booking->total_amount);
+
             $waText = implode("\n", [
                 'Halo Admin KREF Barber, saya mengajukan pembatalan booking (Refund Manual):',
                 '',
@@ -335,7 +338,8 @@ class BookingController extends Controller
                 '• Jadwal: ' . ($booking->scheduled_at?->format('d M Y, H:i') ?? '-') . ' WIB',
                 '• Barber: ' . ($booking->barber?->name ?? '-'),
                 '• Sumber Pembayaran: ' . ($payment?->payment_source ?: 'QRIS'),
-                '• Nominal: Rp ' . number_format($booking->total_amount, 0, ',', '.'),
+                '• Jenis Pembayaran: ' . $paymentTypeLabel,
+                '• Nominal Dibayar: Rp ' . number_format($paidAmount, 0, ',', '.'),
                 '',
                 'Berikut rekening/e-wallet saya untuk pengembalian dana:',
                 '• Bank/E-Wallet: ',

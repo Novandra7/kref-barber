@@ -103,6 +103,7 @@ class BookingNotificationService
         $details = [
             '• *Nama Pelanggan:* ' . ($booking->name ?: '-'),
             '• *Nominal Refund:* *' . $refundFormatted . '*',
+            '• *Jenis Pembayaran:* ' . (strtolower((string) $booking->payment_type) === 'dp' ? 'Down Payment (DP)' : 'Full Payment'),
         ];
 
         if ($refundNo) {
