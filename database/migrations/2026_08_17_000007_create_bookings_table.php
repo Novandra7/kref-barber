@@ -44,6 +44,7 @@ return new class extends Migration
             // Waktu Mulai & Selesai Booking
             $table->timestamp('scheduled_at')->nullable();
             $table->timestamp('ends_at')->nullable();
+            $table->timestamp('reminder_sent_at')->nullable();
 
             $table->timestamps();
 

@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Exports\BookingsExport;
+use App\Jobs\SendBookingReminderJob;
 use App\Models\Barber;
 use App\Models\Booking;
 use App\Models\Payment;
@@ -607,6 +608,25 @@ class BookingAdminController extends Controller
                 'date_to'   => $request->input('date_from'),
             ]);
         }
+    }
+
+    /**
+     * Kirim pengingat jadwal booking secara manual via Queue / WAHA.
+     */
+    public function sendReminder(Booking $booking): RedirectResponse
+    {
+        if ($booking->status !== 'confirmed') {
+            return back()->with('error', 'Pengingat hanya dapat dikirimkan untuk booking dengan status Terkonfirmasi (Confirmed).');
+        }
+
+        if (! $booking->phone) {
+            return back()->with('error', 'Nomor telepon pelanggan tidak ditemukan.');
+        }
+
+        // Dispatch ke Queue untuk diproses oleh queue worker
+        SendBookingReminderJob::dispatch($booking->id);
+
+        return back()->with('success', "Pengingat jadwal untuk booking #BK-{$booking->id} ({$booking->name}) berhasil dimasukkan ke antrean pengiriman.");
     }
 
     /**

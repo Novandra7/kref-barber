@@ -63,6 +63,8 @@ Route::domain('admin.' . config('app.domain', 'kref.test'))->group(function () {
             ->names('admin.bookings');
         Route::patch('bookings/{booking}/status', [BookingAdminController::class, 'updateStatus'])
             ->name('admin.bookings.update-status');
+        Route::post('bookings/{booking}/send-reminder', [BookingAdminController::class, 'sendReminder'])
+            ->name('admin.bookings.send-reminder');
         Route::patch('refunds/{refund}/confirm', [BookingAdminController::class, 'confirmManualRefund'])
             ->name('admin.refunds.confirm');
 

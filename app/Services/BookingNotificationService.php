@@ -176,6 +176,35 @@ class BookingNotificationService
         $this->send($booking->phone, $message);
     }
 
+    public function bookingReminder(Booking $booking): void
+    {
+        $booking->loadMissing(['barber', 'payment']);
+
+        $timeFormatted = $booking->scheduled_at
+            ? $booking->scheduled_at->format('H:i') . ' WITA'
+            : '-';
+
+        $reference = $booking->payment?->reference ?? ('BK-' . $booking->id);
+
+        $message = implode("\n", [
+            '💈 *KREF BARBERSHOP*',
+            '_Pengingat Jadwal Kunjungan_',
+            '─────────────────────────',
+            '',
+            'Halo, *' . ($booking->name ?: 'Pelanggan') . '*! 👋',
+            'Jadwal reservasi Anda di *KREF Barbershop* akan dimulai dalam *30 menit*:',
+            '',
+            '• *Barber:* ' . ($booking->barber?->name ?? '-'),
+            '• *Waktu:* ' . $timeFormatted,
+            '• *Kode Booking:* `' . $reference . '`',
+            '',
+            'Mohon hadir tepat waktu di lokasi.',
+            'Sampai jumpa di kursi barber! ✂️',
+        ]);
+
+        $this->send($booking->phone, $message);
+    }
+
     private function send(string $phone, string $message): void
     {
         try {

@@ -213,6 +213,14 @@
                                         {{ in_array($booking->status, ['cancelled', 'cancel_requested']) ? 'bg-red-100 text-red-700' : '' }}">
                                         {{ $statusLabel }}
                                     </span>
+                                    @if ($booking->reminder_sent_at)
+                                        <div class="mt-1 flex items-center gap-1 text-[11px] font-medium text-emerald-600" title="Pengingat terkirim: {{ $booking->reminder_sent_at->format('d M Y, H:i') }}">
+                                            <svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                                            </svg>
+                                            <span>Reminder sent</span>
+                                        </div>
+                                    @endif
                                 </td>
                                 <td class="px-5 py-4 text-right align-top">
                                     <button type="button" data-dropdown-toggle="booking-actions-{{ $booking->id }}" data-dropdown-placement="bottom-end" class="inline-flex rounded-lg p-2 text-gray-500 hover:bg-gray-100 hover:text-brand" aria-label="Booking actions">
@@ -271,6 +279,26 @@
                         Update Status
                     </button>
                 </li>
+                @if ($booking->status === 'confirmed')
+                    <li>
+                        <form method="POST" action="{{ route('admin.bookings.send-reminder', $booking) }}" onsubmit="return confirm('Kirim pengingat WhatsApp ke customer sekarang?');">
+                            @csrf
+                            <button type="submit" 
+                                    data-dropdown-hide="booking-actions-{{ $booking->id }}"
+                                    class="flex w-full items-center justify-between rounded px-3 py-2 text-left hover:bg-gray-100 text-emerald-700">
+                                <span class="flex items-center gap-1.5 font-medium">
+                                    <svg class="h-4 w-4 shrink-0 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                    </svg>
+                                    Kirim Pengingat WA
+                                </span>
+                                @if ($booking->reminder_sent_at)
+                                    <span class="rounded bg-emerald-50 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-600">Sudah</span>
+                                @endif
+                            </button>
+                        </form>
+                    </li>
+                @endif
                 @if ($booking->status !== 'cancelled')
                     <li>
                         <button type="button" 
@@ -303,6 +331,18 @@
                             <h4 class="mb-2 font-semibold text-gray-900">Appointment</h4>
                             <p class="font-medium text-gray-800">{{ $booking->scheduled_at?->format('d M Y, H:i') ?? '-' }}</p>
                             <p class="text-gray-500">{{ $booking->barber?->name ?? '-' }} ({{ $booking->barber?->role ?? '-' }})</p>
+                            @if ($booking->reminder_sent_at)
+                                <p class="mt-2 flex items-center gap-1.5 text-xs font-semibold text-emerald-600">
+                                    <svg class="h-4 w-4 shrink-0 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                                    </svg>
+                                    Pengingat WA terkirim: {{ $booking->reminder_sent_at->format('d M Y, H:i') }}
+                                </p>
+                            @elseif ($booking->status === 'confirmed')
+                                <p class="mt-2 text-xs text-gray-400">
+                                    Pengingat WA otomatis: 30 menit sebelum jadwal
+                                </p>
+                            @endif
                         </div>
                         <div class="md:col-span-2">
                             <h4 class="mb-2 font-semibold text-gray-900">Services / Products</h4>

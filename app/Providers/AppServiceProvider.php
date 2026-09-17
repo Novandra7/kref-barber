@@ -3,6 +3,8 @@
 namespace App\Providers;
 
 use App\Http\Controllers\Admin\AuthController;
+use App\Models\Booking;
+use App\Observers\BookingObserver;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\RateLimiter;
@@ -24,6 +26,8 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        Booking::observe(BookingObserver::class);
+
         RateLimiter::for('admin-login', function (Request $request) {
             return Limit::perMinute(5)->by(AuthController::rateLimitKey($request));
         });

@@ -28,6 +28,7 @@ class Booking extends Model
         'outstanding_amount',
         'scheduled_at',
         'ends_at',
+        'reminder_sent_at',
     ];
 
     protected function casts(): array
@@ -35,6 +36,7 @@ class Booking extends Model
         return [
             'scheduled_at' => 'datetime',
             'ends_at' => 'datetime',
+            'reminder_sent_at' => 'datetime',
             'total_amount' => 'integer',
             'outstanding_amount' => 'integer',
         ];
@@ -115,6 +117,11 @@ class Booking extends Model
     public function isCancellationRequested(): bool
     {
         return $this->payment?->status === 'cancel_requested';
+    }
+
+    public function hasBeenReminded(): bool
+    {
+        return $this->reminder_sent_at !== null;
     }
 
     protected function formattedPhone(): Attribute
