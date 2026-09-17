@@ -47,13 +47,30 @@ class BookingNotificationService
 
     public function paymentSucceeded(Booking $booking, string $reference, string $detailUrl): void
     {
-        $booking->loadMissing(['barber']);
+        $booking->loadMissing(['barber', 'payment']);
 
         $scheduled = $booking->scheduled_at
             ? $booking->scheduled_at->format('d M Y, H:i') . ' WITA'
             : '-';
 
-        $totalFormatted = 'Rp ' . number_format((int) $booking->total_amount, 0, ',', '.');
+        $total = (int) $booking->total_amount;
+        $totalFormatted = 'Rp ' . number_format($total, 0, ',', '.');
+        $isDp = strtolower((string) $booking->payment_type) === 'dp';
+
+        if ($isDp) {
+            $latePolicy = 'Jika terlambat lebih dari *15 menit* dari jadwal, maka uang muka (DP) dinyatakan *hangus*.';
+        } else {
+            $dpForfeit = 40000;
+            $refundEstimate = max(0, $total - $dpForfeit);
+            $dpFormatted = 'Rp ' . number_format($dpForfeit, 0, ',', '.');
+            $refundFormatted = 'Rp ' . number_format($refundEstimate, 0, ',', '.');
+
+            if ($refundEstimate > 0) {
+                $latePolicy = "Jika terlambat lebih dari *15 menit* dari jadwal, maka biaya senilai DP (*{$dpFormatted}*) akan hangus, dan sisa pembayaran sebesar *{$refundFormatted}* akan dikembalikan (refund).";
+            } else {
+                $latePolicy = "Jika terlambat lebih dari *15 menit* dari jadwal, maka biaya senilai DP (*{$dpFormatted}*) akan hangus.";
+            }
+        }
 
         $message = implode("\n", [
             '💈 *KREF BARBERSHOP*',
@@ -67,12 +84,16 @@ class BookingNotificationService
             '• *Kode Referensi:* `' . $reference . '`',
             '• *Barber:* ' . ($booking->barber?->name ?? '-'),
             '• *Jadwal:* ' . $scheduled,
-            '• *Total Pembayaran:* *' . $totalFormatted . '*',
+            '• *Jenis Pembayaran:* ' . ($isDp ? 'Down Payment (DP)' : 'Full Payment'),
+            '• *Total Biaya:* *' . $totalFormatted . '*',
             '• *Status:* *TERKONFIRMASI*',
             '',
             '📄 *E-Receipt & Tiket Reservasi:*',
             'Lihat rincian bukti pembayaran & status reservasi Anda di sini:',
             '👉 ' . $detailUrl,
+            '',
+            '⚠️ *Ketentuan Keterlambatan:*',
+            $latePolicy,
             '',
             '─────────────────────────',
             '_Mohon hadir tepat waktu (disarankan 5-10 menit sebelum jadwal)._',
