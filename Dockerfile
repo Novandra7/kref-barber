@@ -105,6 +105,7 @@ COPY --from=frontend /app/public/build ./public/build
 
 # Container configuration files
 COPY docker/nginx.conf /etc/nginx/nginx.conf
+COPY docker/supervisord.conf /etc/supervisord.conf
 COPY docker/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 COPY docker/php.ini /usr/local/etc/php/conf.d/99-app.ini
 COPY docker/entrypoint.sh /usr/local/bin/entrypoint.sh
@@ -116,4 +117,4 @@ RUN chmod +x /usr/local/bin/entrypoint.sh \
 EXPOSE 80
 
 ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
-CMD ["/usr/bin/supervisord", "-c", "/etc/supervisor/conf.d/supervisord.conf"]
+CMD ["/usr/bin/supervisord", "-c", "/etc/supervisord.conf"]
