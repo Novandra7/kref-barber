@@ -40,7 +40,9 @@ return [
         'api_key'  => env('WAHA_API_KEY'),
     ],
     'kref' => [
-        'admin_phone' => env('KREF_ADMIN_PHONE', '6283862681541'),
+        'admin_phone'      => env('KREF_ADMIN_PHONE', '6283862681541'),
+        'ops_group_id'     => env('KREF_OPS_GROUP_ID', '120363423614283565@g.us'),
+        'notify_ops_group' => env('KREF_NOTIFY_OPS_GROUP', true),
     ],
     'doku' => [
         'base_url' => env('DOKU_BASE_URL', 'https://api-sandbox.doku.com'),

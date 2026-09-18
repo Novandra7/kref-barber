@@ -18,12 +18,12 @@ class WahaService
     }
 
     /**
-     * Kirim pesan teks WA
+     * Kirim pesan teks WA (bisa ke nomor perorangan atau grup WhatsApp)
      */
-    public function sendMessage(string $phone, string $text)
+    public function sendMessage(string $recipient, string $text)
     {
-        // Format nomor HP agar sesuai standar WAHA (contoh: 08123456789 -> 628123456789@c.us)
-        $chatId = $this->formatPhoneNumber($phone);
+        // Format tujuan: nomor HP -> @c.us atau pertahankan @g.us untuk grup
+        $chatId = $this->formatChatId($recipient);
 
         $response = Http::withHeaders($this->getHeaders())
             ->post("{$this->baseUrl}/api/sendText", [
@@ -45,6 +45,30 @@ class WahaService
         }
 
         return $response->json();
+    }
+
+    /**
+     * Format recipient string ke format chatId WhatsApp (nomor pribadi @c.us atau grup @g.us)
+     */
+    public function formatChatId(string $recipient): string
+    {
+        $trimmed = trim($recipient);
+
+        if ($trimmed === '') {
+            throw new \InvalidArgumentException('Tujuan pesan WhatsApp tidak boleh kosong.');
+        }
+
+        // Jika sudah berupa Group ID (@g.us) atau format Chat ID (@c.us), gunakan langsung
+        if (str_ends_with($trimmed, '@g.us') || str_ends_with($trimmed, '@c.us')) {
+            return $trimmed;
+        }
+
+        // Jika berupa ID grup WhatsApp tanpa suffix @g.us (standar WA: diawali 120363... atau format lama dengan tanda '-')
+        if (str_starts_with($trimmed, '120363') || str_contains($trimmed, '-')) {
+            return $trimmed . '@g.us';
+        }
+
+        return $this->formatPhoneNumber($trimmed);
     }
 
     /**

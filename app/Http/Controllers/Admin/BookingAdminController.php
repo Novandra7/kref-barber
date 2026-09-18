@@ -94,7 +94,7 @@ class BookingAdminController extends Controller
         return view('admin.bookings.create', $this->bookingFormData());
     }
 
-    public function store(Request $request): RedirectResponse
+    public function store(Request $request, BookingNotificationService $notifications): RedirectResponse
     {
         $data = $request->validate([
             'name'           => ['required', 'string', 'max:255'],
@@ -201,6 +201,8 @@ class BookingAdminController extends Controller
 
             $schedule->update(['is_available' => false]);
         });
+
+        $notifications->sendDailyRecapToOpsGroup($data['date']);
 
         return redirect()->route('admin.bookings.index')->with('success', 'Walk-in booking created successfully.');
     }
@@ -486,6 +488,23 @@ class BookingAdminController extends Controller
                 booking: $rescheduleNotificationData['booking'],
                 oldScheduledAt: $rescheduleNotificationData['oldScheduledAt'],
             );
+        }
+
+        // Kirim pesan Rekap Agenda Harian ke Grup Operasional WhatsApp
+        if ($data['status'] === 'cancelled' && $booking->scheduled_at) {
+            $notifications->sendDailyRecapToOpsGroup($booking->scheduled_at);
+        }
+
+        if ($isRescheduleApproved && $booking->scheduled_at) {
+            $notifications->sendDailyRecapToOpsGroup($booking->scheduled_at);
+
+            if ($rescheduleNotificationData && !empty($rescheduleNotificationData['oldScheduledAt'])) {
+                $oldDate = Carbon::parse($rescheduleNotificationData['oldScheduledAt'])->toDateString();
+                $newDate = Carbon::parse($booking->scheduled_at)->toDateString();
+                if ($oldDate !== $newDate) {
+                    $notifications->sendDailyRecapToOpsGroup($oldDate);
+                }
+            }
         }
 
         if ($isRescheduleApproved) {

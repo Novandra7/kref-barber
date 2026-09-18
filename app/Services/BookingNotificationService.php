@@ -2,7 +2,9 @@
 
 namespace App\Services;
 
+use App\Models\Barber;
 use App\Models\Booking;
+use Carbon\Carbon;
 use Illuminate\Support\Facades\Log;
 
 class BookingNotificationService
@@ -224,6 +226,114 @@ class BookingNotificationService
         ]);
 
         $this->send($booking->phone, $message);
+    }
+
+    /**
+     * Kirim pesan Rekap Agenda Harian ke Grup Operasional WhatsApp
+     */
+    public function sendDailyRecapToOpsGroup(string|\DateTimeInterface $date): void
+    {
+        $opsGroupId = trim((string) config('services.kref.ops_group_id', env('KREF_OPS_GROUP_ID', '120363423614283565@g.us')));
+        $notifyOps = config('services.kref.notify_ops_group', true);
+
+        if (! $notifyOps || $opsGroupId === '') {
+            return;
+        }
+
+        if (! str_contains($opsGroupId, '@')) {
+            $opsGroupId .= '@g.us';
+        }
+
+        try {
+            $targetDate = $date instanceof \DateTimeInterface
+                ? Carbon::instance($date)->locale('id')
+                : Carbon::parse($date)->locale('id');
+
+            $dateString = $targetDate->toDateString();
+            $dateFormatted = $targetDate->translatedFormat('l, d F Y');
+
+            $barbers = Barber::query()
+                ->where('is_active', true)
+                ->with(['schedules' => function ($query) use ($dateString) {
+                    $query->whereDate('date', $dateString)
+                        ->orderBy('slot_time');
+                }])
+                ->orderBy('name')
+                ->get();
+
+            $totalBookings = Booking::query()
+                ->whereDate('scheduled_at', $dateString)
+                ->whereNotIn('status', ['cancelled'])
+                ->count();
+
+            $lines = [
+                '💈 *AGENDA OPERASIONAL KREF BARBERSHOP*',
+                '📅 *' . $dateFormatted . '*',
+                '─────────────────────────',
+                'Total Booking: *' . $totalBookings . ' Tamu*',
+                '',
+            ];
+
+            foreach ($barbers as $barber) {
+                // Booking aktif untuk barber ini pada tanggal tersebut
+                $barberBookings = Booking::query()
+                    ->where('barber_id', $barber->id)
+                    ->whereDate('scheduled_at', $dateString)
+                    ->whereNotIn('status', ['cancelled'])
+                    ->orderBy('scheduled_at')
+                    ->get();
+
+                $bookingCount = $barberBookings->count();
+                $lines[] = '✂️ *Barber ' . $barber->name . ' (' . $bookingCount . ' Booking)*';
+
+                if ($bookingCount > 0) {
+                    foreach ($barberBookings as $booking) {
+                        $time = $booking->scheduled_at ? $booking->scheduled_at->format('H:i') . ' WITA' : '-';
+                        $customerName = $booking->name ?: 'Pelanggan';
+
+                        if ((int) $booking->outstanding_amount > 0) {
+                            $paymentStatus = '[DP: Sisa Rp ' . number_format($booking->outstanding_amount, 0, ',', '.') . ']';
+                        } else {
+                            $paymentStatus = '[LUNAS]';
+                        }
+
+                        $lines[] = '• ' . $time . ' - ' . $customerName . ' ' . $paymentStatus;
+                    }
+                }
+
+                // Slot kosong / available
+                $availableSlots = $barber->schedules
+                    ->filter(fn ($s) => (bool) $s->is_available)
+                    ->map(function ($s) {
+                        return $s->slot_time instanceof \DateTimeInterface
+                            ? $s->slot_time->format('H:i')
+                            : Carbon::parse($s->slot_time)->format('H:i');
+                    })
+                    ->values();
+
+                if ($barber->schedules->isEmpty()) {
+                    $lines[] = '⚪ *Slot Kosong:* Belum ada jadwal yang diatur';
+                } elseif ($availableSlots->isEmpty()) {
+                    $lines[] = '🔴 *Slot Kosong:* Penuh';
+                } else {
+                    $lines[] = '🟢 *Slot Kosong:* ' . $availableSlots->implode(', ');
+                }
+
+                $lines[] = '';
+            }
+
+            $lines[] = '─────────────────────────';
+            $lines[] = '_Jadwal otomatis diperbarui dari sistem KREF_';
+
+            $message = implode("\n", $lines);
+
+            $this->send($opsGroupId, $message);
+        } catch (\Throwable $e) {
+            Log::error('Send daily recap to ops group failed.', [
+                'date' => (string) $date,
+                'error' => $e->getMessage(),
+            ]);
+        }
     }
 
     private function send(string $phone, string $message): void

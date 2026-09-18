@@ -172,6 +172,10 @@ class DokuWebhookController extends Controller
                     (string) $reference,
                     route('booking.payment.detail', ['reference' => $reference])
                 );
+
+                if ($booking->scheduled_at) {
+                    $notifications->sendDailyRecapToOpsGroup($booking->scheduled_at);
+                }
             }
         }
 

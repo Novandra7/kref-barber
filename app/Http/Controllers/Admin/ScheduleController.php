@@ -267,6 +267,19 @@ class ScheduleController extends Controller
             $notifications->bookingRescheduled($booking, $oldScheduledAt);
         }
 
+        // 5. Kirim pesan Rekap Agenda Harian ke Grup Operasional WhatsApp
+        if ($booking->scheduled_at) {
+            $notifications->sendDailyRecapToOpsGroup($booking->scheduled_at);
+
+            if ($oldScheduledAt) {
+                $oldDate = Carbon::parse($oldScheduledAt)->toDateString();
+                $newDate = Carbon::parse($booking->scheduled_at)->toDateString();
+                if ($oldDate !== $newDate) {
+                    $notifications->sendDailyRecapToOpsGroup($oldDate);
+                }
+            }
+        }
+
         return back()->with('success', "Booking #BK-{$booking->id} ({$booking->name}) berhasil dipindahkan ke {$targetSchedule->barber->name} pada {$targetSchedule->date->format('d M Y')}, {$targetSchedule->slot_time->format('H:i')} WITA.");
     }
 
