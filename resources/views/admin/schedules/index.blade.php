@@ -216,7 +216,6 @@
                                                              class="py-3 pointer-events-none absolute bottom-full left-1/2 z-20 hidden w-full -translate-x-1/2 rounded-lg bg-gray-900 text-center text-xs text-white shadow-lg md:block! md:opacity-0 md:group-hover/slot:opacity-100">
                                                             <p class="font-semibold">{{ $booking->name ?? 'Customer' }}</p>
                                                             <p class="mt-1 text-gray-300">0{{ $booking->phone ?? 'Phone unavailable' }}</p>
-                                                            <p class="mt-1 text-2xs text-amber-300">⠿ Drag & drop ke hari lain untuk reschedule</p>
                                                             <span class="absolute left-1/2 top-full -translate-x-1/2 border-4 border-transparent border-t-gray-900"></span>
                                                         </div>
                                                     @else
