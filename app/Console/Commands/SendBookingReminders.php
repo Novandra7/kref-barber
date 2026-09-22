@@ -14,7 +14,7 @@ class SendBookingReminders extends Command
      * @var string
      */
     protected $signature = 'booking:send-reminders 
-                            {--minutes=45 : Jendela waktu ke depan dalam menit untuk booking yang akan diingatkan} 
+                            {--minutes=30 : Jendela waktu ke depan dalam menit untuk booking yang akan diingatkan} 
                             {--force : Kirimkan ulang meskipun sudah pernah memiliki catatan reminder}';
 
     /**

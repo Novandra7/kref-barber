@@ -58,7 +58,13 @@
         <hr class="my-6 border-primary lg:my-8" />
 
         <div class="sm:flex sm:items-center sm:justify-between">
-            <span class="text-sm text-white">© 2026 <a href="#" class="hover:underline">Kref™</a>. All Rights Reserved.</span>
+            <div class="text-sm text-white space-y-1">
+                <p>© 2026 <a href="#" class="hover:underline">Kref™</a>. All Rights Reserved.</p>
+                <p class="text-xs text-white/60">
+                    Crafted by 
+                    <a href="https://instagram.com/novandrarsptra" target="_blank" rel="noopener noreferrer" class="font-medium text-white hover:text-primary transition-colors">@novandrarsptra</a>
+                </p>
+            </div>
             <div class="mt-4 flex sm:mt-0 sm:justify-center">
                 <!-- Instagram -->
                 <a href="https://www.instagram.com/krefbarber?stkn=eTBiaHpkajFrdnE1&utm_source=qr" target="_blank" rel="noopener noreferrer" class="text-white hover:text-primary">
