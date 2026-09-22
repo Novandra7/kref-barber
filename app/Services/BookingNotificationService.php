@@ -267,63 +267,74 @@ class BookingNotificationService
                 ->count();
 
             $lines = [
-                '💈 *AGENDA OPERASIONAL KREF BARBERSHOP*',
-                '📅 *' . $dateFormatted . '*',
-                '─────────────────────────',
-                'Total Booking: *' . $totalBookings . ' Tamu*',
+                $dateFormatted,
                 '',
             ];
 
             foreach ($barbers as $barber) {
-                // Booking aktif untuk barber ini pada tanggal tersebut
+                $lines[] = $barber->name . ':';
+
+                // Ambil booking aktif untuk barber ini pada tanggal tersebut
                 $barberBookings = Booking::query()
                     ->where('barber_id', $barber->id)
                     ->whereDate('scheduled_at', $dateString)
                     ->whereNotIn('status', ['cancelled'])
+                    ->with(['payment'])
                     ->orderBy('scheduled_at')
                     ->get();
 
-                $bookingCount = $barberBookings->count();
-                $lines[] = '✂️ *Barber ' . $barber->name . ' (' . $bookingCount . ' Booking)*';
+                // Kumpulkan seluruh slot waktu dari jadwal dan booking agar kronologis
+                $scheduleSlots = $barber->schedules->map(function ($s) {
+                    return $s->slot_time instanceof \DateTimeInterface
+                        ? $s->slot_time->format('H:i')
+                        : Carbon::parse($s->slot_time)->format('H:i');
+                });
 
-                if ($bookingCount > 0) {
-                    foreach ($barberBookings as $booking) {
-                        $time = $booking->scheduled_at ? $booking->scheduled_at->format('H:i') . ' WITA' : '-';
-                        $customerName = $booking->name ?: 'Pelanggan';
+                $bookingSlots = $barberBookings->map(function ($b) {
+                    return $b->scheduled_at ? $b->scheduled_at->format('H:i') : null;
+                })->filter();
 
-                        if ((int) $booking->outstanding_amount > 0) {
-                            $paymentStatus = '[DP: Sisa Rp ' . number_format($booking->outstanding_amount, 0, ',', '.') . ']';
-                        } else {
-                            $paymentStatus = '[LUNAS]';
-                        }
+                $allTimes = $scheduleSlots->merge($bookingSlots)->unique()->sort()->values();
 
-                        $lines[] = '• ' . $time . ' - ' . $customerName . ' ' . $paymentStatus;
-                    }
-                }
-
-                // Slot kosong / available
-                $availableSlots = $barber->schedules
-                    ->filter(fn ($s) => (bool) $s->is_available)
-                    ->map(function ($s) {
-                        return $s->slot_time instanceof \DateTimeInterface
-                            ? $s->slot_time->format('H:i')
-                            : Carbon::parse($s->slot_time)->format('H:i');
-                    })
-                    ->values();
-
-                if ($barber->schedules->isEmpty()) {
-                    $lines[] = '⚪ *Slot Kosong:* Belum ada jadwal yang diatur';
-                } elseif ($availableSlots->isEmpty()) {
-                    $lines[] = '🔴 *Slot Kosong:* Penuh';
+                if ($allTimes->isEmpty()) {
+                    $lines[] = 'Belum ada jadwal';
                 } else {
-                    $lines[] = '🟢 *Slot Kosong:* ' . $availableSlots->implode(', ');
+                    foreach ($allTimes as $time) {
+                        // Cari booking pada jam slot ini
+                        $booking = $barberBookings->first(function ($b) use ($time) {
+                            return $b->scheduled_at && $b->scheduled_at->format('H:i') === $time;
+                        });
+
+                        if ($booking) {
+                            $name = strtolower(trim((string) $booking->name)) ?: 'pelanggan';
+
+                            // Tentukan apakah DP atau FP
+                            $isPaidFull = (int) $booking->outstanding_amount === 0;
+                            $paymentType = $isPaidFull ? 'FP' : 'DP';
+
+                            // Tentukan nominal yang dibayarkan
+                            if ($isPaidFull) {
+                                $paidAmount = (int) $booking->total_amount;
+                            } else {
+                                $paidAmount = $booking->payment?->amount
+                                    ?? max(0, (int) $booking->total_amount - (int) $booking->outstanding_amount);
+                            }
+
+                            // Format nominal dalam 'k' (misal: 40000 -> 40k)
+                            $amountFormatted = ($paidAmount >= 1000)
+                                ? ($paidAmount % 1000 === 0 ? ($paidAmount / 1000) : number_format($paidAmount / 1000, 1, ',', '')) . 'k'
+                                : $paidAmount;
+
+                            $lines[] = "{$time}: {$name} {$paymentType} {$amountFormatted}";
+                        } else {
+                            // Slot kosong diakhiri tanda titik dua ':'
+                            $lines[] = "{$time}:";
+                        }
+                    }
                 }
 
                 $lines[] = '';
             }
-
-            $lines[] = '─────────────────────────';
-            $lines[] = '_Jadwal otomatis diperbarui dari sistem KREF_';
 
             $message = implode("\n", $lines);
 
