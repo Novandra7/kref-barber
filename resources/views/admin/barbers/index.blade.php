@@ -48,6 +48,7 @@
                             <th scope="col" class="px-6 py-3">Barber</th>
                             <th scope="col" class="px-6 py-3">Role</th>
                             <th scope="col" class="px-6 py-3">Phone</th>
+                            <th scope="col" class="px-6 py-3">Instagram</th>
                             <th scope="col" class="px-6 py-3">Status</th>
                             <th scope="col" class="px-6 py-3 text-right">Action</th>
                         </tr>
@@ -67,6 +68,20 @@
                                 </td>
                                 <td class="px-6 py-4 capitalize">{{ $barber->role }}</td>
                                 <td class="px-6 py-4 font-mono text-xs">{{ $barber->phone }}</td>
+                                <td class="px-6 py-4 text-xs">
+                                    @if ($barber->instagram)
+                                        <a href="{{ str_starts_with($barber->instagram, 'http') ? $barber->instagram : 'https://www.instagram.com/' . ltrim($barber->instagram, '@/') }}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-1.5 font-medium text-brand hover:underline" title="{{ $barber->instagram }}">
+                                            <svg class="h-4 w-4 shrink-0" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
+                                                <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16.4 3H7.6A4.6 4.6 0 0 0 3 7.6v8.8A4.6 4.6 0 0 0 7.6 21h8.8a4.6 4.6 0 0 0 4.6-4.6V7.6A4.6 4.6 0 0 0 16.4 3Z"/>
+                                                <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z"/>
+                                                <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.5 6.5h.01"/>
+                                            </svg>
+                                            <span class="max-w-[150px] truncate">{{ '@' . ltrim(basename(rtrim(parse_url($barber->instagram, PHP_URL_PATH) ?? $barber->instagram, '/')), '@') }}</span>
+                                        </a>
+                                    @else
+                                        <span class="text-gray-400">-</span>
+                                    @endif
+                                </td>
                                 
                                 <!-- Badge Status Retro Neobrutalism -->
                                 <td class="px-6 py-4">
@@ -113,7 +128,7 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="5" class="px-6 py-8 text-center text-gray-500">No barbers found.</td>
+                                <td colspan="6" class="px-6 py-8 text-center text-gray-500">No barbers found.</td>
                             </tr>
                         @endforelse
                     </tbody>

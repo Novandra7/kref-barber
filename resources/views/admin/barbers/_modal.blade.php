@@ -27,6 +27,11 @@
                     </div>
 
                     <div>
+                        <label for="barber-instagram" class="block mb-2 text-sm font-medium text-heading">Instagram</label>
+                        <input type="text" name="instagram" id="barber-instagram" class="bg-neutral-secondary-medium border border-default-medium text-heading text-sm rounded-base focus:ring-brand focus:border-brand block w-full px-3 py-2.5 shadow-xs placeholder:text-body" placeholder="e.g. https://www.instagram.com/username">
+                    </div>
+
+                    <div>
                         <label for="barber-role" class="block mb-2 text-sm font-medium text-heading">Role</label>
                         <select id="barber-role" name="role" class="block w-full bg-neutral-secondary-medium border border-default-medium text-heading text-sm rounded-base focus:ring-brand focus:border-brand px-3 py-2.5 shadow-xs placeholder:text-body" required>
                             <option value="" disabled selected>Select role</option>
@@ -93,6 +98,7 @@
                     document.getElementById('barber-submit-label').textContent = 'Save Changes';
                     document.getElementById('barber-name').value = barber.name;
                     document.getElementById('barber-phone').value = barber.phone;
+                    document.getElementById('barber-instagram').value = barber.instagram || '';
                     document.getElementById('barber-role').value = barber.role;
                     document.getElementById('barber-is-active').checked = Boolean(Number(barber.is_active));
 

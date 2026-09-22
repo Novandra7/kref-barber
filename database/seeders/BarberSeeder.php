@@ -18,6 +18,7 @@ class BarberSeeder extends Seeder
                 'role' => 'owner',
                 'photo' => null,
                 'phone' => '081234567890',
+                'instagram' => 'https://www.instagram.com/rizaljarwansyah',
                 'is_active' => true,
             ],
             [
@@ -25,6 +26,7 @@ class BarberSeeder extends Seeder
                 'role' => 'senior',
                 'photo' => null,
                 'phone' => '081234567891',
+                'instagram' => 'https://www.instagram.com/callthevvv_',
                 'is_active' => true,
             ]
         ];

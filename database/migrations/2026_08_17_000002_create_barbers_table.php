@@ -14,6 +14,7 @@ return new class extends Migration
             $table->string('role')->default('junior');
             $table->string('photo')->nullable();
             $table->string('phone');
+            $table->string('instagram')->nullable();
             $table->boolean('is_active')->default(true);
             $table->timestamps();
         });

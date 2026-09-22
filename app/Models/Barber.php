@@ -16,6 +16,7 @@ class Barber extends Model
         'role',
         'photo',
         'phone',
+        'instagram',
         'is_active',
     ];
 

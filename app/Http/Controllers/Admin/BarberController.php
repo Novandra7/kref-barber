@@ -76,6 +76,7 @@ class BarberController extends Controller
             'name' => ['required', 'string', 'max:255'],
             'role' => ['required', 'string', 'max:100'],
             'phone' => ['required', 'string', 'max:30'],
+            'instagram' => ['nullable', 'string', 'max:255'],
             'is_active' => ['nullable', 'boolean'],
             'photo' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:2048'],
         ]) + [
