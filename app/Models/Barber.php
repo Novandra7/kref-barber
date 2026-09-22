@@ -22,6 +22,7 @@ class Barber extends Model
 
     protected $appends = [
         'photo_url',
+        'instagram_url',
     ];
 
     protected function casts(): array
@@ -37,6 +38,21 @@ class Barber extends Model
     {
         return Attribute::make(
             get: fn () => $this->photo ? asset('storage/' . $this->photo) : null,
+        );
+    }
+
+    protected function instagramUrl(): Attribute
+    {
+        return Attribute::make(
+            get: function () {
+                if (!$this->instagram) {
+                    return null;
+                }
+
+                return str_starts_with($this->instagram, 'http://') || str_starts_with($this->instagram, 'https://')
+                    ? $this->instagram
+                    : 'https://www.instagram.com/' . ltrim($this->instagram, '@/');
+            },
         );
     }
 
