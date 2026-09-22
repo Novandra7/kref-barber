@@ -8,7 +8,7 @@
         <p>Potongan fresh, detail rapi, gaya yang kamu mau.</p>
         <div class="grid w-full grid-cols-1 md:grid-cols-2 gap-4">
             <div class="flex flex-col gap-4">
-                <div class="h-48 md:h-52 overflow-hidden rounded-2xl">
+                <div class="h-64 md:h-52 overflow-hidden rounded-2xl">
                     <img 
                         src={{ asset("images/gallery1.png") }}
                         alt="Barber chair" 
@@ -17,39 +17,39 @@
                 </div>
 
                 <!-- Gambar 2 (Bawah Kiri - Haircut Process) -->
-                <div class="h-64 md:h-72 overflow-hidden rounded-2xl">
+                {{-- <div class="h-64 md:h-72 overflow-hidden rounded-2xl">
                     <img 
-                        src={{ asset("images/hero2.jpg") }}
+                        src={{ asset("images/gallery5.jpeg") }}
                         alt="Hairdresser styling hair" 
-                        class="w-full h-full object-cover"
+                        class="w-full h-full object-cover object-[50%_60%] "
                     />
-                </div>
+                </div> --}}
             </div>
             <div class="flex flex-col gap-4">
                 <!-- Gambar 3 (Atas Kanan - Haircut Result) -->
-                <div class="h-64 md:h-72 overflow-hidden rounded-2xl">
+                <div class="h-48 md:h-72 overflow-hidden rounded-2xl">
                     <img 
-                        src={{ asset("images/hero3.jpg") }}
+                        src={{ asset("images/gallery2.jpeg") }}
                         alt="Man with a fresh haircut" 
-                        class="w-full h-full object-cover"
+                        class="w-full h-full object-cover object-[50%_30%] scale-120"
                     />
                 </div>
                 <div class="grid grid-cols-2 gap-4">
                     <!-- Gambar 4 (Bawah Kanan Kiri - Close-up Clipper) -->
                     <div class="h-48 md:h-52 overflow-hidden rounded-2xl">
                         <img 
-                            src={{ asset("images/hero1.jpg") }}
+                            src={{ asset("images/gallery5.jpeg") }}
                             alt="Hair trimmer close up" 
-                            class="w-full h-full object-cover"
+                            class="w-full h-full object-cover object-[50%_45%]"
                         />
                     </div>
 
                     <!-- Gambar 5 (Bawah Kanan Kanan - Hair Spray) -->
                     <div class="h-48 md:h-52 overflow-hidden rounded-2xl">
                         <img 
-                            src={{ asset("images/hero2.jpg") }}
+                            src={{ asset("images/gallery6.jpeg") }}
                             alt="Barber applying hair spray" 
-                            class="w-full h-full object-cover"
+                            class="w-full h-full object-cover object-[50%_45%]"
                         />
                     </div>
                 </div>

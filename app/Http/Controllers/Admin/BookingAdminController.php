@@ -161,7 +161,8 @@ class BookingAdminController extends Controller
             });
 
             $total = (int) $serviceItems->sum('price');
-            $amount = $data['payment_type'] === 'dp' ? 40000 : $total;
+            $dpAmount = (int) config('booking.dp_amount', 40000);
+            $amount = $data['payment_type'] === 'dp' ? $dpAmount : $total;
             abort_if($amount > $total, 422, 'DP amount cannot exceed the booking total.');
 
             // --- PERBAIKAN: Menghapus 'payment_status' dari array create ---

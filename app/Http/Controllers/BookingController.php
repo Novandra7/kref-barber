@@ -54,7 +54,9 @@ class BookingController extends Controller
             $selectedDate = $availableDates->first() ?? now()->toDateString();
         }
 
-        return view('booking', compact('services', 'barbers', 'scheduleData', 'availableDates', 'selectedDate'));
+        $dpAmount = (int) config('booking.dp_amount', 40000);
+
+        return view('booking', compact('services', 'barbers', 'scheduleData', 'availableDates', 'selectedDate', 'dpAmount'));
     }
 
     /**
@@ -174,7 +176,8 @@ class BookingController extends Controller
             // --- Hitung jumlah yang harus dibayar (DP per tamu atau Full) ---
             $isDp = strtolower($data['payment_type']) === 'dp';
             $guestCount = count($bookingPayments);
-            $amount = $isDp ? (1000 * $guestCount) : $totalAmount;
+            $dpAmount = (int) config('booking.dp_amount', 40000);
+            $amount = $isDp ? ($dpAmount * $guestCount) : $totalAmount;
             if ($amount > $totalAmount) {
                 abort(422, 'DP amount cannot exceed the booking total.');
             }
@@ -332,7 +335,7 @@ class BookingController extends Controller
             ]);
         });
 
-        $adminPhone = config('services.admin.phone');
+        $adminPhone = config('services.admin.phone', '083862681541');
         $isManualRefund = ! ($payment?->canBeRefundedViaDoku() ?? false);
 
         if ($isManualRefund && $adminPhone) {

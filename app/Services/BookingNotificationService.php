@@ -62,7 +62,7 @@ class BookingNotificationService
         if ($isDp) {
             $latePolicy = 'Jika terlambat lebih dari *15 menit* dari jadwal, maka uang muka (DP) dinyatakan *hangus*.';
         } else {
-            $dpForfeit = 40000;
+            $dpForfeit = (int) config('booking.dp_amount', 40000);
             $refundEstimate = max(0, $total - $dpForfeit);
             $dpFormatted = 'Rp ' . number_format($dpForfeit, 0, ',', '.');
             $refundFormatted = 'Rp ' . number_format($refundEstimate, 0, ',', '.');

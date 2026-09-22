@@ -12,12 +12,12 @@
                         <input x-model="paymentType" :disabled="paymentTypeConfirmed || paymentData?.status === 'paid'" id="bordered-radio-1" type="radio" value="DP" name="bordered-radio" class="w-4 h-4 text-neutral-primary bg-neutral-secondary-medium rounded-full checked:border-brand focus:ring-2 focus:outline-none focus:ring-brand-subtle border border-default appearance-none shrink-0">
                         <label for="bordered-radio-1" class="w-full select-none ms-3 cursor-pointer flex flex-col">
                             <span class="text-lg font-bold text-black leading-none mb-2">DP (Down Payment)</span>
-                            <span class="text-2xs text-gray-500 font-normal">Bayar 40.000 sekarang, sisanya di barbershop</span>
+                            <span class="text-2xs text-gray-500 font-normal">Bayar {{ number_format(config('booking.dp_amount', 40000), 0, ',', '.') }} sekarang, sisanya di barbershop</span>
                         </label>
                     </div>
                     <div :class="paymentType === 'DP' ? 'bg-primary/10' : 'bg-neutral-100'" class="flex flex-col items-center justify-center mt-3 rounded-[10px] py-2">
                         <span class="text-sm text-black mb-2">Anda akan membayar sekarang</span>
-                        <span class="text-[20px] font-semibold text-black">40.000</span>
+                        <span class="text-[20px] font-semibold text-black" x-text="formatPrice({{ (int) config('booking.dp_amount', 40000) }} * (guests.length || 1))"></span>
                     </div>
                 </div>
 
