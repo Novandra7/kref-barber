@@ -4,6 +4,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Services\DokuService;
 use App\Http\Controllers\Api\DokuWebhookController;
+use App\Http\Controllers\Api\WahaWebhookController;
 
 Route::get('/user', function (Request $request) {
     return $request->user();
@@ -22,6 +23,9 @@ Route::get('/testing-payment', function (Request $request) {
 
 // Webhook Payment DOKU (Public API endpoint)
 Route::post('/payments/webhook', [DokuWebhookController::class, 'webhook'])->name('doku.webhook');
+
+// Webhook WAHA (Walk-in booking)
+Route::post('/waha/webhook', [WahaWebhookController::class, 'handle'])->name('waha.webhook');
 
 
 Route::post('/doku/create-qris', function (Request $request) {
