@@ -23,12 +23,12 @@ class BookingNotificationService
             : '-';
 
         $message = implode("\n", [
-            '💈 *KREF BARBERSHOP*',
+            '💈 *KREF BARBER*',
             '_Reservasi Baru Diterima_',
             '─────────────────────────',
             '',
             'Halo, *' . ($booking->name ?: 'Pelanggan') . '*! 👋',
-            'Terima kasih telah memesan layanan di *KREF Barbershop*. Reservasi Anda telah tercatat dan saat ini *menunggu pembayaran*.',
+            'Terima kasih telah memesan layanan di *KREF Barber*. Reservasi Anda telah tercatat dan saat ini *menunggu pembayaran*.',
             '',
             '📋 *Detail Reservasi:*',
             '• *Kode Referensi:* `' . $reference . '`',
@@ -75,7 +75,7 @@ class BookingNotificationService
         }
 
         $message = implode("\n", [
-            '💈 *KREF BARBERSHOP*',
+            '💈 *KREF BARBER*',
             '_Pembayaran Berhasil Dikonfirmasi_',
             '─────────────────────────',
             '',
@@ -99,7 +99,7 @@ class BookingNotificationService
             '',
             '─────────────────────────',
             '_Mohon hadir tepat waktu (disarankan 5-10 menit sebelum jadwal)._',
-            '_Terima kasih atas kepercayaan Anda di KREF Barbershop! ✂️_',
+            '_Terima kasih atas kepercayaan Anda di KREF Barber! ✂️_',
         ]);
 
         $this->send($booking->phone, $message);
@@ -141,7 +141,7 @@ class BookingNotificationService
             : 'Dana telah dikembalikan ke metode pembayaran awal Anda sesuai ketentuan penyedia pembayaran.';
 
         $message = implode("\n", [
-            '💈 *KREF BARBERSHOP*',
+            '💈 *KREF BARBER*',
             '_Pemberitahuan Pengembalian Dana_',
             '─────────────────────────',
             '',
@@ -177,7 +177,7 @@ class BookingNotificationService
             : '-';
 
         $message = implode("\n", [
-            '💈 *KREF BARBERSHOP*',
+            '💈 *KREF BARBER*',
             '_Perubahan Jadwal Berhasil Dikonfirmasi_',
             '─────────────────────────',
             '',
@@ -210,12 +210,12 @@ class BookingNotificationService
         $reference = $booking->payment?->reference ?? ('BK-' . $booking->id);
 
         $message = implode("\n", [
-            '💈 *KREF BARBERSHOP*',
+            '💈 *KREF BARBER*',
             '_Pengingat Jadwal Kunjungan_',
             '─────────────────────────',
             '',
             'Halo, *' . ($booking->name ?: 'Pelanggan') . '*! 👋',
-            'Jadwal reservasi Anda di *KREF Barbershop* akan dimulai dalam *30 menit*:',
+            'Jadwal reservasi Anda di *KREF Barber* akan dimulai dalam *30 menit*:',
             '',
             '• *Barber:* ' . ($booking->barber?->name ?? '-'),
             '• *Waktu:* ' . $timeFormatted,
