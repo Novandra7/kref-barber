@@ -251,20 +251,31 @@
                         </div>
                     @else
                         <p class="mt-4 text-center text-2xs text-gray-500 leading-relaxed">
-                            Menyetujui akan memindahkan booking ke jadwal baru dan mengirim konfirmasi WhatsApp ke pelanggan.
+                            Pilih <strong>Accept</strong> untuk menyetujui jadwal baru, atau <strong>Tolak</strong> untuk membatalkan permintaan dan mempertahankan jadwal semula.
                         </p>
 
-                        <!-- Action Buttons: Accept & Tutup Saja (Tanpa Edit Manual) -->
-                        <div class="mt-6 flex items-center justify-center gap-3">
-                            <form method="POST" action="{{ $req['action_url'] }}" class="flex-1">
-                                @csrf
-                                @method('PATCH')
-                                <input type="hidden" name="status" value="confirmed">
-                                <button type="submit" class="w-full rounded-xl border-2 border-gray-900 bg-emerald-400 px-4 py-2.5 text-center text-xs font-black uppercase tracking-wider text-gray-900 shadow-[2px_2px_0px_0px_rgba(17,24,39,1)] transition-all hover:-translate-x-0.5 hover:-translate-y-0.5 hover:shadow-[4px_4px_0px_0px_rgba(17,24,39,1)] active:translate-x-0.5 active:translate-y-0.5 active:shadow-[1px_1px_0px_0px_rgba(17,24,39,1)] cursor-pointer">
-                                    Accept & Reschedule
-                                </button>
-                            </form>
-                            <button type="button" data-modal-hide="processModal-{{ $req['id'] }}" class="flex-1 rounded-xl border-2 border-gray-900 bg-white px-4 py-2.5 text-center text-xs font-black uppercase tracking-wider text-gray-900 shadow-[2px_2px_0px_0px_rgba(17,24,39,1)] transition-all hover:-translate-x-0.5 hover:-translate-y-0.5 hover:shadow-[4px_4px_0px_0px_rgba(17,24,39,1)] active:translate-x-0.5 active:translate-y-0.5 active:shadow-[1px_1px_0px_0px_rgba(17,24,39,1)] cursor-pointer">
+                        <!-- Action Buttons: Tolak, Accept & Tutup -->
+                        <div class="mt-6 space-y-2.5">
+                            <div class="flex items-center justify-center gap-3">
+                                <form method="POST" action="{{ $req['action_url'] }}" class="flex-1">
+                                    @csrf
+                                    @method('PATCH')
+                                    <input type="hidden" name="status" value="confirmed">
+                                    <input type="hidden" name="action" value="reject_reschedule">
+                                    <button type="submit" class="w-full rounded-xl border-2 border-gray-900 bg-red-400 px-3 py-2.5 text-center text-xs font-black uppercase tracking-wider text-gray-900 shadow-[2px_2px_0px_0px_rgba(17,24,39,1)] transition-all hover:-translate-x-0.5 hover:-translate-y-0.5 hover:shadow-[4px_4px_0px_0px_rgba(17,24,39,1)] active:translate-x-0.5 active:translate-y-0.5 active:shadow-[1px_1px_0px_0px_rgba(17,24,39,1)] cursor-pointer">
+                                        Tolak
+                                    </button>
+                                </form>
+                                <form method="POST" action="{{ $req['action_url'] }}" class="flex-1">
+                                    @csrf
+                                    @method('PATCH')
+                                    <input type="hidden" name="status" value="confirmed">
+                                    <button type="submit" class="w-full rounded-xl border-2 border-gray-900 bg-emerald-400 px-3 py-2.5 text-center text-xs font-black uppercase tracking-wider text-gray-900 shadow-[2px_2px_0px_0px_rgba(17,24,39,1)] transition-all hover:-translate-x-0.5 hover:-translate-y-0.5 hover:shadow-[4px_4px_0px_0px_rgba(17,24,39,1)] active:translate-x-0.5 active:translate-y-0.5 active:shadow-[1px_1px_0px_0px_rgba(17,24,39,1)] cursor-pointer">
+                                        Accept & Reschedule
+                                    </button>
+                                </form>
+                            </div>
+                            <button type="button" data-modal-hide="processModal-{{ $req['id'] }}" class="w-full rounded-xl border-2 border-gray-900 bg-white px-4 py-2 text-center text-xs font-black uppercase tracking-wider text-gray-900 shadow-[2px_2px_0px_0px_rgba(17,24,39,1)] transition-all hover:-translate-x-0.5 hover:-translate-y-0.5 hover:shadow-[4px_4px_0px_0px_rgba(17,24,39,1)] active:translate-x-0.5 active:translate-y-0.5 active:shadow-[1px_1px_0px_0px_rgba(17,24,39,1)] cursor-pointer">
                                 Tutup
                             </button>
                         </div>

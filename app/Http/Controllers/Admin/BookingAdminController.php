@@ -300,20 +300,23 @@ class BookingAdminController extends Controller
     ): RedirectResponse {
         $data = $request->validate([
             'status' => ['required', 'in:pending,confirmed,in_progress,completed,cancel_requested,reschedule_requested,cancelled'],
+            'action' => ['nullable', 'string', 'in:reject_reschedule'],
         ]);
 
-        if ($booking->status === $data['status']) {
+        if ($booking->status === $data['status'] && empty($data['action'])) {
             return back()->with('info', 'Booking status is already set to the selected value.');
         }
 
         $isPartialRefund = false;
         $isManualRefund = false;
         $isRescheduleApproved = false;
+        $isRescheduleRejected = false;
         $refundNotificationData = null;
         $rescheduleNotificationData = null;
+        $rescheduleRejectedBooking = null;
 
         try {
-            DB::transaction(function () use ($booking, $data, $doku, &$isPartialRefund, &$refundNotificationData, &$isManualRefund, &$isRescheduleApproved, &$rescheduleNotificationData): void {
+            DB::transaction(function () use ($booking, $data, $doku, &$isPartialRefund, &$refundNotificationData, &$isManualRefund, &$isRescheduleApproved, &$rescheduleNotificationData, &$isRescheduleRejected, &$rescheduleRejectedBooking): void {
                 // Selalu load relasi yang diperlukan di awal agar data segar dari DB
                 $booking->load(['payment', 'schedule', 'barber', 'requestedSchedule']);
 
@@ -438,6 +441,14 @@ class BookingAdminController extends Controller
                     if ($booking->schedule) {
                         $booking->schedule->update(['is_available' => false]);
                     }
+                } elseif ($booking->status === 'reschedule_requested' && ($data['action'] ?? null) === 'reject_reschedule') {
+                    // Admin menolak permintaan reschedule
+                    if ($booking->requested_schedule_id) {
+                        Schedule::whereKey($booking->requested_schedule_id)->update(['is_available' => true]);
+                        $booking->requested_schedule_id = null;
+                    }
+                    $isRescheduleRejected = true;
+                    $rescheduleRejectedBooking = $booking;
                 } elseif ($booking->status === 'reschedule_requested' && $data['status'] === 'confirmed') {
                     // Admin menyetujui permintaan reschedule
                     if ($booking->requested_schedule_id) {
@@ -491,6 +502,11 @@ class BookingAdminController extends Controller
             );
         }
 
+        // Kirim pesan WhatsApp ke pelanggan jika reschedule ditolak
+        if ($isRescheduleRejected && $rescheduleRejectedBooking) {
+            $notifications->bookingRescheduleRejected($rescheduleRejectedBooking);
+        }
+
         // Kirim pesan Rekap Agenda Harian ke Grup Operasional WhatsApp
         if ($data['status'] === 'cancelled' && $booking->scheduled_at) {
             $notifications->sendDailyRecapToOpsGroup($booking->scheduled_at);
@@ -510,6 +526,8 @@ class BookingAdminController extends Controller
 
         if ($isRescheduleApproved) {
             $successMessage = 'Perubahan jadwal booking berhasil disetujui dan jadwal baru telah dikonfirmasi.';
+        } elseif ($isRescheduleRejected) {
+            $successMessage = 'Permintaan reschedule berhasil ditolak. Jadwal asli booking tetap dipertahankan.';
         } elseif ($isManualRefund) {
             $successMessage = 'Status booking berhasil dibatalkan. Sumber pembayaran ini tidak didukung auto-refund DOKU, pastikan pengembalian dana manual telah/akan ditransfer ke rekening pelanggan.';
         } else {

@@ -199,6 +199,36 @@ class BookingNotificationService
         $this->send($booking->phone, $message);
     }
 
+    public function bookingRescheduleRejected(Booking $booking): void
+    {
+        $booking->loadMissing(['barber']);
+
+        $scheduled = $booking->scheduled_at
+            ? $booking->scheduled_at->format('d M Y, H:i') . ' WITA'
+            : '-';
+
+        $message = implode("\n", [
+            '💈 *KREF BARBER*',
+            '_Pemberitahuan Permintaan Perubahan Jadwal_',
+            '─────────────────────────',
+            '',
+            'Halo, *' . ($booking->name ?: 'Pelanggan') . '*! 👋',
+            'Mohon maaf, permintaan perubahan jadwal (reschedule) Anda *tidak dapat disetujui oleh admin*.',
+            '',
+            '🗓️ *Jadwal Reservasi Anda Tetap Sesuai Semula:*',
+            '• *Nama Pelanggan:* ' . ($booking->name ?: '-'),
+            '• *Barber:* ' . ($booking->barber?->name ?? '-'),
+            '• *Jadwal:* *' . $scheduled . '*',
+            '• *Status:* *TERKONFIRMASI*',
+            '',
+            '─────────────────────────',
+            '_Jadwal kunjungan Anda tetap berlaku sesuai rincian di atas. Mohon hadir tepat waktu._',
+            '_Jika ada pertanyaan atau kendala, silakan hubungi admin via WhatsApp. Terima kasih! ✂️_',
+        ]);
+
+        $this->send($booking->phone, $message);
+    }
+
     public function bookingReminder(Booking $booking): void
     {
         $booking->loadMissing(['barber', 'payment']);
