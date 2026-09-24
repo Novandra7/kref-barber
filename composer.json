@@ -12,6 +12,7 @@
         "laravel/sanctum": "^4.0",
         "laravel/tinker": "^3.0",
         "maatwebsite/excel": "^4.0",
+        "sentry/sentry-laravel": "^4.28",
         "simplesoftwareio/simple-qrcode": "^4.2"
     },
     "require-dev": {
