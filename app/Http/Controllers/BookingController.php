@@ -10,6 +10,7 @@ use App\Models\Schedule;
 use App\Models\Service;
 use App\Services\DokuService;
 use App\Services\BookingNotificationService;
+use App\Services\PaymentExpirationService;
 use App\Services\WahaService;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\JsonResponse;
@@ -272,7 +273,7 @@ class BookingController extends Controller
      * Halaman redirect setelah user selesai membayar (dipanggil oleh DOKU
      * atau saat user kembali secara manual). Menampilkan status pembayaran.
      */
-    public function paymentDetail(string $reference): View
+    public function paymentDetail(string $reference, PaymentExpirationService $expirationService): View
     {
         $payments = Payment::where('provider', 'doku')
             ->where(function ($query) use ($reference): void {
@@ -283,6 +284,13 @@ class BookingController extends Controller
             ->get();
 
         abort_if($payments->isEmpty(), 404, 'Payment not found.');
+
+        // On-demand expiry check: jika ada pembayaran pending yang sudah lewat batas waktu
+        foreach ($payments as $payment) {
+            $expirationService->expireIfOverdue($payment);
+        }
+
+        $payments = $payments->fresh();
 
         $bookings = Booking::with([
             'barber',
@@ -331,7 +339,7 @@ class BookingController extends Controller
      */
     public function cancel(Request $request, string $reference): RedirectResponse
     {
-        $booking = Booking::with('payment')->find($request->input('booking_id'));
+        $booking = Booking::with(['payment', 'schedule'])->find($request->input('booking_id'));
         $payment = $booking?->payment;
 
         $validReference = $payment && (
@@ -347,10 +355,39 @@ class BookingController extends Controller
             return $this->cancelFailed($reference, 'Booking ini sudah dibatalkan atau sedang dalam proses pembatalan.');
         }
 
-        if ($booking->scheduled_at && ($booking->scheduled_at->isPast() || now()->diffInMinutes($booking->scheduled_at, false) < 180)) {
-            return $this->cancelFailed($reference, 'Pembatalan ditolak. Sudah memasuki batas H-3 jam sebelum jadwal layanan!');
+        $isPendingPayment = strtolower((string) ($payment?->status ?? 'pending')) === 'pending';
+
+        if (! $isPendingPayment) {
+            if ($booking->scheduled_at && ($booking->scheduled_at->isPast() || now()->diffInMinutes($booking->scheduled_at, false) < 180)) {
+                return $this->cancelFailed($reference, 'Pembatalan ditolak. Sudah memasuki batas H-3 jam sebelum jadwal layanan!');
+            }
         }
 
+        // Jika pembayaran masih pending (belum bayar), langsung batalkan tanpa persetujuan admin & tanpa refund WA
+        if ($isPendingPayment) {
+            DB::transaction(function () use ($booking, $payment): void {
+                $booking->update([
+                    'status' => 'cancelled',
+                ]);
+
+                // Lepas kembali slot jadwal
+                if ($booking->schedule) {
+                    $booking->schedule->update(['is_available' => true]);
+                }
+
+                // Jika seluruh booking dalam transaksi tersebut sudah cancelled, tandai payment cancelled
+                $hasActiveBookings = $payment?->bookings()->where('status', '!=', 'cancelled')->exists();
+                if (! $hasActiveBookings && $payment) {
+                    $payment->update(['status' => 'cancelled']);
+                }
+            });
+
+            return redirect()
+                ->route('booking.payment.detail', ['reference' => $reference])
+                ->with('success', 'Booking berhasil dibatalkan.');
+        }
+
+        // Jika sudah bayar, ajukan pembatalan (menunggu persetujuan admin & refund)
         DB::transaction(function () use ($booking): void {
             $booking->update([
                 'status' => 'cancel_requested',
@@ -503,7 +540,7 @@ class BookingController extends Controller
     /**
      * Endpoint API untuk polling status pembayaran dari frontend.
      */
-    public function paymentStatus(string $reference): JsonResponse
+    public function paymentStatus(string $reference, PaymentExpirationService $expirationService): JsonResponse
     {
         $payments = Payment::where('provider', 'doku')
             ->where(function ($query) use ($reference): void {
@@ -513,6 +550,13 @@ class BookingController extends Controller
             ->get();
 
         abort_if($payments->isEmpty(), 404, 'Payment not found.');
+
+        // On-demand expiry check: jika ada pembayaran pending yang sudah lewat batas waktu
+        foreach ($payments as $payment) {
+            $expirationService->expireIfOverdue($payment);
+        }
+
+        $payments = $payments->fresh();
 
         return response()->json([
             'reference' => $reference,

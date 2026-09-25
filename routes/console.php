@@ -14,3 +14,6 @@ use Illuminate\Support\Facades\Schedule;
 
 // Safety-net scheduler: memeriksa booking setiap 15 menit
 Schedule::command('booking:send-reminders')->everyFifteenMinutes();
+
+// Scheduler untuk memeriksa dan menandai pembayaran pending yang telah kedaluwarsa setiap 10 menit
+Schedule::command('booking:expire-unpaid-payments')->everyTenMinutes();

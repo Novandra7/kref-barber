@@ -33,13 +33,32 @@
 
                 <!-- Payment Status Box (Full-width) -->
                 <div class="mb-6">
-                    <div class="rounded-xl border-2 border-gray-900 p-3 shadow-[2px_2px_0px_0px_rgba(17,24,39,1)] {{ strtolower($paymentStatus) === 'paid' ? 'bg-emerald-100' : 'bg-amber-100' }}">
+                    @php
+                        $isPaid = strtolower($paymentStatus) === 'paid';
+                        $isExpired = in_array(strtolower($paymentStatus), ['expired', 'failed']);
+                        $boxBg = $isPaid ? 'bg-emerald-100' : ($isExpired ? 'bg-red-100' : 'bg-amber-100');
+                        $textColor = $isPaid ? 'text-emerald-900' : ($isExpired ? 'text-red-900' : 'text-gray-900');
+                    @endphp
+                    <div class="rounded-xl border-2 border-gray-900 p-3 shadow-[2px_2px_0px_0px_rgba(17,24,39,1)] {{ $boxBg }}">
                         <p class="text-2xs font-bold uppercase tracking-wider text-gray-700">Payment Status</p>
-                        <p class="mt-0.5 text-lg font-black uppercase tracking-wide {{ strtolower($paymentStatus) === 'paid' ? 'text-emerald-900' : 'text-gray-900' }}">
+                        <p class="mt-0.5 text-lg font-black uppercase tracking-wide {{ $textColor }}">
                             {{ Str::headline($paymentStatus) }}
                         </p>
                     </div>
                 </div>
+
+                <!-- Section Alert jika Expired -->
+                @if (strtolower($paymentStatus) === 'expired')
+                    <div class="mb-6 rounded-xl border-2 border-gray-900 bg-red-50 p-4 text-center shadow-[2px_2px_0px_0px_rgba(17,24,39,1)]">
+                        <p class="text-xs font-bold uppercase tracking-wider text-red-900">Batas Waktu Pembayaran Berakhir</p>
+                        <p class="mt-1 text-xs font-medium text-red-700">
+                            Waktu 1 jam untuk menyelesaikan pembayaran telah berakhir. Slot jadwal sebelumnya telah dibatalkan secara otomatis dan dibebaskan kembali.
+                        </p>
+                        <a href="{{ route('booking.index') }}" class="mt-3 inline-flex items-center justify-center gap-1.5 rounded-xl border-2 border-gray-900 bg-brand px-4 py-2 text-xs font-black uppercase tracking-wider text-white shadow-[2px_2px_0px_0px_rgba(17,24,39,1)] transition-all hover:-translate-x-0.5 hover:-translate-y-0.5 hover:shadow-[4px_4px_0px_0px_rgba(17,24,39,1)] active:translate-x-0.5 active:translate-y-0.5 active:shadow-[1px_1px_0px_0px_rgba(17,24,39,1)]">
+                            Pesan Jadwal Baru
+                        </a>
+                    </div>
+                @endif
 
                 <!-- Section QRIS jika Pending -->
                 @if (strtolower($paymentStatus) === 'pending' && $qrContent)
@@ -169,38 +188,47 @@
                     </div>
                 @endif
 
-                <div class="mt-6 flex flex-col items-center justify-between gap-3 sm:flex-row">
+                @if (strtolower($paymentStatus) === 'expired')
+                    <div class="mt-6">
+                        <a href="{{ route('booking.index') }}"
+                           class="block w-full rounded-xl border-2 border-gray-900 bg-brand px-4 py-3 text-center text-xs font-black uppercase tracking-wider text-white shadow-[2px_2px_0px_0px_rgba(17,24,39,1)] transition-all hover:-translate-x-0.5 hover:-translate-y-0.5 hover:shadow-[4px_4px_0px_0px_rgba(17,24,39,1)] active:translate-x-0.5 active:translate-y-0.5 active:shadow-[1px_1px_0px_0px_rgba(17,24,39,1)]">
+                            Pesan Jadwal Baru
+                        </a>
+                    </div>
+                @else
+                    <div class="mt-6 flex flex-col items-center justify-between gap-3 sm:flex-row">
 
-                    {{-- Tombol Cancel --}}
-                    @if ($allCancelled)
-                        <button type="button" disabled
-                                class="w-full flex-1 cursor-not-allowed rounded-xl border-2 border-gray-400 bg-gray-200 px-3 py-3 text-center text-[11px] font-black uppercase tracking-wider text-gray-500 opacity-80 shadow-none">
-                            {{ $allRequested ? 'Cancel Requested' : 'Cancelled' }}
-                        </button>
-                    @else
-                        <button data-modal-target="cancel-modal"
-                                data-modal-toggle="cancel-modal"
-                                class="w-full flex-1 rounded-xl border-2 border-gray-900 bg-red-100 px-3 py-3 text-center text-[11px] font-black uppercase tracking-wider text-red-900 shadow-[2px_2px_0px_0px_rgba(17,24,39,1)] transition-all hover:-translate-x-0.5 hover:-translate-y-0.5 hover:shadow-[4px_4px_0px_0px_rgba(17,24,39,1)] active:translate-x-0.5 active:translate-y-0.5 active:shadow-[1px_1px_0px_0px_rgba(17,24,39,1)]"
-                                type="button">
-                            Cancel / Refund
-                        </button>
-                    @endif
+                        {{-- Tombol Cancel --}}
+                        @if ($allCancelled)
+                            <button type="button" disabled
+                                    class="w-full flex-1 cursor-not-allowed rounded-xl border-2 border-gray-400 bg-gray-200 px-3 py-3 text-center text-[11px] font-black uppercase tracking-wider text-gray-500 opacity-80 shadow-none">
+                                {{ $allRequested ? 'Cancel Requested' : 'Cancelled' }}
+                            </button>
+                        @else
+                            <button data-modal-target="cancel-modal"
+                                    data-modal-toggle="cancel-modal"
+                                    class="w-full flex-1 rounded-xl border-2 border-gray-900 bg-red-100 px-3 py-3 text-center text-[11px] font-black uppercase tracking-wider text-red-900 shadow-[2px_2px_0px_0px_rgba(17,24,39,1)] transition-all hover:-translate-x-0.5 hover:-translate-y-0.5 hover:shadow-[4px_4px_0px_0px_rgba(17,24,39,1)] active:translate-x-0.5 active:translate-y-0.5 active:shadow-[1px_1px_0px_0px_rgba(17,24,39,1)]"
+                                    type="button">
+                                {{ strtolower($paymentStatus) === 'paid' ? 'Cancel / Refund' : 'Cancel' }}
+                            </button>
+                        @endif
 
-                    {{-- Tombol Reschedule --}}
-                    @if (! $hasReschedulable)
-                        <button type="button" disabled
-                                class="w-full flex-1 cursor-not-allowed rounded-xl border-2 border-gray-400 bg-gray-200 px-4 py-3 text-center text-xs font-black uppercase tracking-wider text-gray-500 opacity-80 shadow-none">
-                            Reschedule
-                        </button>
-                    @else
-                        <button data-modal-target="reschedule-modal"
-                                data-modal-toggle="reschedule-modal"
-                                class="w-full flex-1 rounded-xl border-2 border-gray-900 bg-brand px-4 py-3 text-center text-xs font-black uppercase tracking-wider text-white shadow-[2px_2px_0px_0px_rgba(17,24,39,1)] transition-all hover:-translate-x-0.5 hover:-translate-y-0.5 hover:shadow-[4px_4px_0px_0px_rgba(17,24,39,1)] active:translate-x-0.5 active:translate-y-0.5 active:shadow-[1px_1px_0px_0px_rgba(17,24,39,1)] cursor-pointer"
-                                type="button">
-                            Reschedule
-                        </button>
-                    @endif
-                </div>
+                        {{-- Tombol Reschedule --}}
+                        @if (! $hasReschedulable)
+                            <button type="button" disabled
+                                    class="w-full flex-1 cursor-not-allowed rounded-xl border-2 border-gray-400 bg-gray-200 px-4 py-3 text-center text-xs font-black uppercase tracking-wider text-gray-500 opacity-80 shadow-none">
+                                Reschedule
+                            </button>
+                        @else
+                            <button data-modal-target="reschedule-modal"
+                                    data-modal-toggle="reschedule-modal"
+                                    class="w-full flex-1 rounded-xl border-2 border-gray-900 bg-brand px-4 py-3 text-center text-xs font-black uppercase tracking-wider text-white shadow-[2px_2px_0px_0px_rgba(17,24,39,1)] transition-all hover:-translate-x-0.5 hover:-translate-y-0.5 hover:shadow-[4px_4px_0px_0px_rgba(17,24,39,1)] active:translate-x-0.5 active:translate-y-0.5 active:shadow-[1px_1px_0px_0px_rgba(17,24,39,1)] cursor-pointer"
+                                    type="button">
+                                Reschedule
+                            </button>
+                        @endif
+                    </div>
+                @endif
 
                 <!-- Footer Stamp -->
                 <div class="mt-6 text-center">
@@ -236,10 +264,14 @@
                     </div>
 
                     <h3 class="text-md mb-3 font-semibold text-gray-900">
-                        Apakah Anda yakin ingin membatalkan atau me-refund booking ini?
+                        @if (strtolower($paymentStatus) === 'paid')
+                            Apakah Anda yakin ingin membatalkan atau me-refund booking ini?
+                        @else
+                            Apakah Anda yakin ingin membatalkan booking ini?
+                        @endif
                     </h3>
 
-                    @if (! $isDokuRefundSupported)
+                    @if (strtolower($paymentStatus) === 'paid' && ! $isDokuRefundSupported)
                         <div class="mb-4 rounded-xl border-2 border-amber-400 bg-amber-50 p-3 text-left shadow-[2px_2px_0px_0px_rgba(17,24,39,1)]">
                             <p class="text-xs font-bold text-amber-900 flex items-center gap-1.5">
                                 <svg class="h-4 w-4 shrink-0 text-amber-700" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -280,7 +312,11 @@
                             <!-- Tombol Utama: Lebar otomatis menyesuaikan teks panjang -->
                             <button type="submit"
                                     class="whitespace-nowrap rounded-xl border-2 border-gray-900 bg-red-500 px-4 py-2.5 text-xs font-black uppercase tracking-wider text-white shadow-[2px_2px_0px_0px_rgba(17,24,39,1)] transition-all hover:-translate-x-0.5 hover:-translate-y-0.5 hover:shadow-[4px_4px_0px_0px_rgba(17,24,39,1)] active:translate-x-0.5 active:translate-y-0.5 active:shadow-[1px_1px_0px_0px_rgba(17,24,39,1)]">
-                                {{ ! $isDokuRefundSupported ? 'Ya, Ajukan & Buka WA' : 'Ya, Batalkan' }}
+                                @if (strtolower($paymentStatus) === 'paid')
+                                    {{ ! $isDokuRefundSupported ? 'Ya, Ajukan & Buka WA' : 'Ya, Batalkan' }}
+                                @else
+                                    Ya, Batalkan
+                                @endif
                             </button>
 
                             <!-- Tombol Kembali: Mengikuti tinggi & mengisi sisa ruang fleksibel -->

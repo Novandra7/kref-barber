@@ -122,8 +122,10 @@ class DokuWebhookController extends Controller
                         $dokuReference = data_get($payload, 'referenceNo')
                             ?? $lockedPayment->doku_reference_no;
 
+                        $newPaymentStatus = $isPaid ? 'paid' : ($normalizedStatus === 'EXPIRED' ? 'expired' : 'failed');
+
                         $lockedPayment->update([
-                            'status'            => $isPaid ? 'paid' : 'failed',
+                            'status'            => $newPaymentStatus,
                             'doku_reference_no' => $dokuReference,
                             'provider_payload'  => $payload,
                             'payment_source'    => $paymentSource,
@@ -180,7 +182,7 @@ class DokuWebhookController extends Controller
             if ($isPaid || $isFailed) {
                 PaymentStatusUpdated::dispatch(
                     (string) $reference,
-                    $isPaid ? 'paid' : 'failed',
+                    $isPaid ? 'paid' : ($normalizedStatus === 'EXPIRED' ? 'expired' : 'failed'),
                     $rawBody
                 );
             }

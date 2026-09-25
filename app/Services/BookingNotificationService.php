@@ -258,6 +258,13 @@ class BookingNotificationService
         $this->send($booking->phone, $message);
     }
 
+    public function bookingExpired(Booking $booking, string $reference): void
+    {
+        $message = "Mohon maaf, batas waktu pembayaran untuk reservasi dengan kode {$reference} telah berakhir. Jadwal reservasi Anda telah dibatalkan secara otomatis. Silakan lakukan pemesanan ulang jika Anda ingin melakukan reservasi kembali di KREF Barber. Terima kasih.";
+
+        $this->send($booking->phone, $message);
+    }
+
     /**
      * Kirim pesan Rekap Agenda Harian ke Grup Operasional WhatsApp
      */
