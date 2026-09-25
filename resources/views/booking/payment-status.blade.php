@@ -169,24 +169,6 @@
                     </div>
                 @endif
 
-                @if (session('wa_reschedule_url'))
-                    <div class="mt-5 rounded-2xl border-2 border-blue-600 bg-blue-50 p-4 text-center shadow-[3px_3px_0px_0px_rgba(37,99,235,1)]">
-                        <div class="flex items-center justify-center gap-1.5 text-xs font-black uppercase text-blue-900">
-                            <span>📅 Jadwal Ulang Diajukan</span>
-                        </div>
-                        <p class="mt-1 text-xs font-medium text-blue-800">
-                            Permintaan jadwal ulang berhasil diajukan. Silakan kirimkan konfirmasi pesan ke WhatsApp Admin.
-                        </p>
-                        <a href="{{ session('wa_reschedule_url') }}" target="_blank" rel="noopener noreferrer"
-                           class="mt-3 inline-flex items-center justify-center gap-2 rounded-xl border-2 border-gray-900 bg-brand px-4 py-2 text-xs font-black uppercase tracking-wider text-white shadow-[2px_2px_0px_0px_rgba(17,24,39,1)] transition-all hover:opacity-90 hover:shadow-none">
-                            <svg class="h-4 w-4 fill-current" viewBox="0 0 24 24">
-                                <path d="M12.031 6.172c-3.181 0-5.767 2.586-5.768 5.766-.001 1.298.38 2.27 1.019 3.287l-.582 2.128 2.182-.573c.978.58 1.911.928 3.145.929 3.178 0 5.767-2.587 5.768-5.766.001-3.187-2.575-5.77-5.764-5.771zm3.392 8.244c-.144.405-.837.774-1.17.824-.299.045-.677.063-1.092-.069-.252-.08-.575-.187-.988-.365-1.739-.751-2.874-2.502-2.961-2.617-.087-.116-.708-.94-.708-1.793s.448-1.273.607-1.446c.159-.173.346-.217.462-.217l.332.007c.106.005.249-.04.39.298.144.347.491 1.2.534 1.287.043.087.072.188.014.304-.058.116-.087.188-.173.289l-.26.304c-.087.086-.177.18-.076.354.101.174.449.741.964 1.201.662.591 1.221.774 1.394.86s.274.072.376-.043c.101-.116.433-.506.549-.68.116-.173.231-.145.39-.087s1.011.477 1.184.564.289.13.332.202c.045.072.045.419-.1.824zm-3.423-14.416c-6.627 0-12 5.373-12 12 0 2.164.577 4.195 1.583 5.952l-1.683 6.149 6.331-1.661c1.704.931 3.659 1.471 5.769 1.471 6.627 0 12-5.373 12-12s-5.373-12-12-12z"/>
-                            </svg>
-                            Kirim Pesan Reschedule ke Admin WA
-                        </a>
-                    </div>
-                @endif
-
                 <div class="mt-6 flex flex-col items-center justify-between gap-3 sm:flex-row">
 
                     {{-- Tombol Cancel --}}
@@ -443,16 +425,26 @@
                     }, 4000);
                 }
 
-                @if (session('wa_refund_url'))
-                    setTimeout(() => {
-                        window.open(@json(session('wa_refund_url')), '_blank');
-                    }, 600);
-                @endif
+                @php
+                    $waRedirectUrl = session('wa_reschedule_url') ?? session('wa_refund_url');
+                @endphp
 
-                @if (session('wa_reschedule_url'))
-                    setTimeout(() => {
-                        window.open(@json(session('wa_reschedule_url')), '_blank');
-                    }, 600);
+                @if ($waRedirectUrl)
+                    const waUrl = @json($waRedirectUrl);
+                    const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+
+                    if (isMobile) {
+                        window.location.href = waUrl;
+                    } else {
+                        try {
+                            const win = window.open(waUrl, '_blank');
+                            if (!win || win.closed || typeof win.closed === 'undefined') {
+                                window.location.href = waUrl;
+                            }
+                        } catch (e) {
+                            window.location.href = waUrl;
+                        }
+                    }
                 @endif
             });
         </script>
