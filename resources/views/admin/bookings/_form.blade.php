@@ -1,4 +1,4 @@
-<form method="POST" action="{{ $formUrl }}" class="space-y-6">
+<form method="POST" action="{{ $formUrl }}" class="space-y-6" id="booking-form">
     @csrf
     @if ($formMethod !== 'POST')
         @method($formMethod)
@@ -190,18 +190,28 @@
             </div>
 
             <!-- 1. SELECT SERVICES (Dynamic Grid List) -->
-            <div class="w-full rounded-xl bg-base border border-gray-200 p-6">
+            <div class="w-full rounded-xl bg-base border border-gray-200 p-6" id="services-container">
                 <div class="flex items-center justify-between border-b border-gray-100 pb-3 mb-4">
                     <div>
                         <h4 class="text-md font-bold tracking-tight text-brand">
                             Select Services <span class="text-red-500">*</span>
                         </h4>
-                        <p class="text-xs text-gray-500">Pilih layanan yang akan dipesan.</p>
+                        <p class="text-xs text-gray-500">Pilih minimal 1 layanan yang akan dipesan.</p>
                     </div>
                     <span class="text-xs font-semibold px-2.5 py-1 bg-brand/10 text-brand rounded-full">
                         {{ $serviceCount }} Pilihan Layanan
                     </span>
                 </div>
+
+                {{-- Alert validasi layanan wajib pilih minimal 1 --}}
+                <div id="service-selection-error" class="hidden mb-4 rounded-lg border border-red-200 bg-red-50 p-3 text-xs font-semibold text-red-700">
+                    ⚠️ Wajib memilih minimal 1 layanan.
+                </div>
+                @error('service_ids')
+                    <div class="mb-4 rounded-lg border border-red-200 bg-red-50 p-3 text-xs font-semibold text-red-700">
+                        ⚠️ {{ $message }}
+                    </div>
+                @enderror
 
                 {{-- Dynamic Grid Layout berdasarkan jumlah Kategori --}}
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-{{ $categoryCount }} gap-6">
@@ -213,23 +223,17 @@
                                     <span class="flex items-center gap-1.5">
                                         {{ $categoryData['name'] }}
                                     </span>
-                                    @if ($categoryData['isHaircut'])
-                                        <span class="text-2xs font-medium text-red-600 bg-red-50 px-2 py-0.5 rounded border border-red-200">
-                                            Wajib (Pilih 1)
-                                        </span>
-                                    @endif
                                 </legend>
 
                                 <div class="space-y-2.5">
                                     @foreach ($categoryData['services'] as $index => $service)
                                         <label class="group relative flex cursor-pointer items-start gap-3 rounded-lg border border-gray-200 bg-base p-3 transition-all duration-150 hover:border-brand hover:bg-brand/5 has-checked:border-brand has-checked:bg-brand/10">
                                             <input
-                                                type="{{ $categoryData['isHaircut'] ? 'radio' : 'checkbox' }}"
+                                                type="checkbox"
                                                 name="service_ids[]"
                                                 value="{{ $service->id }}"
                                                 @checked($service->is_selected)
-                                                @if ($categoryData['isHaircut'] && $index === 0) required @endif
-                                                class="mt-0.5 h-4 w-4 border-gray-300 text-brand focus:ring-brand"
+                                                class="mt-0.5 h-4 w-4 rounded border-gray-300 text-brand focus:ring-brand"
                                             >
                                             <div class="flex-1 text-sm leading-tight">
                                                 <div class="font-medium text-gray-900 group-hover:text-brand transition-colors">
@@ -241,14 +245,6 @@
                                             </div>
                                         </label>
                                     @endforeach
-                                    @if ($categoryData['isHaircut'])
-                                        <div class="mt-4 text-[11px] font-medium text-gray-500 pt-2 flex items-center gap-1">
-                                            <svg class="w-3.5 h-3.5 text-brand shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                                                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"></path>
-                                            </svg>
-                                            <span>Layanan dasar haircut wajib dipilih salah satu.</span>
-                                        </div>
-                                    @endif
                                 </div>
                             </div>
                         </fieldset>
@@ -267,3 +263,41 @@
         </button>
     </div>
 </form>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const form = document.getElementById('booking-form');
+        if (!form) return;
+
+        const checkboxes = form.querySelectorAll('input[name="service_ids[]"]');
+        const errorAlert = document.getElementById('service-selection-error');
+
+        function hasSelectedService() {
+            return Array.from(checkboxes).some(cb => cb.checked);
+        }
+
+        checkboxes.forEach(cb => {
+            cb.addEventListener('change', function () {
+                if (hasSelectedService() && errorAlert) {
+                    errorAlert.classList.add('hidden');
+                }
+            });
+        });
+
+        form.addEventListener('submit', function (e) {
+            if (!hasSelectedService()) {
+                e.preventDefault();
+                if (errorAlert) {
+                    errorAlert.classList.remove('hidden');
+                }
+                const container = document.getElementById('services-container');
+                if (container) {
+                    container.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
+                if (checkboxes[0]) {
+                    checkboxes[0].focus();
+                }
+            }
+        });
+    });
+</script>

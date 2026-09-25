@@ -107,6 +107,9 @@ class BookingAdminController extends Controller
             'payment_type'   => ['required', 'in:dp,full'],
             'payment_method' => ['required', 'in:cash,qris_static'],
             'description'    => ['nullable', 'string'],
+        ], [
+            'service_ids.required' => 'Wajib memilih minimal 1 layanan.',
+            'service_ids.min'      => 'Wajib memilih minimal 1 layanan.',
         ]);
 
         DB::transaction(function () use ($data): void {
@@ -233,6 +236,9 @@ class BookingAdminController extends Controller
             'payment_type'  => ['required', 'in:dp,full'],
             'status'        => ['required', 'in:pending,confirmed,in_progress,completed,cancel_requested,reschedule_requested,cancelled'],
             'description'   => ['nullable', 'string'],
+        ], [
+            'service_ids.required' => 'Wajib memilih minimal 1 layanan.',
+            'service_ids.min'      => 'Wajib memilih minimal 1 layanan.',
         ]);
 
         DB::transaction(function () use ($data, $booking): void {
