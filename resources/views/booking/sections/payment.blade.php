@@ -154,8 +154,8 @@
     <div class="flex justify-between mt-4">
         <button 
             type="button" 
-            class="btn rounded-xl border border-gray-200 hover:bg-gray-100 flex items-center gap-2 px-4 py-2 text-sm font-semibold transition-colors"
-            :disabled="paymentData?.status === 'paid'" 
+            class="btn rounded-xl border border-gray-200 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-transparent flex items-center gap-2 px-4 py-2 text-sm font-semibold transition-colors"
+            :disabled="paymentTypeConfirmed || Boolean(paymentData?.qrContent) || paymentState === 'loading' || paymentState === 'ready' || paymentData?.status === 'paid'" 
             @click="currentStep = 'guest'"
         >
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
