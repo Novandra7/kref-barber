@@ -187,13 +187,34 @@ class BookingController extends Controller
             // 3. Buat pembayaran QRIS DOKU
             // -------------------------------------------------------
             $reference = 'KREF-' . Str::upper(Str::random(14));
-            $response = $doku->createQrisPayment($reference, $amount);
+            try {
+                $response = $doku->createQrisPayment($reference, $amount);
+            } catch (\Throwable $e) {
+                Log::error('DOKU createQrisPayment failed during checkout', [
+                    'reference' => $reference,
+                    'amount'    => $amount,
+                    'guests'    => $data['guests'],
+                    'message'   => $e->getMessage(),
+                    'exception' => $e,
+                ]);
+                report($e);
+                throw $e;
+            }
 
             $qrContent       = data_get($response, 'qrContent');
             $providerId      = data_get($response, 'referenceNo') ?? data_get($response, 'partnerReferenceNo');
             $dokuPaymentUrl  = data_get($response, 'paymentUrl') ?? data_get($response, 'redirectUrl');
 
-            abort_if(! $qrContent, 502, 'DOKU did not return QRIS content.');
+            if (! $qrContent) {
+                $exception = new \RuntimeException('DOKU did not return QRIS content: ' . json_encode($response));
+                Log::error($exception->getMessage(), [
+                    'reference' => $reference,
+                    'amount'    => $amount,
+                    'response'  => $response,
+                ]);
+                report($exception);
+                abort(502, 'DOKU did not return QRIS content.');
+            }
 
             // Buat URL default jika DOKU tidak mengembalikan paymentUrl
             $paymentUrl = $dokuPaymentUrl ?: route('booking.payment.detail', ['reference' => $reference]);
