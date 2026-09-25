@@ -375,10 +375,10 @@ class BookingController extends Controller
                     $booking->schedule->update(['is_available' => true]);
                 }
 
-                // Jika seluruh booking dalam transaksi tersebut sudah cancelled, tandai payment cancelled
+                // Jika seluruh booking dalam transaksi tersebut sudah cancelled, tandai payment failed
                 $hasActiveBookings = $payment?->bookings()->where('status', '!=', 'cancelled')->exists();
                 if (! $hasActiveBookings && $payment) {
-                    $payment->update(['status' => 'cancelled']);
+                    $payment->update(['status' => 'failed']);
                 }
             });
 
