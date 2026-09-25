@@ -293,7 +293,7 @@
                                     Kirim Pengingat WA
                                 </span>
                                 @if ($booking->reminder_sent_at)
-                                    <span class="rounded bg-emerald-50 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-600">Sudah</span>
+                                    <span class="rounded bg-emerald-50 px-1.5 py-0.5 text-2xs font-semibold text-emerald-600">Sudah</span>
                                 @endif
                             </button>
                         </form>

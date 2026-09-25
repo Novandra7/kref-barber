@@ -337,25 +337,14 @@ class BookingController extends Controller
         });
 
         $adminPhone = config('services.kref.admin_phone', '6283862681541');
-        if ($adminPhone) {
-            try {
-                app(WahaService::class)->sendMessage($adminPhone, 'Halo kak, saya mau refund');
-            } catch (\Throwable $e) {
-                Log::error('Gagal mengirim WhatsApp pengingat refund ke admin via WAHA: ' . $e->getMessage(), [
-                    'booking_id' => $booking->id,
-                    'reference'  => $reference,
-                ]);
-            }
+        $adminPhoneFormatted = preg_replace('/[^0-9]/', '', (string) $adminPhone);
+        if (str_starts_with($adminPhoneFormatted, '0')) {
+            $adminPhoneFormatted = '62' . substr($adminPhoneFormatted, 1);
         }
 
         $isManualRefund = ! ($payment?->canBeRefundedViaDoku() ?? false);
 
         if ($isManualRefund && $adminPhone) {
-            $adminPhoneFormatted = preg_replace('/[^0-9]/', '', (string) $adminPhone);
-            if (str_starts_with($adminPhoneFormatted, '0')) {
-                $adminPhoneFormatted = '62' . substr($adminPhoneFormatted, 1);
-            }
-
             $paymentTypeLabel = strtolower((string) $booking->payment_type) === 'dp' ? 'Down Payment (DP)' : 'Full Payment';
             $paidAmount = (int) ($payment?->amount ?? $booking->total_amount);
 
@@ -383,6 +372,16 @@ class BookingController extends Controller
             return redirect()
                 ->route('booking.payment.detail', ['reference' => $reference])
                 ->with('success', 'Permintaan pembatalan diajukan. Silakan kirim rincian rekening pengembalian dana ke WhatsApp Admin.')
+                ->with('wa_refund_url', $waUrl);
+        }
+
+        if ($adminPhone) {
+            $waText = 'Halo kak, saya mau refund';
+            $waUrl = 'https://wa.me/' . $adminPhoneFormatted . '?text=' . urlencode($waText);
+
+            return redirect()
+                ->route('booking.payment.detail', ['reference' => $reference])
+                ->with('success', 'Permintaan pembatalan berhasil diajukan. Silakan konfirmasi ke WhatsApp Admin.')
                 ->with('wa_refund_url', $waUrl);
         }
 
@@ -454,14 +453,18 @@ class BookingController extends Controller
 
         $adminPhone = config('services.kref.admin_phone', '6283862681541');
         if ($adminPhone) {
-            try {
-                app(WahaService::class)->sendMessage($adminPhone, 'Halo kak, saya mau reschedule');
-            } catch (\Throwable $e) {
-                Log::error('Gagal mengirim WhatsApp pengingat reschedule ke admin via WAHA: ' . $e->getMessage(), [
-                    'booking_id' => $booking->id,
-                    'reference'  => $reference,
-                ]);
+            $adminPhoneFormatted = preg_replace('/[^0-9]/', '', (string) $adminPhone);
+            if (str_starts_with($adminPhoneFormatted, '0')) {
+                $adminPhoneFormatted = '62' . substr($adminPhoneFormatted, 1);
             }
+
+            $waText = 'Halo kak, saya mau reschedule';
+            $waUrl = 'https://wa.me/' . $adminPhoneFormatted . '?text=' . urlencode($waText);
+
+            return redirect()
+                ->route('booking.payment.detail', ['reference' => $reference])
+                ->with('success', 'Permintaan jadwal ulang berhasil diajukan untuk tanggal ' . $newSchedule->date->format('d M Y') . ' pukul ' . $newSchedule->slot_time->format('H:i') . ' WITA. Silakan konfirmasi ke WhatsApp Admin.')
+                ->with('wa_reschedule_url', $waUrl);
         }
 
         return redirect()
