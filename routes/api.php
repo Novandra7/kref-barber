@@ -16,11 +16,6 @@ Route::get('/testing-payment', function (Request $request) {
     ]);
 });
 
-// Route::get('/doku/access-token', function () {
-//     $dokuService = app(DokuService::class);
-//     return $dokuService->getB2BToken();
-// });
-
 // Webhook Payment DOKU (Public API endpoint)
 Route::post('/payments/webhook', [DokuWebhookController::class, 'webhook'])->name('doku.webhook');
 

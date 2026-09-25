@@ -10,6 +10,7 @@ use App\Models\Schedule;
 use App\Models\Service;
 use App\Services\DokuService;
 use App\Services\BookingNotificationService;
+use App\Services\WahaService;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Carbon;
@@ -335,7 +336,18 @@ class BookingController extends Controller
             ]);
         });
 
-        $adminPhone = config('services.admin.phone', '083862681541');
+        $adminPhone = config('services.kref.admin_phone', '6283862681541');
+        if ($adminPhone) {
+            try {
+                app(WahaService::class)->sendMessage($adminPhone, 'Halo kak, saya mau refund');
+            } catch (\Throwable $e) {
+                Log::error('Gagal mengirim WhatsApp pengingat refund ke admin via WAHA: ' . $e->getMessage(), [
+                    'booking_id' => $booking->id,
+                    'reference'  => $reference,
+                ]);
+            }
+        }
+
         $isManualRefund = ! ($payment?->canBeRefundedViaDoku() ?? false);
 
         if ($isManualRefund && $adminPhone) {
@@ -439,6 +451,18 @@ class BookingController extends Controller
                 'requested_schedule_id' => $newSchedule->id,
             ]);
         });
+
+        $adminPhone = config('services.kref.admin_phone', '6283862681541');
+        if ($adminPhone) {
+            try {
+                app(WahaService::class)->sendMessage($adminPhone, 'Halo kak, saya mau reschedule');
+            } catch (\Throwable $e) {
+                Log::error('Gagal mengirim WhatsApp pengingat reschedule ke admin via WAHA: ' . $e->getMessage(), [
+                    'booking_id' => $booking->id,
+                    'reference'  => $reference,
+                ]);
+            }
+        }
 
         return redirect()
             ->route('booking.payment.detail', ['reference' => $reference])
