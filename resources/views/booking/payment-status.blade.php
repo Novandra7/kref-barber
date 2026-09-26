@@ -54,9 +54,6 @@
                         <p class="mt-1 text-xs font-medium text-red-700">
                             Waktu 1 jam untuk menyelesaikan pembayaran telah berakhir. Slot jadwal sebelumnya telah dibatalkan secara otomatis dan dibebaskan kembali.
                         </p>
-                        <a href="{{ route('booking.index') }}" class="mt-3 inline-flex items-center justify-center gap-1.5 rounded-xl border-2 border-gray-900 bg-brand px-4 py-2 text-xs font-black uppercase tracking-wider text-white shadow-[2px_2px_0px_0px_rgba(17,24,39,1)] transition-all hover:-translate-x-0.5 hover:-translate-y-0.5 hover:shadow-[4px_4px_0px_0px_rgba(17,24,39,1)] active:translate-x-0.5 active:translate-y-0.5 active:shadow-[1px_1px_0px_0px_rgba(17,24,39,1)]">
-                            Pesan Jadwal Baru
-                        </a>
                     </div>
                 @endif
 
