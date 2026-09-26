@@ -148,7 +148,7 @@
                                 id="payment_type"
                                 name="payment_type" 
                                 required 
-                                class="block w-full rounded-xl border border-gray-200 bg-base px-3 py-2.5 text-sm text-gray-900 focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/20 {{ !$isEdit ? 'pointer-events-none bg-gray-200 opacity-80' : '' }}"
+                                class="block w-full rounded-xl border border-gray-200 bg-base px-3 py-2.5 text-sm text-gray-900 focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/20"
                             >
                                 <option value="full" @selected(old('payment_type', $booking->payment_type ?? 'full') === 'full')>Lunas / Full</option>
                                 <option value="dp" @selected(old('payment_type', $booking->payment_type ?? '') === 'dp')>DP (Down Payment)</option>
