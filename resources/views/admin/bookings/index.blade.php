@@ -168,12 +168,12 @@
                                 <td class="px-5 py-4 align-top">
                                     <div class="font-semibold text-gray-900">{{ $booking->name }}</div>
                                     @if ($booking->phone)
-                                        <a href="https://wa.me/{{ preg_replace('/\D+/', '', $booking->phone) }}" target="_blank" rel="noopener" class="mt-1 inline-flex items-center gap-1 text-xs text-gray-500 hover:text-brand">
+                                        <a href="https://wa.me/{{ preg_replace('/\D+/', '', $booking->formattedPhone) }}" target="_blank" rel="noopener" class="mt-1 inline-flex items-center gap-1 text-xs text-gray-500 hover:text-brand">
                                             <svg class="h-4 w-4 text-green-600" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 24 24">
                                                 <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.372-.025-.521-.075-.149-.669-1.611-.916-2.206-.242-.579-.487-.5-.669-.51l-.57-.01c-.198 0-.52.074-.792.372-.273.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.876 1.213 3.074.149.198 2.095 3.2 5.077 4.487.709.306 1.262.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.695.248-1.29.173-1.414-.074-.124-.272-.198-.57-.347Z"/>
                                                 <path d="M20.52 3.449A11.82 11.82 0 0 0 12.08 0C5.495 0 .135 5.36.135 11.945c0 2.105.55 4.16 1.594 5.974L.025 24l6.225-1.634a11.89 11.89 0 0 0 5.83 1.525h.005c6.584 0 11.944-5.36 11.944-11.946a11.86 11.86 0 0 0-3.509-8.496ZM12.085 21.85h-.004a9.87 9.87 0 0 1-5.032-1.378l-.361-.214-3.694.97.986-3.603-.235-.37a9.86 9.86 0 0 1-1.51-5.31c0-5.47 4.452-9.921 9.926-9.921a9.86 9.86 0 0 1 7.044 2.923 9.86 9.86 0 0 1 2.913 7.047c-.001 5.47-4.453 9.916-9.933 9.916Z"/>
                                             </svg>
-                                            {{ $booking->phone }}
+                                            {{ $booking->formattedPhone }}
                                         </a>
                                     @endif
                                 </td>
@@ -309,6 +309,17 @@
                             Cancel Booking
                         </button>
                     </li>
+                    @if ($booking->payment && in_array($booking->payment->status, ['paid', 'partially_refunded']))
+                        <li>
+                            <button type="button" 
+                                    data-modal-target="cancelRefundModal-{{ $booking->id }}" 
+                                    data-modal-toggle="cancelRefundModal-{{ $booking->id }}" 
+                                    data-dropdown-hide="booking-actions-{{ $booking->id }}"
+                                    class="w-full rounded px-3 py-2 text-left font-medium text-red-600 hover:bg-red-50">
+                                Cancel & Refund
+                            </button>
+                        </li>
+                    @endif
                 @endif
             </ul>
         </div>
@@ -436,29 +447,143 @@
             </div>
         </div>
 
-        <!-- Cancel Modal -->
+        <!-- Cancel Modal (Cancel Only without Refund) -->
         <div id="cancelModal-{{ $booking->id }}" tabindex="-1" aria-hidden="true" class="fixed inset-0 z-50 hidden h-full w-full items-center justify-center overflow-y-auto overflow-x-hidden bg-gray-900/50 p-4 backdrop-blur-xs">
             <div class="relative w-full max-w-md">
-                <div class="relative rounded-xl bg-white p-6 shadow-lg">
-                    <h3 class="text-lg font-bold text-gray-900">Cancel Booking #BK-{{ $booking->id }}?</h3>
-                    <p class="mt-2 text-sm text-gray-500">
-                        This action will mark the booking as cancelled and release the barber slot.
-                    </p>
+                <div class="relative rounded-2xl border-2 border-gray-900 bg-white p-6 shadow-[6px_6px_0px_0px_rgba(17,24,39,1)]">
+                    <div class="flex items-center justify-between border-b-2 border-dashed border-gray-200 pb-3">
+                        <div class="flex items-center gap-2">
+                            <span class="inline-block rounded-full border border-gray-900 bg-red-100 px-2.5 py-0.5 text-2xs font-black uppercase tracking-wider text-red-700">
+                                Pembatalan Saja
+                            </span>
+                            <h3 class="font-montserrat text-lg font-black uppercase text-gray-900">#BK-{{ $booking->id }}</h3>
+                        </div>
+                        <button type="button" data-modal-hide="cancelModal-{{ $booking->id }}" class="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-900 transition">
+                            <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                            </svg>
+                        </button>
+                    </div>
+
+                    <div class="mt-4 space-y-3">
+                        <p class="text-sm font-bold text-gray-900">
+                            Batalkan booking ini tanpa pengembalian dana?
+                        </p>
+                        <div class="rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900">
+                            <p class="font-semibold">⚠️ Catatan Pembatalan:</p>
+                            <ul class="mt-1 list-disc list-inside space-y-1 text-amber-800">
+                                <li>Status booking akan diubah menjadi <strong class="text-red-600">Cancelled</strong>.</li>
+                                <li>Slot jadwal barber akan dilepas dan tersedia kembali.</li>
+                                <li><strong>TIDAK ADA pengembalian dana (refund)</strong> yang akan diproses ke pelanggan.</li>
+                            </ul>
+                        </div>
+                    </div>
 
                     <form method="POST" action="{{ route('admin.bookings.update-status', $booking) }}" class="mt-6 flex items-center justify-end gap-2">
                         @csrf
                         @method('PATCH')
                         <input type="hidden" name="status" value="cancelled">
+                        <input type="hidden" name="with_refund" value="0">
 
-                        <button type="button" data-modal-hide="cancelModal-{{ $booking->id }}" class="rounded-lg border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50 transition">
-                            Keep Booking
+                        <button type="button" data-modal-hide="cancelModal-{{ $booking->id }}" class="rounded-xl border-2 border-gray-900 bg-white px-4 py-2 text-xs font-black uppercase text-gray-700 shadow-[2px_2px_0px_0px_rgba(17,24,39,1)] transition-all hover:bg-gray-100">
+                            Kembali
                         </button>
-                        <button type="submit" class="rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-700 transition shadow-xs">
-                            Cancel Booking
+                        <button type="submit" class="rounded-xl border-2 border-gray-900 bg-red-600 px-4 py-2 text-xs font-black uppercase text-white shadow-[2px_2px_0px_0px_rgba(17,24,39,1)] transition-all hover:bg-red-700">
+                            Ya, Batalkan Saja
                         </button>
                     </form>
                 </div>
             </div>
         </div>
+
+        @if ($booking->payment && in_array($booking->payment->status, ['paid', 'partially_refunded']))
+            <!-- Cancel & Refund Modal -->
+            <div id="cancelRefundModal-{{ $booking->id }}" tabindex="-1" aria-hidden="true" class="fixed inset-0 z-50 hidden h-full w-full items-center justify-center overflow-y-auto overflow-x-hidden bg-gray-900/50 p-4 backdrop-blur-xs">
+                <div class="relative w-full max-w-md">
+                    <div class="relative rounded-2xl border-2 border-gray-900 bg-white p-6 shadow-[6px_6px_0px_0px_rgba(17,24,39,1)]">
+                        <div class="flex items-center justify-between border-b-2 border-dashed border-gray-200 pb-3">
+                            <div class="flex items-center gap-2">
+                                <span class="inline-block rounded-full border border-gray-900 bg-amber-200 px-2.5 py-0.5 text-2xs font-black uppercase tracking-wider text-amber-900">
+                                    Cancel & Refund
+                                </span>
+                                <h3 class="font-montserrat text-lg font-black uppercase text-gray-900">#BK-{{ $booking->id }}</h3>
+                            </div>
+                            <button type="button" data-modal-hide="cancelRefundModal-{{ $booking->id }}" class="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-900 transition">
+                                <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                                </svg>
+                            </button>
+                        </div>
+
+                        <div class="mt-4 space-y-3">
+                            <p class="text-sm font-bold text-gray-900">
+                                Batalkan booking dan proses pengembalian dana?
+                            </p>
+
+                            <div class="rounded-xl border-2 border-gray-900 bg-gray-50 p-3 text-xs shadow-[2px_2px_0px_0px_rgba(17,24,39,1)] space-y-1.5">
+                                <div class="flex justify-between">
+                                    <span class="text-gray-500">Customer:</span>
+                                    <span class="font-bold text-gray-900">{{ $booking->name }}</span>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span class="text-gray-500">Total Booking:</span>
+                                    <span class="font-bold text-gray-900">Rp {{ number_format($booking->total_amount, 0, ',', '.') }}</span>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span class="text-gray-500">Tipe Pembayaran:</span>
+                                    <span class="font-bold uppercase text-gray-900">{{ $booking->payment_type }}</span>
+                                </div>
+                                <div class="flex justify-between border-t border-dashed border-gray-200 pt-1.5">
+                                    <span class="text-gray-500">Sumber Pembayaran:</span>
+                                    <span class="font-bold text-gray-900">
+                                        {{ $booking->payment->payment_source ?? ($booking->payment->provider === 'manual' ? 'Walk-in (Manual)' : 'QRIS') }}
+                                    </span>
+                                </div>
+                                <div class="flex items-center justify-between">
+                                    <span class="text-gray-500">Metode Refund:</span>
+                                    @if ($booking->payment->canBeRefundedViaDoku())
+                                        <span class="inline-flex items-center gap-1 rounded bg-emerald-100 px-2 py-0.5 text-xs font-bold text-emerald-800">
+                                            ⚡ Auto-Refund via DOKU QRIS
+                                        </span>
+                                    @else
+                                        <span class="inline-flex items-center gap-1 rounded bg-amber-100 px-2 py-0.5 text-xs font-bold text-amber-800">
+                                            ✍️ Transfer Manual oleh Admin
+                                        </span>
+                                    @endif
+                                </div>
+                                @if (! $booking->payment->canBeRefundedViaDoku())
+                                    <p class="text-[11px] text-amber-700 italic">
+                                        * Sumber pembayaran {{ $booking->payment->payment_source ? "({$booking->payment->payment_source})" : 'manual' }} belum didukung API auto-refund DOKU QRIS, sistem akan mencatat antrean manual refund agar admin mentransfer ke rekening pelanggan.
+                                    </p>
+                                @endif
+                            </div>
+
+                            <div class="rounded-xl border border-red-200 bg-red-50 p-3 text-xs text-red-900">
+                                <p class="font-semibold">Konfirmasi Aksi:</p>
+                                <ul class="mt-1 list-disc list-inside space-y-0.5 text-red-800">
+                                    <li>Status booking akan menjadi <strong class="text-red-700">Cancelled</strong>.</li>
+                                    <li>Slot jadwal barber akan dilepas & tersedia kembali.</li>
+                                    <li>Dana akan dikembalikan & notifikasi WA otomatis dikirim ke pelanggan.</li>
+                                </ul>
+                            </div>
+                        </div>
+
+                        <form method="POST" action="{{ route('admin.bookings.update-status', $booking) }}" class="mt-6 flex items-center justify-end gap-2">
+                            @csrf
+                            @method('PATCH')
+                            <input type="hidden" name="status" value="cancelled">
+                            <input type="hidden" name="with_refund" value="1">
+
+                            <button type="button" data-modal-hide="cancelRefundModal-{{ $booking->id }}" class="rounded-xl border-2 border-gray-900 bg-white px-4 py-2 text-xs font-black uppercase text-gray-700 shadow-[2px_2px_0px_0px_rgba(17,24,39,1)] transition-all hover:bg-gray-100">
+                                Kembali
+                            </button>
+                            <button type="submit" class="rounded-xl border-2 border-gray-900 bg-amber-400 px-4 py-2 text-xs font-black uppercase text-gray-900 shadow-[2px_2px_0px_0px_rgba(17,24,39,1)] transition-all hover:bg-amber-500">
+                                Ya, Cancel & Refund
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        @endif
     @endforeach
 @endsection

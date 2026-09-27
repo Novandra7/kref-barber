@@ -305,14 +305,16 @@ class BookingAdminController extends Controller
         BookingNotificationService $notifications,
     ): RedirectResponse {
         $data = $request->validate([
-            'status' => ['required', 'in:pending,confirmed,in_progress,completed,cancel_requested,reschedule_requested,cancelled'],
-            'action' => ['nullable', 'string', 'in:reject_reschedule'],
+            'status'      => ['required', 'in:pending,confirmed,in_progress,completed,cancel_requested,reschedule_requested,cancelled'],
+            'action'      => ['nullable', 'string', 'in:reject_reschedule,cancel_only,cancel_and_refund'],
+            'with_refund' => ['nullable', 'boolean'],
         ]);
 
         if ($booking->status === $data['status'] && empty($data['action'])) {
             return back()->with('info', 'Booking status is already set to the selected value.');
         }
 
+        $shouldRefund = $request->boolean('with_refund', false) || ($request->input('action') === 'cancel_and_refund');
         $isPartialRefund = false;
         $isManualRefund = false;
         $isRescheduleApproved = false;
@@ -322,7 +324,7 @@ class BookingAdminController extends Controller
         $rescheduleRejectedBooking = null;
 
         try {
-            DB::transaction(function () use ($booking, $data, $doku, &$isPartialRefund, &$refundNotificationData, &$isManualRefund, &$isRescheduleApproved, &$rescheduleNotificationData, &$isRescheduleRejected, &$rescheduleRejectedBooking): void {
+            DB::transaction(function () use ($booking, $data, $doku, $shouldRefund, &$isPartialRefund, &$refundNotificationData, &$isManualRefund, &$isRescheduleApproved, &$rescheduleNotificationData, &$isRescheduleRejected, &$rescheduleRejectedBooking): void {
                 // Selalu load relasi yang diperlukan di awal agar data segar dari DB
                 $booking->load(['payment', 'schedule', 'barber', 'requestedSchedule']);
 
@@ -342,37 +344,37 @@ class BookingAdminController extends Controller
                             ->whereNotIn('status', ['cancelled', 'cancel_requested'])
                             ->exists();
 
-                        $newPaymentStatus = $otherActiveBookings ? 'partially_refunded' : 'refunded';
-                        $isPartialRefund = $otherActiveBookings;
+                        // Hanya proses refund jika diminta dan pembayaran berstatus paid / partially_refunded
+                        if ($shouldRefund && in_array($payment->status, ['paid', 'partially_refunded'], true)) {
+                            $newPaymentStatus = $otherActiveBookings ? 'partially_refunded' : 'refunded';
+                            $isPartialRefund = $otherActiveBookings;
 
-                        // 1. Cek riwayat dana yang sudah di-refund sebelumnya (dari tabel refunds)
-                        $alreadyRefunded = $payment->totalRefunded();
-                        $remainingPaymentAmount = max(0, (int) $payment->amount - $alreadyRefunded);
+                            // 1. Cek riwayat dana yang sudah di-refund sebelumnya (dari tabel refunds)
+                            $alreadyRefunded = $payment->totalRefunded();
+                            $remainingPaymentAmount = max(0, (int) $payment->amount - $alreadyRefunded);
 
-                        // 2. Tentukan nominal refund sesuai tipe pembayaran (DP dibagi rata vs Full Payment sesuai items)
-                        $isDp = $payment->purpose === 'dp' || strtolower((string) $booking->payment_type) === 'dp';
+                            // 2. Tentukan nominal refund sesuai tipe pembayaran (DP dibagi rata vs Full Payment sesuai items)
+                            $isDp = $payment->purpose === 'dp' || strtolower((string) $booking->payment_type) === 'dp';
 
-                        if ($isDp) {
-                            // Down Payment: Dibagi rata sejumlah total booking awal pada transaksi ini
-                            $initialBookingCount = max(1, $payment->bookings()->count());
-                            $dpPerBooking = (int) round($payment->amount / $initialBookingCount);
+                            if ($isDp) {
+                                // Down Payment: Dibagi rata sejumlah total booking awal pada transaksi ini
+                                $initialBookingCount = max(1, $payment->bookings()->count());
+                                $dpPerBooking = (int) round($payment->amount / $initialBookingCount);
 
-                            // Jika ini booking terakhir yang dibatalkan, ambil seluruh sisa dana transaksi
-                            $refundAmount = $otherActiveBookings
-                                ? min($remainingPaymentAmount, $dpPerBooking)
-                                : $remainingPaymentAmount;
-                        } else {
-                            // Full Payment: Refund sesuai dengan total biaya booking items dari tamu yang dibatalkan
-                            $bookingCost = (int) $booking->total_amount;
+                                // Jika ini booking terakhir yang dibatalkan, ambil seluruh sisa dana transaksi
+                                $refundAmount = $otherActiveBookings
+                                    ? min($remainingPaymentAmount, $dpPerBooking)
+                                    : $remainingPaymentAmount;
+                            } else {
+                                // Full Payment: Refund sesuai dengan total biaya booking items dari tamu yang dibatalkan
+                                $bookingCost = (int) $booking->total_amount;
 
-                            $refundAmount = $otherActiveBookings
-                                ? min($remainingPaymentAmount, $bookingCost)
-                                : $remainingPaymentAmount;
-                        }
-                        $refundAmount = max(1, $refundAmount);
+                                $refundAmount = $otherActiveBookings
+                                    ? min($remainingPaymentAmount, $bookingCost)
+                                    : $remainingPaymentAmount;
+                            }
+                            $refundAmount = max(1, $refundAmount);
 
-                        // Jika pembayaran sudah LUNAS (paid atau partially_refunded) dan butuh refund
-                        if (in_array($payment->status, ['paid', 'partially_refunded'], true)) {
                             $refundNo = 'RFD-' . Str::upper(Str::random(12));
                             $canAutoRefund = $payment->canBeRefundedViaDoku();
                             $isManualRefund = ! $canAutoRefund;
@@ -534,12 +536,20 @@ class BookingAdminController extends Controller
             $successMessage = 'Perubahan jadwal booking berhasil disetujui dan jadwal baru telah dikonfirmasi.';
         } elseif ($isRescheduleRejected) {
             $successMessage = 'Permintaan reschedule berhasil ditolak. Jadwal asli booking tetap dipertahankan.';
-        } elseif ($isManualRefund) {
-            $successMessage = 'Status booking berhasil dibatalkan. Sumber pembayaran ini tidak didukung auto-refund DOKU, pastikan pengembalian dana manual telah/akan ditransfer ke rekening pelanggan.';
+        } elseif ($data['status'] === 'cancelled') {
+            if ($shouldRefund && $refundNotificationData) {
+                if ($isManualRefund) {
+                    $successMessage = 'Status booking berhasil dibatalkan. Sumber pembayaran ini tidak didukung auto-refund DOKU, pastikan pengembalian dana manual telah/akan ditransfer ke rekening pelanggan.';
+                } else {
+                    $successMessage = $isPartialRefund
+                        ? 'Status booking berhasil dibatalkan dan pengembalian dana parsial (partial refund) berhasil diproses.'
+                        : 'Status booking dan refund berhasil diproses.';
+                }
+            } else {
+                $successMessage = 'Status booking berhasil dibatalkan tanpa pengembalian dana (refund).';
+            }
         } else {
-            $successMessage = $isPartialRefund
-                ? 'Status booking berhasil dibatalkan dan pengembalian dana parsial (partial refund) berhasil diproses.'
-                : 'Status booking dan refund berhasil diproses.';
+            $successMessage = 'Status booking berhasil diperbarui.';
         }
 
         return back()->with('success', $successMessage);
@@ -685,7 +695,7 @@ class BookingAdminController extends Controller
                 'items:id,booking_id,item_type,service_id,product_id,qty,service_name_snapshot,product_name_snapshot,price_snapshot',
                 'items.service:id,name',
                 'items.product:id,name',
-                'payment:id,amount,method,purpose,status,created_at',
+                'payment',
             ])
             ->when($request->filled('search'), function (Builder $query) use ($request): void {
                 $search = trim((string) $request->input('search'));
