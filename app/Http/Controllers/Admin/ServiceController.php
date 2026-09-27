@@ -38,7 +38,7 @@ class ServiceController extends Controller
 
     public function update(Request $request, Service $service): RedirectResponse
     {
-        $service->update($this->validatedData($request));
+        $service->update($this->validatedData($request, $service->id));
 
         return redirect()
             ->route('admin.services.index')
@@ -54,10 +54,11 @@ class ServiceController extends Controller
             ->with('success', 'Service deleted successfully.');
     }
 
-    private function validatedData(Request $request): array
+    private function validatedData(Request $request, ?int $serviceId = null): array
     {
         return $request->validate([
             'name' => ['required', 'string', 'max:255'],
+            'code' => ['nullable', 'string', 'max:50', \Illuminate\Validation\Rule::unique('services', 'code')->ignore($serviceId)],
             'price' => ['required', 'integer', 'min:0'],
             'category' => ['required', 'string', 'max:100'],
             'description' => ['nullable', 'string'],

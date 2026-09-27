@@ -13,6 +13,7 @@ class ServiceSeeder extends Seeder
             // Haircut
             [
                 'name' => 'Regular Haircut',
+                'code' => 'RH',
                 'category' => 'Haircut',
                 'price' => 70000,
                 'description' => null,
@@ -20,6 +21,7 @@ class ServiceSeeder extends Seeder
             ],
             [
                 'name' => 'Haircut By Rizal',
+                'code' => 'HBR',
                 'category' => 'Haircut',
                 'price' => 80000,
                 'description' => null,
@@ -27,6 +29,7 @@ class ServiceSeeder extends Seeder
             ],
             [
                 'name' => 'Long Trim',
+                'code' => 'LT',
                 'category' => 'Haircut',
                 'price' => 80000,
                 'description' => 'https://www.instagram.com/s/aGlnaGxpZ2h0OjE3OTk2NzYwMjI3OTUwNDA1?story_media_id=3811881980460778552&igsi=MW85enZmYmh1YW0wNw==',
@@ -36,6 +39,7 @@ class ServiceSeeder extends Seeder
             // Chemicals
             [
                 'name' => 'Design Perm',
+                'code' => 'DSP',
                 'category' => 'Chemicals',
                 'price' => 300000,
                 'description' => 'https://www.instagram.com/s/aGlnaGxpZ2h0OjE4NDM5ODMyMzg2MTAwNjI2?story_media_id=3808496042430895460&igsi=MTYwbTRsem55cDhoMQ==',
@@ -43,6 +47,7 @@ class ServiceSeeder extends Seeder
             ],
             [
                 'name' => 'Root Lift',
+                'code' => 'RL',
                 'category' => 'Chemicals',
                 'price' => 100000,
                 'description' => null,
@@ -50,6 +55,7 @@ class ServiceSeeder extends Seeder
             ],
             [
                 'name' => 'Perming',
+                'code' => 'PRM',
                 'category' => 'Chemicals',
                 'price' => 250000,
                 'description' => 'https://www.instagram.com/reel/DZmen2fzMCj/?igsi=eGk0bHprYW0yYTB1',
@@ -57,6 +63,7 @@ class ServiceSeeder extends Seeder
             ],
             [
                 'name' => 'Down Perm',
+                'code' => 'DWP',
                 'category' => 'Chemicals',
                 'price' => 150000,
                 'description' => 'https://www.instagram.com/s/aGlnaGxpZ2h0OjE4MTIzMTg0MjM0NTQ1ODIx?story_media_id=3801158354283479263&igsi=dWp0NG0xNHBtZzU1',
@@ -64,6 +71,7 @@ class ServiceSeeder extends Seeder
             ],
             [
                 'name' => 'Fashion Color',
+                'code' => 'FC',
                 'category' => 'Chemicals',
                 'price' => 350000,
                 'description' => 'https://www.instagram.com/reel/DZ6ofD5TDc0/?igsi=MWF4amJnZ2xhanF1MA==',
@@ -71,6 +79,7 @@ class ServiceSeeder extends Seeder
             ],
             [
                 'name' => 'Highlight',
+                'code' => 'HL',
                 'category' => 'Chemicals',
                 'price' => 250000,
                 'description' => 'https://www.instagram.com/s/aGlnaGxpZ2h0OjE4MDU3OTQ2NjQzMzU1OTgy?story_media_id=3824281106993352447&igsi=MjlmMDN3ZG94aHNt',
@@ -78,6 +87,7 @@ class ServiceSeeder extends Seeder
             ],
             [
                 'name' => 'Toning',
+                'code' => 'TON',
                 'category' => 'Chemicals',
                 'price' => 130000,
                 'description' => 'https://www.instagram.com/s/aGlnaGxpZ2h0OjE3ODYyMzk4Nzk2NTkzOTEx?story_media_id=3906968852781804021&igsi=MW93Zm1xNDRmdWV1dA==',
@@ -87,6 +97,7 @@ class ServiceSeeder extends Seeder
             // Treatment
             [
                 'name' => 'Hairwash',
+                'code' => 'HW',
                 'category' => 'Treatment',
                 'price' => 50000,
                 'description' => null,
@@ -94,6 +105,7 @@ class ServiceSeeder extends Seeder
             ],
             [
                 'name' => 'Styling',
+                'code' => 'STY',
                 'category' => 'Treatment',
                 'price' => 50000,
                 'description' => null,
@@ -101,6 +113,7 @@ class ServiceSeeder extends Seeder
             ],
             [
                 'name' => 'Face Mask',
+                'code' => 'FM',
                 'category' => 'Treatment',
                 'price' => 50000,
                 'description' => 'https://www.instagram.com/s/aGlnaGxpZ2h0OjE4MzcyODU1MzY3MDkzNzI3?story_media_id=3928570881010560480&igsi=MW12eTJ5a2g0OHFhaA==',
@@ -108,6 +121,7 @@ class ServiceSeeder extends Seeder
             ],
             [
                 'name' => 'Hair Mask',
+                'code' => 'HM',
                 'category' => 'Treatment',
                 'price' => 50000,
                 'description' => null,
@@ -115,6 +129,7 @@ class ServiceSeeder extends Seeder
             ],
             [
                 'name' => 'Creambath',
+                'code' => 'CB',
                 'category' => 'Treatment',
                 'price' => 50000,
                 'description' => 'https://www.instagram.com/s/aGlnaGxpZ2h0OjE4MDUwNjY3NDk0NDgyMjA4?story_media_id=3809823444998289502&igsi=N2Q0NjZxbzh0cjZv',
@@ -122,6 +137,7 @@ class ServiceSeeder extends Seeder
             ],
             [
                 'name' => 'Scalp Scrub',
+                'code' => 'SS',
                 'category' => 'Treatment',
                 'price' => 100000,
                 'description' => 'https://www.instagram.com/reel/Da4xhHJzpYJ/?igsi=MTNqdGNtODNkOWhwcg==',
