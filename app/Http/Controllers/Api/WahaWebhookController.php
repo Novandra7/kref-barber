@@ -32,7 +32,7 @@ class WahaWebhookController extends Controller
             }
 
             $from = $payload['from'] ?? null;
-            $opsGroupId = env('KREF_OPS_GROUP_ID', config('services.waha.ops_group_id'));
+            $opsGroupId = env('KREF_OPS_GROUP_ID', config('services.kref.ops_group_id'));
 
             // Hanya proses jika from === ops group ID
             if ($from !== $opsGroupId) {
