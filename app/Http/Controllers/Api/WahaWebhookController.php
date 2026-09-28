@@ -39,7 +39,15 @@ class WahaWebhookController extends Controller
                 return response()->json(['status' => 'ignored', 'reason' => 'not from ops group']);
             }
 
-            $participant = $payload['participant'] ?? null;
+            // Prioritaskan participantAlt (nomor WhatsApp asli jika di grup menggunakan @lid)
+            $participant = $payload['_data']['key']['participantAlt']
+                ?? $payload['participant']
+                ?? null;
+
+            $pushName = $payload['_data']['pushName']
+                ?? $payload['pushName']
+                ?? null;
+
             $body = $payload['body'] ?? '';
 
             if (empty($body)) {
@@ -47,7 +55,7 @@ class WahaWebhookController extends Controller
             }
 
             // Delegate ke WalkInService
-            $walkInService->processWebhook($body, $participant);
+            $walkInService->processWebhook($body, $participant, $pushName);
 
             return response()->json(['status' => 'success']);
         } catch (\Exception $e) {

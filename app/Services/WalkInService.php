@@ -15,14 +15,20 @@ use App\Services\WahaService;
 
 class WalkInService
 {
-    public function processWebhook(string $body, ?string $participant)
+    public function processWebhook(string $body, ?string $participant, ?string $pushName = null)
     {
-        Log::info('WalkInService processing message', ['body' => $body, 'participant' => $participant]);
+        Log::info('WalkInService processing message', [
+            'body' => $body,
+            'participant' => $participant,
+            'pushName' => $pushName,
+        ]);
+
+        $allBarbers = Barber::all();
 
         // 1. Ambil nomor sender WhatsApp untuk fallback barber
         $senderBarber = null;
-        if ($participant) {
-            $participantNum = str_replace('@c.us', '', $participant);
+        if ($participant && !str_ends_with($participant, '@lid')) {
+            $participantNum = str_replace(['@s.whatsapp.net', '@c.us'], '', $participant);
             if (str_starts_with($participantNum, '62')) {
                 $participantNum = '0' . substr($participantNum, 2);
             }
@@ -30,7 +36,13 @@ class WalkInService
             $senderBarber = Barber::where('phone', 'LIKE', '%' . $participantTail . '%')->first();
         }
 
-        $allBarbers = Barber::all();
+        // Fallback tambahan via pushName profil WhatsApp jika nomor belum cocok
+        if (!$senderBarber && !empty($pushName)) {
+            $trimmedPush = trim($pushName);
+            $senderBarber = $allBarbers->first(function ($b) use ($trimmedPush) {
+                return strcasecmp($b->name, $trimmedPush) === 0 || stripos($b->name, $trimmedPush) !== false;
+            });
+        }
         $slotPattern = '/^(?:(?<barber_prefix>.*?)\s*[:\s]\s*)?(?<time>\d{1,2}[:.]\d{2})\s*:\s*(?<name>.+?)\s*-\s*(?<payment_type>FP|DP)\s*-\s*(?<nominal>\d+(?:[.,]\d+)?\s*[kK]?|\d+)\s*-\s*(?<service_code>[a-zA-Z0-9_-]+)$/i';
 
         $lines = preg_split('/\r\n|\r|\n/', trim($body));
