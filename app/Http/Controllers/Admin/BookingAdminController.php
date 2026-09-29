@@ -105,11 +105,14 @@ class BookingAdminController extends Controller
             'service_ids'    => ['required', 'array', 'min:1'],
             'service_ids.*'  => ['integer', 'distinct', 'exists:services,id'],
             'payment_type'   => ['required', 'in:dp,full'],
+            'dp_amount'      => ['nullable', 'required_if:payment_type,dp', 'numeric', 'min:1000'],
             'payment_method' => ['required', 'in:cash,qris_static'],
             'description'    => ['nullable', 'string'],
         ], [
-            'service_ids.required' => 'Wajib memilih minimal 1 layanan.',
-            'service_ids.min'      => 'Wajib memilih minimal 1 layanan.',
+            'service_ids.required'  => 'Wajib memilih minimal 1 layanan.',
+            'service_ids.min'       => 'Wajib memilih minimal 1 layanan.',
+            'dp_amount.required_if' => 'Nominal DP wajib diisi jika tipe pembayaran adalah DP.',
+            'dp_amount.min'         => 'Nominal DP minimal Rp 1.000.',
         ]);
 
         DB::transaction(function () use ($data): void {
@@ -124,24 +127,28 @@ class BookingAdminController extends Controller
                 ]);
             }
 
-            $scheduleExists = Schedule::query()
+            $schedule = Schedule::query()
                 ->where('barber_id', $data['barber_id'])
-                ->where('date', $data['date'])
+                ->whereDate('date', $data['date'])
                 ->whereTime('slot_time', $data['time'])
-                ->exists();
+                ->lockForUpdate()
+                ->first();
 
-            if ($scheduleExists) {
-                throw ValidationException::withMessages([
-                    'time' => 'A booking already exists for this barber at the selected date and time.',
+            if ($schedule) {
+                if (! $schedule->is_available) {
+                    throw ValidationException::withMessages([
+                        'time' => 'Jadwal untuk barber tersebut pada tanggal dan jam ini sudah terisi atau tidak tersedia.',
+                    ]);
+                }
+                $schedule->update(['is_available' => false]);
+            } else {
+                $schedule = Schedule::create([
+                    'barber_id'    => $data['barber_id'],
+                    'date'         => $data['date'],
+                    'slot_time'    => $data['time'],
+                    'is_available' => false,
                 ]);
             }
-
-            $schedule = Schedule::create([
-                'barber_id'    => $data['barber_id'],
-                'date'         => $data['date'],
-                'slot_time'    => $data['time'],
-                'is_available' => false,
-            ]);
 
             $services = Service::query()
                 ->whereIn('id', $data['service_ids'])
@@ -164,9 +171,13 @@ class BookingAdminController extends Controller
             });
 
             $total = (int) $serviceItems->sum('price');
-            $dpAmount = (int) config('booking.dp_amount', 40000);
+            $dpAmount = (int) ($data['dp_amount'] ?? config('booking.dp_amount', 40000));
             $amount = $data['payment_type'] === 'dp' ? $dpAmount : $total;
-            abort_if($amount > $total, 422, 'DP amount cannot exceed the booking total.');
+            if ($data['payment_type'] === 'dp' && $amount > $total) {
+                throw ValidationException::withMessages([
+                    'dp_amount' => 'Nominal DP (Rp ' . number_format($amount, 0, ',', '.') . ') tidak boleh melebihi total biaya layanan (Rp ' . number_format($total, 0, ',', '.') . ').',
+                ]);
+            }
 
             // --- PERBAIKAN: Menghapus 'payment_status' dari array create ---
             $booking = Booking::create([
@@ -234,40 +245,93 @@ class BookingAdminController extends Controller
             'service_ids'   => ['required', 'array', 'min:1'],
             'service_ids.*' => ['integer', 'distinct', 'exists:services,id'],
             'payment_type'  => ['required', 'in:dp,full'],
+            'dp_amount'     => ['nullable', 'required_if:payment_type,dp', 'numeric', 'min:1000'],
             'status'        => ['required', 'in:pending,confirmed,in_progress,completed,cancel_requested,reschedule_requested,cancelled'],
             'description'   => ['nullable', 'string'],
         ], [
-            'service_ids.required' => 'Wajib memilih minimal 1 layanan.',
-            'service_ids.min'      => 'Wajib memilih minimal 1 layanan.',
+            'service_ids.required'  => 'Wajib memilih minimal 1 layanan.',
+            'service_ids.min'       => 'Wajib memilih minimal 1 layanan.',
+            'dp_amount.required_if' => 'Nominal DP wajib diisi jika tipe pembayaran adalah DP.',
+            'dp_amount.min'         => 'Nominal DP minimal Rp 1.000.',
         ]);
 
         DB::transaction(function () use ($data, $booking): void {
             $booking->load(['items', 'payment']);
+
+            $barber = Barber::query()->whereKey($data['barber_id'])->where('is_active', true)->first();
+            if (! $barber) {
+                throw ValidationException::withMessages([
+                    'barber_id' => 'Barber tidak ditemukan atau tidak aktif.',
+                ]);
+            }
+
             $schedule = Schedule::query()
                 ->where('barber_id', $data['barber_id'])
                 ->whereDate('date', $data['date'])
                 ->whereTime('slot_time', $data['time'])
-                ->where(function (Builder $query) use ($booking): void {
-                    $query->where('is_available', true)->orWhere('id', $booking->schedule_id);
-                })
                 ->lockForUpdate()
-                ->firstOrFail();
+                ->first();
 
-            $barber = Barber::query()->whereKey($data['barber_id'])->where('is_active', true)->firstOrFail();
+            $isCancelled = $data['status'] === 'cancelled';
+
+            if ($schedule) {
+                if ($schedule->id !== $booking->schedule_id && ! $schedule->is_available) {
+                    throw ValidationException::withMessages([
+                        'time' => 'Jadwal untuk barber tersebut pada tanggal dan jam ini sudah terisi oleh booking lain.',
+                    ]);
+                }
+
+                if ($booking->schedule_id && $booking->schedule_id !== $schedule->id) {
+                    Schedule::whereKey($booking->schedule_id)->update(['is_available' => true]);
+                }
+
+                $schedule->update([
+                    'is_available' => $isCancelled,
+                ]);
+            } else {
+                $schedule = Schedule::create([
+                    'barber_id'    => $data['barber_id'],
+                    'date'         => $data['date'],
+                    'slot_time'    => $data['time'],
+                    'is_available' => $isCancelled,
+                ]);
+
+                if ($booking->schedule_id && $booking->schedule_id !== $schedule->id) {
+                    Schedule::whereKey($booking->schedule_id)->update(['is_available' => true]);
+                }
+            }
+
             $services = Service::query()->whereIn('id', $data['service_ids'])->where('is_active', true)->get();
             abort_if($services->count() !== count($data['service_ids']), 422, 'One or more selected services are inactive.');
 
             $serviceItems = $this->snapshotServices($services, $barber);
             $total = (int) $serviceItems->sum('price');
-            $paid  = $booking->payment && $booking->payment->status === 'paid'
-                ? (int) $booking->payment->amount
-                : 0;
-            $outstanding = max(0, $total - $paid);
 
-            if ($booking->schedule_id !== $schedule->id) {
-                Schedule::whereKey($booking->schedule_id)->update(['is_available' => true]);
+            if ($data['payment_type'] === 'dp') {
+                $dpAmount = (int) ($data['dp_amount'] ?? $booking->payment?->amount ?? config('booking.dp_amount', 40000));
+                if ($dpAmount > $total) {
+                    throw ValidationException::withMessages([
+                        'dp_amount' => 'Nominal DP (Rp ' . number_format($dpAmount, 0, ',', '.') . ') tidak boleh melebihi total biaya layanan (Rp ' . number_format($total, 0, ',', '.') . ').',
+                    ]);
+                }
+                if ($booking->payment) {
+                    $booking->payment->update([
+                        'amount'  => $dpAmount,
+                        'purpose' => 'dp',
+                    ]);
+                }
+                $paid = $booking->payment && $booking->payment->status === 'paid' ? $dpAmount : 0;
+            } else {
+                if ($booking->payment) {
+                    $booking->payment->update([
+                        'amount'  => $total,
+                        'purpose' => $booking->payment->purpose === 'dp' ? 'walk_in' : $booking->payment->purpose,
+                    ]);
+                }
+                $paid = $booking->payment && $booking->payment->status === 'paid' ? $total : 0;
             }
-            $schedule->update(['is_available' => false]);
+
+            $outstanding = max(0, $total - $paid);
 
             $booking->update([
                 'schedule_id'        => $schedule->id,
@@ -604,6 +668,23 @@ class BookingAdminController extends Controller
             ])
             ->values();
 
+        $availableSchedules = Schedule::query()
+            ->where('is_available', true)
+            ->when($booking?->schedule_id, function (Builder $query, $currentScheduleId) {
+                $query->orWhere('id', $currentScheduleId);
+            })
+            ->orderBy('date')
+            ->orderBy('slot_time')
+            ->get(['id', 'barber_id', 'date', 'slot_time', 'is_available']);
+
+        $schedulesData = $availableSchedules->map(fn (Schedule $s) => [
+            'id'           => $s->id,
+            'barber_id'    => $s->barber_id,
+            'date'         => $s->date->format('Y-m-d'),
+            'slot_time'    => $s->slot_time->format('H:i'),
+            'is_available' => (bool) $s->is_available,
+        ])->values();
+
         return [
             'booking'           => $booking,
             'isEdit'            => $booking !== null,
@@ -613,8 +694,9 @@ class BookingAdminController extends Controller
             'serviceCount'      => $services->count(),
             'categoryCount'     => min($serviceCategories->count(), 4),
             'statusOptions'     => self::STATUS_OPTIONS,
-            'formUrl'    => $booking ? route('admin.bookings.update', $booking) : route('admin.bookings.store'),
-            'formMethod' => $booking ? 'PUT' : 'POST',
+            'schedules'         => $schedulesData,
+            'formUrl'           => $booking ? route('admin.bookings.update', $booking) : route('admin.bookings.store'),
+            'formMethod'        => $booking ? 'PUT' : 'POST',
         ];
     }
     

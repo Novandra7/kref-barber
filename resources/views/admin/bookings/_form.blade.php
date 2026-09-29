@@ -47,59 +47,67 @@
                 <!-- Barber Select -->
                 <div>
                     <label for="barber_id" class="mb-2 block text-sm font-medium text-gray-900">Select Barber <span class="text-red-500">*</span></label>
-                    <div class="relative">
-                        <div class="pointer-events-none absolute inset-y-0 inset-s-0 flex items-center ps-3.5">
-                            <svg class="h-4 w-4 text-gray-500" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                            </svg>
-                        </div>
-                        <select id="barber_id" name="barber_id" required class="block w-full rounded-lg border border-gray-300 bg-gray-50 p-2.5 ps-10 text-sm text-gray-900 focus:border-brand focus:ring-brand">
-                            <option value="" disabled @selected(!old('barber_id', $booking->barber_id ?? null))>Select Barber</option>
-                            @foreach ($barbers as $barberOption)
-                                <option value="{{ $barberOption->id }}" @selected((string) old('barber_id', $booking->barber_id ?? '') === (string) $barberOption->id)>
-                                    {{ $barberOption->name }} - {{ ucfirst($barberOption->role) }}
-                                </option>
-                            @endforeach
-                        </select>
-                    </div>
+                    <select id="barber_id" name="barber_id" required class="block w-full rounded-lg border border-gray-300 bg-gray-50 p-2.5 text-sm text-gray-900 focus:border-brand focus:ring-brand">
+                        <option value="" disabled @selected(!old('barber_id', $booking->barber_id ?? null))>Select Barber</option>
+                        @foreach ($barbers as $barberOption)
+                            <option value="{{ $barberOption->id }}" @selected((string) old('barber_id', $booking->barber_id ?? '') === (string) $barberOption->id)>
+                                {{ $barberOption->name }} - {{ ucfirst($barberOption->role) }}
+                            </option>
+                        @endforeach
+                    </select>
                 </div>
 
                 <!-- Date & Time Grid -->
                 <div class="grid gap-4 sm:grid-cols-2">
                     <!-- Date Picker -->
                     <div>
-                        <label for="date" class="mb-2 block text-sm font-medium text-gray-900">Date <span class="text-red-500">*</span></label>
-                        <div class="relative">
-                            <div class="pointer-events-none absolute inset-y-0 inset-s-0 flex items-center ps-3.5">
-                                <svg class="h-4 w-4 text-gray-500 dark:text-gray-400" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 20 20">
-                                    <path d="M20 4a2 2 0 0 0-2-2h-2V1a1 1 0 0 0-2 0v1H8V1a1 1 0 0 0-2 0v1H4a2 2 0 0 0-2 2v2h18V4ZM0 18a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V8H0v10Zm5-8h2a1 1 0 0 1 1 1v2a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1v-2a1 1 0 0 1 1-1Z"/>
-                                </svg>
-                            </div>
-                            <input 
-                                datepicker 
-                                datepicker-autohide
-                                datepicker-format="yyyy-mm-dd"
-                                type="text" 
-                                id="date" 
-                                name="date" 
-                                value="{{ old('date', isset($booking->scheduled_at) ? $booking->scheduled_at->format('Y-m-d') : now()->toDateString()) }}" 
-                                required 
-                                class="block w-full rounded-lg border border-gray-300 bg-gray-50 p-2.5 ps-10 text-sm text-gray-900 focus:border-brand focus:ring-brand" 
-                                placeholder="Select date"
-                            >
+                        <div class="mb-2 flex h-8 items-center">
+                            <label for="date" class="block text-sm font-medium text-gray-900">
+                                Date <span class="text-red-500">*</span>
+                            </label>
                         </div>
+                        <input 
+                            datepicker 
+                            datepicker-autohide
+                            datepicker-format="yyyy-mm-dd"
+                            type="text" 
+                            id="date" 
+                            name="date" 
+                            value="{{ old('date', isset($booking->scheduled_at) ? $booking->scheduled_at->format('Y-m-d') : now()->toDateString()) }}" 
+                            required 
+                            class="block h-[42px] w-full rounded-lg border border-gray-300 bg-gray-50 p-2.5 text-sm text-gray-900 focus:border-brand focus:ring-brand" 
+                            placeholder="Select date"
+                        >
                     </div>
 
-                    <!-- Time Picker -->
+                    <!-- Time Section with Radio Toggle -->
                     <div>
-                        <label for="time" class="mb-2 block text-sm font-medium text-gray-900">Time <span class="text-red-500">*</span></label>
-                        <div class="relative">
-                            <div class="pointer-events-none absolute inset-y-0 inset-s-0 flex items-center ps-3.5">
-                                <svg class="h-4 w-4 text-gray-500" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 24 24">
-                                    <path fill-rule="evenodd" d="M2 12C2 6.477 6.477 2 12 2s10 4.477 10 10-4.477 10-10 10S2 17.523 2 12Zm11-4a1 1 0 1 0-2 0v4a1 1 0 0 0 .293.707l3 3a1 1 0 0 0 1.414-1.414L13 11.586V8Z" clip-rule="evenodd"/>
-                                </svg>
+                        <div class="mb-2 flex h-8 items-center justify-between gap-2">
+                            <label class="block text-sm font-medium text-gray-900">
+                                Time <span class="text-red-500">*</span>
+                            </label>
+                            <div class="inline-flex rounded-lg border border-gray-200 bg-gray-100 p-0.5 text-xs font-semibold">
+                                <label id="btn-time-existing" class="cursor-pointer rounded-md px-2.5 py-1 text-xs font-semibold transition-all bg-white text-brand shadow-xs">
+                                    <input type="radio" name="time_source" value="existing" id="radio-time-existing" class="sr-only" checked>
+                                    <span>Pilih Jadwal</span>
+                                </label>
+                                <label id="btn-time-custom" class="cursor-pointer rounded-md px-2.5 py-1 text-xs font-semibold transition-all text-gray-600 hover:text-gray-900">
+                                    <input type="radio" name="time_source" value="custom" id="radio-time-custom" class="sr-only">
+                                    <span>Input Jam Baru</span>
+                                </label>
                             </div>
-                            <input type="time" id="time" name="time" value="{{ old('time', isset($booking->scheduled_at) ? $booking->scheduled_at->format('H:i') : now()->format('H:i')) }}" required class="block w-full rounded-lg border border-gray-300 bg-gray-50 p-2.5 ps-10 text-sm text-gray-900 focus:border-brand focus:ring-brand">
+                        </div>
+
+                        <!-- 1. Dropdown Select Waktu yang Sudah Ada -->
+                        <div id="wrapper-time-existing">
+                            <select id="time_select" name="time" required class="block h-[42px] w-full rounded-lg border border-gray-300 bg-gray-50 p-2.5 text-sm text-gray-900 focus:border-brand focus:ring-brand">
+                                <option value="">-- Pilih Slot Jadwal --</option>
+                            </select>
+                        </div>
+
+                        <!-- 2. Time Picker Waktu Baru -->
+                        <div id="wrapper-time-custom" class="hidden">
+                            <input type="time" id="time_picker" name="time" value="{{ old('time', isset($booking->scheduled_at) ? $booking->scheduled_at->format('H:i') : now()->format('H:i')) }}" disabled class="block h-[42px] w-full rounded-lg border border-gray-300 bg-gray-50 p-2.5 text-sm text-gray-900 focus:border-brand focus:ring-brand">
                         </div>
                     </div>
                 </div>
@@ -107,26 +115,19 @@
                 <!-- Operational Status Select -->
                 <div>
                     <label for="status" class="mb-2 block text-sm font-medium text-gray-900">Operational Status <span class="text-red-500">*</span></label>
-                    <div class="relative">
-                        <div class="pointer-events-none absolute inset-y-0 inset-s-0 flex items-center ps-3.5">
-                            <svg class="h-4 w-4 text-gray-500" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                            </svg>
-                        </div>
-                        <select 
-                            id="status" 
-                            name="status" 
-                            required 
-                            class="block w-full rounded-lg border border-gray-300 bg-gray-50 p-2.5 ps-10 text-sm text-gray-900 focus:border-brand focus:ring-brand {{ !$isEdit ? 'pointer-events-none bg-gray-200 opacity-80' : '' }}"
-                            {{ !$isEdit ? 'tabindex="-1"' : '' }}
-                        >
-                            @foreach ($statusOptions as $value => $label)
-                                <option value="{{ $value }}" @selected(old('status', $booking->status ?? 'confirmed') === $value)>
-                                    {{ $label }}
-                                </option>
-                            @endforeach
-                        </select>
-                    </div>
+                    <select 
+                        id="status" 
+                        name="status" 
+                        required 
+                        class="block w-full rounded-lg border border-gray-300 bg-gray-50 p-2.5 text-sm text-gray-900 focus:border-brand focus:ring-brand {{ !$isEdit ? 'pointer-events-none bg-gray-200 opacity-80' : '' }}"
+                        {{ !$isEdit ? 'tabindex="-1"' : '' }}
+                    >
+                        @foreach ($statusOptions as $value => $label)
+                            <option value="{{ $value }}" @selected(old('status', $booking->status ?? 'confirmed') === $value)>
+                                {{ $label }}
+                            </option>
+                        @endforeach
+                    </select>
                 </div>
             </div>
         </section>
@@ -153,6 +154,29 @@
                                 <option value="full" @selected(old('payment_type', $booking->payment_type ?? 'full') === 'full')>Lunas / Full</option>
                                 <option value="dp" @selected(old('payment_type', $booking->payment_type ?? '') === 'dp')>DP (Down Payment)</option>
                             </select>
+                        </div>
+
+                        <!-- Nominal DP (Muncul jika Payment Type = DP) -->
+                        @php
+                            $isDpSelected = old('payment_type', $booking->payment_type ?? 'full') === 'dp';
+                            $defaultDpAmount = old('dp_amount', ($booking->payment_type ?? '') === 'dp' ? ($booking->payment?->amount ?? config('booking.dp_amount', 40000)) : config('booking.dp_amount', 40000));
+                        @endphp
+                        <div id="dp-amount-container" class="{{ $isDpSelected ? '' : 'hidden' }}">
+                            <label for="dp_amount" class="mb-2 block text-sm font-semibold text-gray-900">
+                                Nominal DP (Rp) <span class="text-red-500">*</span>
+                            </label>
+                            <input 
+                                type="number" 
+                                id="dp_amount" 
+                                name="dp_amount" 
+                                min="1000"
+                                step="1000"
+                                value="{{ $defaultDpAmount }}" 
+                                class="block w-full rounded-xl border border-gray-200 bg-base px-3 py-2.5 text-sm text-gray-900 focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/20" 
+                                placeholder="Contoh: 40000"
+                                {{ $isDpSelected ? 'required' : '' }}
+                            >
+                            <p class="mt-1 text-xs text-gray-500">Masukkan besaran nominal uang muka (DP) yang dibayarkan.</p>
                         </div>
 
                         <!-- Payment Method (Create Mode Only) -->
@@ -269,6 +293,7 @@
         const form = document.getElementById('booking-form');
         if (!form) return;
 
+        // 1. Service Selection Validation
         const checkboxes = form.querySelectorAll('input[name="service_ids[]"]');
         const errorAlert = document.getElementById('service-selection-error');
 
@@ -299,5 +324,176 @@
                 }
             }
         });
+
+        // 2. Schedule Time Toggle & Filter Logic
+        const allSchedules = @json($schedules ?? []);
+        const initialSelectedTime = @json(old('time', isset($booking->scheduled_at) ? $booking->scheduled_at->format('H:i') : ''));
+
+        const radioExisting = document.getElementById('radio-time-existing');
+        const radioCustom = document.getElementById('radio-time-custom');
+        const timeSelect = document.getElementById('time_select');
+        const timePicker = document.getElementById('time_picker');
+        const barberSelect = document.getElementById('barber_id');
+        const dateInput = document.getElementById('date');
+
+        function setTimeMode(mode) {
+            const btnExisting = document.getElementById('btn-time-existing');
+            const btnCustom = document.getElementById('btn-time-custom');
+            const wrapperExisting = document.getElementById('wrapper-time-existing');
+            const wrapperCustom = document.getElementById('wrapper-time-custom');
+
+            if (mode === 'existing') {
+                if (radioExisting) radioExisting.checked = true;
+                if (btnExisting) {
+                    btnExisting.className = 'cursor-pointer rounded-md px-2.5 py-1 text-xs font-semibold transition-all bg-white text-brand shadow-xs';
+                }
+                if (btnCustom) {
+                    btnCustom.className = 'cursor-pointer rounded-md px-2.5 py-1 text-xs font-semibold transition-all text-gray-600 hover:text-gray-900';
+                }
+                if (wrapperExisting) wrapperExisting.classList.remove('hidden');
+                if (wrapperCustom) wrapperCustom.classList.add('hidden');
+
+                if (timeSelect) {
+                    const isEmpty = timeSelect.dataset.isEmpty === 'true';
+                    timeSelect.disabled = isEmpty;
+                    timeSelect.required = !isEmpty;
+                    if (isEmpty) {
+                        timeSelect.classList.add('bg-gray-100', 'text-gray-400', 'cursor-not-allowed');
+                        timeSelect.classList.remove('bg-gray-50', 'text-gray-900');
+                    } else {
+                        timeSelect.classList.remove('bg-gray-100', 'text-gray-400', 'cursor-not-allowed');
+                        timeSelect.classList.add('bg-gray-50', 'text-gray-900');
+                    }
+                }
+                if (timePicker) {
+                    timePicker.disabled = true;
+                    timePicker.required = false;
+                }
+            } else {
+                if (radioCustom) radioCustom.checked = true;
+                if (btnCustom) {
+                    btnCustom.className = 'cursor-pointer rounded-md px-2.5 py-1 text-xs font-semibold transition-all bg-white text-brand shadow-xs';
+                }
+                if (btnExisting) {
+                    btnExisting.className = 'cursor-pointer rounded-md px-2.5 py-1 text-xs font-semibold transition-all text-gray-600 hover:text-gray-900';
+                }
+                if (wrapperCustom) wrapperCustom.classList.remove('hidden');
+                if (wrapperExisting) wrapperExisting.classList.add('hidden');
+
+                if (timePicker) {
+                    timePicker.disabled = false;
+                    timePicker.required = true;
+                }
+                if (timeSelect) {
+                    timeSelect.disabled = true;
+                    timeSelect.required = false;
+                }
+            }
+        }
+
+        function populateSchedules() {
+            if (!timeSelect) return { matchingCount: 0, hasMatchedCurrent: false };
+
+            const selectedBarberId = barberSelect ? barberSelect.value : '';
+            const selectedDate = dateInput ? dateInput.value : '';
+
+            const matching = allSchedules.filter(function (s) {
+                return String(s.barber_id) === String(selectedBarberId) && s.date === selectedDate;
+            });
+
+            const currentVal = timeSelect.value || initialSelectedTime;
+            let hasMatchedCurrent = false;
+
+            if (matching.length === 0) {
+                timeSelect.dataset.isEmpty = 'true';
+                timeSelect.innerHTML = '<option value="" disabled selected>Slot masih kosong</option>';
+                timeSelect.disabled = true;
+                timeSelect.required = false;
+                timeSelect.classList.add('bg-gray-100', 'text-gray-400', 'cursor-not-allowed');
+                timeSelect.classList.remove('bg-gray-50', 'text-gray-900');
+
+            } else {
+                timeSelect.dataset.isEmpty = 'false';
+                timeSelect.innerHTML = '<option value="">-- Pilih Slot Jadwal --</option>';
+
+                matching.forEach(function (s) {
+                    const opt = document.createElement('option');
+                    opt.value = s.slot_time;
+                    opt.textContent = s.slot_time + ' WITA' + (!s.is_available ? ' (Jadwal Saat Ini)' : '');
+                    if (s.slot_time === currentVal) {
+                        opt.selected = true;
+                        hasMatchedCurrent = true;
+                    }
+                    timeSelect.appendChild(opt);
+                });
+
+                if (radioExisting && radioExisting.checked) {
+                    timeSelect.disabled = false;
+                    timeSelect.required = true;
+                    timeSelect.classList.remove('bg-gray-100', 'text-gray-400', 'cursor-not-allowed');
+                    timeSelect.classList.add('bg-gray-50', 'text-gray-900');
+                }
+            }
+
+            return { matchingCount: matching.length, hasMatchedCurrent: hasMatchedCurrent };
+        }
+
+        if (radioExisting && radioCustom) {
+            radioExisting.addEventListener('change', function () {
+                if (radioExisting.checked) setTimeMode('existing');
+            });
+            radioCustom.addEventListener('change', function () {
+                if (radioCustom.checked) setTimeMode('custom');
+            });
+        }
+
+        if (barberSelect) {
+            barberSelect.addEventListener('change', function () {
+                populateSchedules();
+            });
+        }
+
+        if (dateInput) {
+            dateInput.addEventListener('change', function () {
+                populateSchedules();
+            });
+            dateInput.addEventListener('changeDate', function () {
+                populateSchedules();
+            });
+            dateInput.addEventListener('input', function () {
+                populateSchedules();
+            });
+        }
+
+        // Inisialisasi awal saat halaman pertama kali dimuat
+        const initialRes = populateSchedules();
+        if (initialRes && initialRes.hasMatchedCurrent) {
+            setTimeMode('existing');
+        } else if (initialSelectedTime && (!initialRes || initialRes.matchingCount === 0 || !initialRes.hasMatchedCurrent)) {
+            setTimeMode('custom');
+            if (timePicker) timePicker.value = initialSelectedTime;
+        } else {
+            setTimeMode('existing');
+        }
+
+        // 3. Payment Type DP Toggle Logic
+        const paymentTypeSelect = document.getElementById('payment_type');
+        const dpAmountContainer = document.getElementById('dp-amount-container');
+        const dpAmountInput = document.getElementById('dp_amount');
+
+        if (paymentTypeSelect && dpAmountContainer && dpAmountInput) {
+            function updateDpVisibility() {
+                if (paymentTypeSelect.value === 'dp') {
+                    dpAmountContainer.classList.remove('hidden');
+                    dpAmountInput.required = true;
+                } else {
+                    dpAmountContainer.classList.add('hidden');
+                    dpAmountInput.required = false;
+                }
+            }
+
+            paymentTypeSelect.addEventListener('change', updateDpVisibility);
+            updateDpVisibility();
+        }
     });
 </script>
