@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -17,6 +18,25 @@ class Schedule extends Model
         'slot_time',
         'is_available',
     ];
+
+    /**
+     * Scope query untuk hanya mengambil slot jadwal yang berada di masa mendatang
+     * (hari ini dengan jam ke depan, atau tanggal setelah hari ini).
+     */
+    public function scopeUpcoming(Builder $query): Builder
+    {
+        $now = now();
+        $today = $now->toDateString();
+        $currentTime = $now->toTimeString();
+
+        return $query->where(function (Builder $q) use ($today, $currentTime): void {
+            $q->where('date', '>', $today)
+                ->orWhere(function (Builder $sub) use ($today, $currentTime): void {
+                    $sub->where('date', '=', $today)
+                        ->where('slot_time', '>', $currentTime);
+                });
+        });
+    }
 
     protected function casts(): array
     {

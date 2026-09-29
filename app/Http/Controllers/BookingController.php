@@ -313,11 +313,12 @@ class BookingController extends Controller
 
         $qrContent = $payments->pluck('qr_content')->filter()->first();
 
-        // 3. Ambil slot jadwal yang tersedia di database untuk barber terkait (untuk modal reschedule)
+        // 3. Ambil slot jadwal yang tersedia di masa mendatang untuk barber terkait (untuk modal reschedule)
         $barberIds = $bookings->pluck('barber_id')->unique()->filter();
         $availableSchedules = Schedule::with('barber')
             ->whereIn('barber_id', $barberIds)
             ->where('is_available', true)
+            ->upcoming()
             ->orderBy('date')
             ->orderBy('slot_time')
             ->get();
@@ -488,6 +489,7 @@ class BookingController extends Controller
         $newSchedule = Schedule::whereKey($data['schedule_id'])
             ->where('barber_id', $booking->barber_id)
             ->where('is_available', true)
+            ->upcoming()
             ->first();
 
         if (! $newSchedule) {

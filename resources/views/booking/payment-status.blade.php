@@ -364,17 +364,17 @@
                                 <label class="mb-1 block text-xs font-black uppercase tracking-wider text-gray-700">
                                     Pilih Booking yang Ingin Dijadwalkan Ulang
                                 </label>
-                                <select name="booking_id" required
+                                <select id="reschedule-select-booking" name="booking_id" required
                                         class="w-full rounded-xl border-2 border-gray-900 bg-white px-3 py-2.5 text-xs font-bold text-gray-900 shadow-[2px_2px_0px_0px_rgba(17,24,39,1)] focus:outline-none">
                                     @foreach ($reschedulableBookings as $rb)
-                                        <option value="{{ $rb->id }}">
+                                        <option value="{{ $rb->id }}" data-barber-id="{{ $rb->barber_id }}">
                                             {{ $rb->name }} — {{ $rb->scheduled_at?->format('d M Y, H:i') ?? '-' }} WITA ({{ $rb->barber?->name ?? 'Barber' }})
                                         </option>
                                     @endforeach
                                 </select>
                             </div>
                         @else
-                            <input type="hidden" name="booking_id" value="{{ $reschedulableBookings->first()?->id }}">
+                            <input type="hidden" id="reschedule-select-booking" name="booking_id" value="{{ $reschedulableBookings->first()?->id }}" data-barber-id="{{ $reschedulableBookings->first()?->barber_id }}">
                             <div class="mb-4 rounded-xl border-2 border-gray-900 bg-white p-3 text-left shadow-[2px_2px_0px_0px_rgba(17,24,39,1)] space-y-1">
                                 <div class="flex justify-between items-center">
                                     <span class="text-2xs font-black uppercase tracking-wider text-gray-500">Jadwal Saat Ini:</span>
@@ -395,16 +395,16 @@
 
                             @if ($availableSchedules->isEmpty())
                                 <div class="rounded-xl border-2 border-amber-400 bg-amber-50 p-3 text-xs font-bold text-amber-900 shadow-[2px_2px_0px_0px_rgba(17,24,39,1)]">
-                                    Belum ada slot jadwal yang tersedia di database saat ini.
+                                    Belum ada slot jadwal di masa mendatang yang tersedia untuk barber ini.
                                 </div>
                             @else
-                                <select name="schedule_id" required
+                                <select id="reschedule-select-schedule" name="schedule_id" required
                                         class="w-full rounded-xl border-2 border-gray-900 bg-white px-3 py-2.5 text-xs font-bold text-gray-900 shadow-[2px_2px_0px_0px_rgba(17,24,39,1)] focus:border-brand focus:ring-0">
                                     <option value="">-- Pilih Slot Jadwal Baru --</option>
                                     @foreach ($availableSchedules->groupBy(fn($s) => $s->date->format('Y-m-d')) as $dateStr => $slots)
                                         <optgroup label="📅 {{ \Carbon\Carbon::parse($dateStr)->isoFormat('dddd, D MMMM Y') }}">
                                             @foreach ($slots as $slot)
-                                                <option value="{{ $slot->id }}">
+                                                <option value="{{ $slot->id }}" data-barber-id="{{ $slot->barber_id }}">
                                                     {{ $slot->date->format('d M Y') }} &bull; Jam {{ $slot->slot_time->format('H:i') }} WITA ({{ $slot->barber?->name ?? 'Barber' }})
                                                 </option>
                                             @endforeach
@@ -479,6 +479,47 @@
                         }
                     }
                 @endif
+
+                // Filter slot reschedule berdasarkan barber dari booking yang dipilih
+                const bookingSelect = document.getElementById('reschedule-select-booking');
+                const scheduleSelect = document.getElementById('reschedule-select-schedule');
+
+                if (bookingSelect && scheduleSelect) {
+                    function filterSchedulesByBarber() {
+                        let selectedBarberId = '';
+                        if (bookingSelect.tagName === 'SELECT') {
+                            const selectedOpt = bookingSelect.options[bookingSelect.selectedIndex];
+                            selectedBarberId = selectedOpt ? selectedOpt.dataset.barberId : '';
+                        } else {
+                            selectedBarberId = bookingSelect.dataset.barberId || '';
+                        }
+
+                        scheduleSelect.querySelectorAll('optgroup').forEach(group => {
+                            let groupHasVisible = false;
+                            group.querySelectorAll('option').forEach(opt => {
+                                if (!selectedBarberId || opt.dataset.barberId === selectedBarberId) {
+                                    opt.hidden = false;
+                                    opt.disabled = false;
+                                    groupHasVisible = true;
+                                } else {
+                                    opt.hidden = true;
+                                    opt.disabled = true;
+                                }
+                            });
+                            group.hidden = !groupHasVisible;
+                        });
+
+                        const currentOpt = scheduleSelect.options[scheduleSelect.selectedIndex];
+                        if (currentOpt && currentOpt.disabled) {
+                            scheduleSelect.value = '';
+                        }
+                    }
+
+                    if (bookingSelect.tagName === 'SELECT') {
+                        bookingSelect.addEventListener('change', filterSchedulesByBarber);
+                    }
+                    filterSchedulesByBarber();
+                }
             });
         </script>
     @endpush
