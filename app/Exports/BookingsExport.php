@@ -38,7 +38,18 @@ class BookingsExport implements FromQuery, WithHeadings, WithMapping, ShouldAuto
             ->when($this->filters['payment_status'] ?? null, fn (Builder $query, string $paymentStatus) => $query->whereHas('payment', fn ($q) => $q->where('status', $paymentStatus)))
             ->when($this->filters['date_from'] ?? null, fn (Builder $query, string $date) => $query->where('scheduled_at', '>=', Carbon::parse($date)->startOfDay()))
             ->when($this->filters['date_to'] ?? null, fn (Builder $query, string $date) => $query->where('scheduled_at', '<=', Carbon::parse($date)->endOfDay()))
-            ->latest('scheduled_at');
+            ->when(
+                isset($this->filters['sort']),
+                function (Builder $query): void {
+                    match ($this->filters['sort']) {
+                        'scheduled_at_asc' => $query->orderBy('scheduled_at', 'asc'),
+                        'created_at_desc'  => $query->orderBy('created_at', 'desc'),
+                        'created_at_asc'   => $query->orderBy('created_at', 'asc'),
+                        default            => $query->orderBy('scheduled_at', 'desc'),
+                    };
+                },
+                fn (Builder $query) => $query->latest('scheduled_at')
+            );
     }
 
     public function headings(): array

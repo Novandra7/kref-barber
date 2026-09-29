@@ -42,6 +42,7 @@
 
         <!-- Filter Form Container Retro -->
         <form method="GET" action="{{ route('admin.bookings.index') }}" class="rounded-2xl border-2 border-gray-900 bg-white p-5 shadow-[4px_4px_0px_0px_rgba(17,24,39,1)]">
+            <input type="hidden" name="sort" value="{{ $currentFilters['sort'] ?? 'scheduled_at_desc' }}">
             <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
                 <div class="relative lg:col-span-2">
                     <label for="booking-search" class="sr-only">Search bookings</label>
@@ -86,7 +87,7 @@
                             </svg>
                         </div>
                         <input name="date_from" type="text" data-date-format="yyyy-mm-dd" value="{{ $currentFilters['date_from'] ?? '' }}" placeholder="Start date" autocomplete="off"
-                               class="block w-full rounded-xl border-2 border-gray-900 bg-white p-2.5 ps-10 text-xs font-bold text-gray-900 focus:border-brand focus:ring-0">
+                                class="block w-full rounded-xl border-2 border-gray-900 bg-white p-2.5 ps-10 text-xs font-bold text-gray-900 focus:border-brand focus:ring-0">
                     </div>
                     <span class="text-xs font-black text-gray-500">to</span>
                     <div class="relative w-full">
@@ -96,7 +97,7 @@
                             </svg>
                         </div>
                         <input name="date_to" type="text" data-date-format="yyyy-mm-dd" value="{{ $currentFilters['date_to'] ?? '' }}" placeholder="End date" autocomplete="off"
-                               class="block w-full rounded-xl border-2 border-gray-900 bg-white p-2.5 ps-10 text-xs font-bold text-gray-900 focus:border-brand focus:ring-0">
+                                class="block w-full rounded-xl border-2 border-gray-900 bg-white p-2.5 ps-10 text-xs font-bold text-gray-900 focus:border-brand focus:ring-0">
                     </div>
                 </div>
             </div>
@@ -138,8 +139,52 @@
             <div class="relative overflow-x-auto">
                 <table class="w-full min-w-275 text-left text-sm text-gray-500">
                     <thead class="bg-gray-50 text-xs uppercase text-gray-700">
+                        @php
+                            $currentSort = $currentFilters['sort'] ?? 'scheduled_at_desc';
+                            $isJadwalActive = in_array($currentSort, ['scheduled_at_desc', 'scheduled_at_asc']);
+                            $isDibuatActive = in_array($currentSort, ['created_at_desc', 'created_at_asc']);
+                            $nextJadwalSort = ($currentSort === 'scheduled_at_desc') ? 'scheduled_at_asc' : 'scheduled_at_desc';
+                            $nextDibuatSort = ($currentSort === 'created_at_desc') ? 'created_at_asc' : 'created_at_desc';
+                        @endphp
                         <tr>
-                            <th scope="col" class="px-5 py-4">Booking</th>
+                            <th scope="col" class="px-5 py-3">
+                                <div class="flex flex-col gap-1.5">
+                                    <span class="font-black text-gray-900 tracking-wider">Booking</span>
+                                    <div class="flex items-center gap-1.5 normal-case tracking-normal font-bold text-[11px]">
+                                        {{-- Jadwal Sort Button --}}
+                                        <a href="{{ request()->fullUrlWithQuery(['sort' => $nextJadwalSort]) }}"
+                                           title="Urutkan berdasarkan Jadwal Booking ({{ $currentSort === 'scheduled_at_desc' ? 'Klik untuk Terlama' : 'Klik untuk Terbaru' }})"
+                                           class="inline-flex items-center gap-1 rounded-lg border px-2 py-0.5 transition-all {{ $isJadwalActive ? 'border-brand bg-brand text-white shadow-xs' : 'border-gray-300 bg-white text-gray-700 hover:border-gray-900 hover:bg-gray-100 hover:text-gray-900' }}">
+                                            <span>Jadwal</span>
+                                            @if ($isJadwalActive)
+                                                @if ($currentSort === 'scheduled_at_desc')
+                                                    <svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7" /></svg>
+                                                @else
+                                                    <svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 15l7-7 7 7" /></svg>
+                                                @endif
+                                            @else
+                                                <svg class="h-3 w-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" /></svg>
+                                            @endif
+                                        </a>
+
+                                        {{-- Dibuat Sort Button --}}
+                                        <a href="{{ request()->fullUrlWithQuery(['sort' => $nextDibuatSort]) }}"
+                                           title="Urutkan berdasarkan Waktu Dibuat ({{ $currentSort === 'created_at_desc' ? 'Klik untuk Terlama' : 'Klik untuk Terbaru' }})"
+                                           class="inline-flex items-center gap-1 rounded-lg border px-2 py-0.5 transition-all {{ $isDibuatActive ? 'border-brand bg-brand text-white shadow-xs' : 'border-gray-300 bg-white text-gray-700 hover:border-gray-900 hover:bg-gray-100 hover:text-gray-900' }}">
+                                            <span>Dibuat</span>
+                                            @if ($isDibuatActive)
+                                                @if ($currentSort === 'created_at_desc')
+                                                    <svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7" /></svg>
+                                                @else
+                                                    <svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 15l7-7 7 7" /></svg>
+                                                @endif
+                                            @else
+                                                <svg class="h-3 w-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" /></svg>
+                                            @endif
+                                        </a>
+                                    </div>
+                                </div>
+                            </th>
                             <th scope="col" class="px-5 py-4">Customer</th>
                             <th scope="col" class="px-5 py-4">Barber & Service</th>
                             <th scope="col" class="px-5 py-4">Financial</th>
@@ -158,8 +203,15 @@
                             <tr class="bg-white hover:bg-gray-50">
                                 <td class="px-5 py-4 align-top">
                                     <div class="font-mono font-bold text-gray-900">#BK-{{ $booking->id }}</div>
-                                    <div class="mt-1 whitespace-nowrap text-xs text-gray-500">
-                                        {{ $booking->scheduled_at?->format('d M Y, H:i') ?? '-' }}
+                                    <div class="mt-1 whitespace-nowrap text-xs">
+                                        <span class="inline-flex items-center gap-1 rounded-md py-0.5">
+                                            <span class="{{ $isJadwalActive ? 'font-semibold text-brand' : 'font-normal text-gray-400' }}">Jadwal: {{ $booking->scheduled_at?->format('d M Y, H:i') ?? '-' }}</span>
+                                        </span>
+                                    </div>
+                                    <div class="mt-0.5 whitespace-nowrap text-xs">
+                                        <span class="inline-flex items-center gap-1 rounded-md py-0.5">
+                                            <span class="{{ $isDibuatActive ? 'font-semibold text-brand' : 'text-gray-400' }}">Dibuat: {{ $booking->created_at?->format('d M Y, H:i') ?? '-' }}</span>
+                                        </span>
                                     </div>
                                     <span class="mt-2 inline-flex rounded-full px-2 py-0.5 text-[11px] font-semibold {{ $booking->source === 'walk_in' ? 'bg-orange-100 text-orange-700' : 'bg-blue-100 text-blue-700' }}">
                                         {{ $booking->source === 'walk_in' ? 'Walk-in' : 'Online' }}

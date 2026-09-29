@@ -44,12 +44,31 @@ class BookingAdminController extends Controller
         'expired'            => 'Expired',
     ];
 
+    public const SORT_OPTIONS = [
+        'scheduled_at_desc' => 'Jadwal Booking (Terbaru)',
+        'scheduled_at_asc'  => 'Jadwal Booking (Terlama)',
+        'created_at_desc'   => 'Waktu Dibuat (Terbaru)',
+        'created_at_asc'    => 'Waktu Dibuat (Terlama)',
+    ];
+
     public function index(Request $request): View
     {
         $this->normalizeDateRange($request);
 
+        $sort = $request->input('sort', 'scheduled_at_desc');
+        if (! array_key_exists($sort, self::SORT_OPTIONS)) {
+            $sort = 'scheduled_at_desc';
+        }
+
+        [$sortBy, $sortDirection] = match ($sort) {
+            'scheduled_at_asc'  => ['scheduled_at', 'asc'],
+            'created_at_desc'   => ['created_at', 'desc'],
+            'created_at_asc'    => ['created_at', 'asc'],
+            default             => ['scheduled_at', 'desc'],
+        };
+
         $bookings = $this->buildBookingQuery($request)
-            ->latest('scheduled_at')
+            ->orderBy($sortBy, $sortDirection)
             ->paginate(10)
             ->withQueryString();
 
@@ -58,9 +77,13 @@ class BookingAdminController extends Controller
             'bookingRows'          => $bookings, // backward-compatibility view
             'bookingCount'         => $bookings->total(),
             'barberOptions'        => Barber::where('is_active', true)->orderBy('name')->get(['id', 'name', 'role']),
-            'currentFilters'       => $request->only(['search', 'barber_id', 'status', 'payment_status', 'date_from', 'date_to']),
+            'currentFilters'       => array_merge(
+                $request->only(['search', 'barber_id', 'status', 'payment_status', 'date_from', 'date_to']),
+                ['sort' => $sort]
+            ),
             'statusOptions'        => self::STATUS_OPTIONS,
             'paymentStatusOptions' => self::PAYMENT_STATUS_OPTIONS,
+            'sortOptions'          => self::SORT_OPTIONS,
             'exportUrl'            => route('admin.bookings.export', array_filter($request->query())),
             'filterUrl'            => route('admin.bookings.index'),
             'resetUrl'             => route('admin.bookings.index'),
@@ -76,6 +99,7 @@ class BookingAdminController extends Controller
             'payment_status' => ['nullable', 'in:pending,paid,partially_refunded,refunded,failed,expired'],
             'date_from'      => ['nullable', 'date_format:Y-m-d'],
             'date_to'        => ['nullable', 'date_format:Y-m-d'],
+            'sort'           => ['nullable', 'string', 'in:' . implode(',', array_keys(self::SORT_OPTIONS))],
         ]);
 
         if (($filters['date_from'] ?? null) && ($filters['date_to'] ?? null)
