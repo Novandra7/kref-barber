@@ -16,6 +16,7 @@ export default (
     barbers: initialBarbers,
     schedules: initialSchedules,
     availableDates: initialAvailableDates,
+    isLoadingData: false,
 
     paymentType: "",
     paymentTypeConfirmed: false,
@@ -251,9 +252,33 @@ export default (
         };
     },
 
-    init() {
+    async init() {
         this.startNewGuest();
         this.$watch('currentGuest.barber', () => this.syncHaircutWithBarber());
+        await this.loadInitialData();
+    },
+
+    async loadInitialData() {
+        this.isLoadingData = true;
+        try {
+            const response = await fetch('/api/booking/data', {
+                headers: {
+                    'Accept': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest',
+                },
+            });
+            if (response.ok) {
+                const data = await response.json();
+                this.services = data.services || [];
+                this.barbers = data.barbers || [];
+                this.schedules = data.schedules || [];
+                this.availableDates = data.availableDates || [];
+            }
+        } catch (error) {
+            console.error('Gagal mengambil data booking:', error);
+        } finally {
+            this.isLoadingData = false;
+        }
     },
 
     syncHaircutWithBarber() {

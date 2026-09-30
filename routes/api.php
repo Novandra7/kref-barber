@@ -5,6 +5,10 @@ use Illuminate\Support\Facades\Route;
 use App\Services\DokuService;
 use App\Http\Controllers\Api\DokuWebhookController;
 use App\Http\Controllers\Api\WahaWebhookController;
+use App\Http\Controllers\BookingController;
+
+// Public Booking Initial Data
+Route::get('/booking/data', [BookingController::class, 'initData'])->name('api.booking.data');
 
 Route::get('/user', function (Request $request) {
     return $request->user();

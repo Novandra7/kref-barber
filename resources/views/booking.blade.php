@@ -1,7 +1,7 @@
 @extends('layouts.layout')
 
 @section('content')
-    <div x-data="bookingForm(@js($services), @js($barbers), @js($selectedDate), @js($scheduleData), @js($availableDates))" class="min-h-screen">
+    <div x-data="bookingForm()" class="min-h-screen">
         @include('partials.header')
 
         <div class="flex flex-col items-center w-full mt-5">

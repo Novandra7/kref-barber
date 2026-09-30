@@ -62,6 +62,47 @@ class BookingController extends Controller
     }
 
     /**
+     * Mengembalikan data awal booking (services, barbers, schedules, availableDates)
+     * untuk dikonsumsi oleh Alpine.js via API.
+     */
+    public function initData(Request $request): JsonResponse
+    {
+        $services = Service::where('is_active', true)
+            ->select('id', 'name', 'price', 'category', 'code')
+            ->get();
+
+        $barbers = Barber::where('is_active', true)
+            ->select('id', 'name', 'role', 'photo')
+            ->get();
+
+        $today = now()->toDateString();
+
+        $schedules = Schedule::where('date', '>=', $today)
+            ->orderBy('date')
+            ->orderBy('slot_time')
+            ->get();
+
+        $scheduleData = $schedules->map(fn (Schedule $schedule) => [
+            'id'           => $schedule->id,
+            'barber_id'    => $schedule->barber_id,
+            'date'         => $schedule->date->format('Y-m-d'),
+            'slot_time'    => $schedule->slot_time->format('H:i'),
+            'is_available' => $schedule->is_available,
+        ])->values();
+
+        $availableDates = $scheduleData->pluck('date')
+            ->unique()
+            ->values();
+
+        return response()->json([
+            'services'       => $services,
+            'barbers'        => $barbers,
+            'schedules'      => $scheduleData,
+            'availableDates' => $availableDates,
+        ]);
+    }
+
+    /**
      * Memproses checkout booking: validasi input, membuat booking + item
      * per tamu, membuat pembayaran QRIS via DOKU, lalu mengirim notifikasi.
      */
