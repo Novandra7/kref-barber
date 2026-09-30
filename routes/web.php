@@ -89,7 +89,9 @@ Route::domain('{subdomain?}' . config('app.domain', 'kref.test'))
 
     // Customer Booking Flow
     Route::get('/booking', [BookingController::class, 'index'])->name('booking.index');
-    Route::post('/booking/checkout', [BookingController::class, 'checkout'])->name('booking.checkout');
+    Route::post('/booking/checkout', [BookingController::class, 'checkout'])
+        ->middleware('throttle:10,1')
+        ->name('booking.checkout');
     Route::get('/booking/payment/{reference}', [BookingController::class, 'paymentDetail'])->name('booking.payment.detail');
     Route::get('/booking/payment/{reference}/status', [BookingController::class, 'paymentStatus'])->name('booking.payment.status');
     Route::post('/booking/cancel/{reference}', [BookingController::class, 'cancel'])->name('booking.cancel');

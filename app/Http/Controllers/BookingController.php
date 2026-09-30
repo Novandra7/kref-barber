@@ -8,6 +8,7 @@ use App\Models\BookingItem;
 use App\Models\Payment;
 use App\Models\Schedule;
 use App\Models\Service;
+use App\Http\Requests\CheckoutBookingRequest;
 use App\Services\DokuService;
 use App\Services\BookingNotificationService;
 use App\Services\PaymentExpirationService;
@@ -107,28 +108,15 @@ class BookingController extends Controller
      * per tamu, membuat pembayaran QRIS via DOKU, lalu mengirim notifikasi.
      */
     public function checkout(
-        Request $request,
+        CheckoutBookingRequest $request,
         DokuService $doku,
         BookingNotificationService $notifications,
     ): JsonResponse {
 
         // -----------------------------------------------------------
-        // 1. Validasi input
+        // 1. Validasi input via CheckoutBookingRequest
         // -----------------------------------------------------------
-        $data = $request->validate([
-            'payment_type'                      => ['required', 'in:DP,Full'],
-            'guests'                            => ['required', 'array', 'min:1'],
-            'guests.0.phone'                    => ['required', 'string', 'max:30'],
-            'guests.*.name'                     => ['required', 'string', 'max:255'],
-            'guests.*.phone'                    => ['nullable', 'string', 'max:30'],
-            'guests.*.barber'                   => ['required'],
-            'guests.*.date'                     => ['required', 'date_format:Y-m-d'],
-            'guests.*.time'                     => ['required', 'date_format:H:i'],
-            'guests.*.selectedHaircut'          => ['nullable', 'string'],
-            'guests.*.selectedChemical'         => ['nullable', 'string'],
-            'guests.*.selectedTreatments'       => ['array'],
-            'guests.*.selectedTreatments.*'     => ['string'],
-        ]);
+        $data = $request->validated();
 
         // -----------------------------------------------------------
         // 2. Buat booking + booking item untuk setiap tamu, di dalam
@@ -191,6 +179,7 @@ class BookingController extends Controller
                     'status'             => 'pending',
                     'name'               => $guest['name'],
                     'phone'              => !empty($guest['phone']) ? $guest['phone'] : $primaryPhone,
+                    'description'        => !empty($guest['notes']) ? strip_tags(trim($guest['notes'])) : null,
                     'barber_id'          => $barber->id,
                     'total_amount'       => $guestTotal,
                     'outstanding_amount' => $guestTotal,
