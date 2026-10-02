@@ -784,7 +784,7 @@ class BookingAdminController extends Controller
         }
 
         // Dispatch ke Queue untuk diproses oleh queue worker
-        SendBookingReminderJob::dispatch($booking->id);
+        SendBookingReminderJob::dispatch($booking->id, $booking->scheduled_at->format('Y-m-d H:i:s'));
 
         return back()->with('success', "Pengingat jadwal untuk booking #BK-{$booking->id} ({$booking->name}) berhasil dimasukkan ke antrean pengiriman.");
     }

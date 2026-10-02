@@ -31,7 +31,8 @@ class SendBookingReminderJob implements ShouldQueue
      * Create a new job instance.
      */
     public function __construct(
-        public int $bookingId
+        public int $bookingId,
+        public ?string $expectedScheduledAt = null
     ) {
     }
 
@@ -64,6 +65,19 @@ class SendBookingReminderJob implements ShouldQueue
         if ($booking->scheduled_at && $booking->scheduled_at->isPast()) {
             Log::info("SendBookingReminderJob: Diabaikan untuk booking #{$booking->id} karena jadwal sudah terlewat ({$booking->scheduled_at}).");
             return;
+        }
+
+        // 4. Pastikan ini bukan job usang dari jadwal yang lama (saat reschedule)
+        if ($this->expectedScheduledAt !== null) {
+            if ($booking->scheduled_at && $booking->scheduled_at->format('Y-m-d H:i:s') !== $this->expectedScheduledAt) {
+                Log::info("SendBookingReminderJob: Diabaikan untuk booking #{$booking->id} karena jadwal telah berubah dari {$this->expectedScheduledAt} ke {$booking->scheduled_at}.");
+                return;
+            }
+        } else {
+            if ($booking->scheduled_at && now()->diffInMinutes($booking->scheduled_at, false) > 40) {
+                Log::info("SendBookingReminderJob: Diabaikan untuk booking #{$booking->id} karena jadwal masih terlalu lama ({$booking->scheduled_at}). Kemungkinan ini adalah job usang.");
+                return;
+            }
         }
 
         // 4. Kirim notifikasi reminder via WAHA

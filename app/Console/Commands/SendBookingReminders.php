@@ -58,7 +58,7 @@ class SendBookingReminders extends Command
 
         foreach ($bookings as $booking) {
             // Masukkan ke antrean job untuk dieksekusi oleh queue worker
-            SendBookingReminderJob::dispatch($booking->id);
+            SendBookingReminderJob::dispatch($booking->id, $booking->scheduled_at->format('Y-m-d H:i:s'));
             $bar->advance();
         }
 

@@ -54,7 +54,7 @@ class BookingObserver
 
         // Hanya jadwalkan jika waktu H-30 menit masih berada di masa depan
         if ($reminderAt->isFuture()) {
-            SendBookingReminderJob::dispatch($booking->id)->delay($reminderAt);
+            SendBookingReminderJob::dispatch($booking->id, $booking->scheduled_at->format('Y-m-d H:i:s'))->delay($reminderAt);
         }
     }
 }
