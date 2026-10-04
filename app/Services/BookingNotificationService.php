@@ -22,26 +22,22 @@ class BookingNotificationService
             ? $booking->scheduled_at->format('d M Y, H:i') . ' WITA'
             : '-';
 
+        $barberName = $booking->barber?->name ?? '-';
+        $customerName = $booking->name ?: 'Pelanggan';
+
         $message = implode("\n", [
-            '💈 *KREF BARBER*',
-            '_Reservasi Baru Diterima_',
-            '─────────────────────────',
+            '💈 KREF BARBER',
+            'Reservasi Baru',
             '',
-            'Halo, *' . ($booking->name ?: 'Pelanggan') . '*! 👋',
-            'Terima kasih telah memesan layanan di *KREF Barber*. Reservasi Anda telah tercatat dan saat ini *menunggu pembayaran*.',
+            "Halo, {$customerName}! 👋",
             '',
-            '📋 *Detail Reservasi:*',
-            '• *Kode Referensi:* `' . $reference . '`',
-            '• *Barber:* ' . ($booking->barber?->name ?? '-'),
-            '• *Jadwal:* ' . $scheduled,
+            "{$barberName} • {$scheduled}",
+            $reference,
             '',
-            '💳 *Instruksi Pembayaran:*',
-            'Silakan selesaikan pembayaran Anda melalui tautan resmi berikut:',
+            '💳 Bayar:',
             '👉 ' . $paymentUrl,
             '',
-            '─────────────────────────',
-            '_Harap selesaikan pembayaran sebelum batas waktu berakhir._',
-            '_Sampai jumpa di kursi barber! ✂️_',
+            'Mohon selesaikan pembayaran sebelum batas waktu. ✂️',
         ]);
 
         $this->send($booking->phone, $message);
@@ -55,51 +51,26 @@ class BookingNotificationService
             ? $booking->scheduled_at->format('d M Y, H:i') . ' WITA'
             : '-';
 
-        $total = (int) $booking->total_amount;
-        $totalFormatted = 'Rp ' . number_format($total, 0, ',', '.');
-        $isDp = strtolower((string) $booking->payment_type) === 'dp';
-
-        if ($isDp) {
-            $latePolicy = 'Jika terlambat lebih dari *15 menit* dari jadwal, maka uang muka (DP) dinyatakan *hangus*.';
-        } else {
-            $dpForfeit = (int) config('booking.dp_amount', 40000);
-            $refundEstimate = max(0, $total - $dpForfeit);
-            $dpFormatted = 'Rp ' . number_format($dpForfeit, 0, ',', '.');
-            $refundFormatted = 'Rp ' . number_format($refundEstimate, 0, ',', '.');
-
-            if ($refundEstimate > 0) {
-                $latePolicy = "Jika terlambat lebih dari *15 menit* dari jadwal, maka biaya senilai DP (*{$dpFormatted}*) akan hangus, dan sisa pembayaran sebesar *{$refundFormatted}* akan dikembalikan (refund).";
-            } else {
-                $latePolicy = "Jika terlambat lebih dari *15 menit* dari jadwal, maka biaya senilai DP (*{$dpFormatted}*) akan hangus.";
-            }
-        }
+        $barberName = $booking->barber?->name ?? '-';
+        $customerName = $booking->name ?: 'Pelanggan';
 
         $message = implode("\n", [
-            '💈 *KREF BARBER*',
-            '_Pembayaran Berhasil Dikonfirmasi_',
-            '─────────────────────────',
+            '💈 KREF BARBER',
+            'Pembayaran Terkonfirmasi ✅',
             '',
-            'Halo, *' . ($booking->name ?: 'Pelanggan') . '*! 🎉',
-            'Pembayaran untuk reservasi Anda telah *berhasil diverifikasi*. Slot jadwal Anda resmi terkunci!',
+            "Halo, {$customerName}! 🎉",
+            'Reservasi kamu sudah TERKONFIRMASI.',
             '',
-            '✅ *Detail Reservasi:*',
-            '• *Kode Referensi:* `' . $reference . '`',
-            '• *Barber:* ' . ($booking->barber?->name ?? '-'),
-            '• *Jadwal:* ' . $scheduled,
-            '• *Jenis Pembayaran:* ' . ($isDp ? 'Down Payment (DP)' : 'Full Payment'),
-            '• *Total Biaya:* *' . $totalFormatted . '*',
-            '• *Status:* *TERKONFIRMASI*',
+            "📋 {$barberName} • {$scheduled}",
+            $reference,
             '',
-            '📄 *E-Receipt & Tiket Reservasi:*',
-            'Lihat rincian bukti pembayaran & status reservasi Anda di sini:',
+            '🎫 E-Receipt:',
             '👉 ' . $detailUrl,
             '',
-            '⚠️ *Ketentuan Keterlambatan:*',
-            $latePolicy,
+            '⚠️ Terlambat >15 menit dapat di-handle tanpa keramas, menyesuaikan situasi. Jika tidak dapat di-handle, DP hangus.',
+            '🔄 Reschedule maksimal H-3 jam sebelum jadwal.',
             '',
-            '─────────────────────────',
-            '_Mohon hadir tepat waktu (disarankan 5-10 menit sebelum jadwal)._',
-            '_Terima kasih atas kepercayaan Anda di KREF Barber! ✂️_',
+            'Sampai jumpa di KREF! ✂️',
         ]);
 
         $this->send($booking->phone, $message);
