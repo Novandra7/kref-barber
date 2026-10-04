@@ -47,6 +47,10 @@ class WahaWebhookController extends Controller
                 return response()->json(['status' => 'success', 'action' => 'jadwal_command']);
             }
 
+            if ($this->handleHelpCommand($body)) {
+                return response()->json(['status' => 'success', 'action' => 'help_command']);
+            }
+
             return response()->json(['status' => 'ignored', 'reason' => 'not a recognized command']);
         } catch (\Exception $e) {
             Log::error('WahaWebhookController error: ' . $e->getMessage(), [
@@ -120,6 +124,41 @@ class WahaWebhookController extends Controller
     }
 
     /**
+     * Handle command /help dari grup ops.
+     */
+    private function handleHelpCommand(string $body): bool
+    {
+        if (!preg_match('/^\/help(?:\s+.*)?$/i', $body)) {
+            return false;
+        }
+
+        try {
+            $opsGroupId = config('services.kref.ops_group_id', env('KREF_OPS_GROUP_ID'));
+            if (!$opsGroupId) {
+                return true;
+            }
+
+            $message = implode("\n", [
+                '*Daftar Perintah:*',
+                '- */jadwal* : Menampilkan jadwal hari ini',
+                '- */jadwal [tanggal]* : Menampilkan jadwal tanggal tertentu (contoh: /jadwal 2026-10-10 atau 10-10-2026)',
+                '- */help* : Menampilkan bantuan ini',
+            ]);
+
+            app(WahaService::class)->sendMessage($opsGroupId, $message);
+
+            Log::info('WahaWebhookController: /help command processed');
+
+            return true;
+        } catch (\Throwable $e) {
+            Log::error('WahaWebhookController: Failed to send help reply', [
+                'error' => $e->getMessage(),
+            ]);
+            return true;
+        }
+    }
+
+    /**
      * Kirim pesan panduan format tanggal ke grup ops jika parsing gagal.
      */
     private function replyFormatError(?string $dateParam): void
@@ -130,12 +169,12 @@ class WahaWebhookController extends Controller
                 return;
             }
 
-            $message = "⚠️ Format tanggal tidak valid: *{$dateParam}*\n\n"
+            $message = "Format tanggal tidak valid: *{$dateParam}*\n\n"
                 . "Format yang diterima:\n"
-                . "• /jadwal → jadwal hari ini\n"
-                . "• /jadwal 2026-10-10 → YYYY-MM-DD\n"
-                . "• /jadwal 10-10-2026 → DD-MM-YYYY\n"
-                . "• /jadwal 10/10/2026 → DD/MM/YYYY";
+                . "- /jadwal (hari ini)\n"
+                . "- /jadwal 2026-10-10 (YYYY-MM-DD)\n"
+                . "- /jadwal 10-10-2026 (DD-MM-YYYY)\n\n"
+                . "Ketik /help untuk bantuan.";
 
             app(WahaService::class)->sendMessage($opsGroupId, $message);
         } catch (\Throwable $e) {
