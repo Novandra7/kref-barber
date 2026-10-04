@@ -23,7 +23,7 @@ Route::get('/testing-payment', function (Request $request) {
 // Webhook Payment DOKU (Public API endpoint)
 Route::post('/payments/webhook', [DokuWebhookController::class, 'webhook'])->name('doku.webhook');
 
-// Webhook WAHA (Walk-in booking)
+// Webhook WAHA (Command handler: /jadwal)
 Route::post('/waha/webhook', [WahaWebhookController::class, 'handle'])->name('waha.webhook');
 
 

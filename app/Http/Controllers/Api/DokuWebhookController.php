@@ -196,7 +196,8 @@ class DokuWebhookController extends Controller
                         route('booking.payment.detail', ['reference' => $reference])
                     );
 
-                    if ($booking->scheduled_at) {
+                    // Kirim rekap ke grup ops HANYA jika booking untuk hari ini
+                    if ($booking->scheduled_at && $booking->scheduled_at->isToday()) {
                         $notifications->sendDailyRecapToOpsGroup($booking->scheduled_at);
                     }
                 }
