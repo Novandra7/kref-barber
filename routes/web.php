@@ -11,6 +11,7 @@ use App\Http\Controllers\BookingController;
 use App\Http\Controllers\Api\DokuWebhookController;
 use App\Http\Controllers\LandingController;
 use App\Http\Controllers\DokuTestController;
+use App\Http\Controllers\WalkInPageController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -101,5 +102,11 @@ Route::domain('{subdomain?}' . config('app.domain', 'kref.test'))
     Route::get('/testing-payment', [DokuTestController::class, 'index'])->name('doku-test.index');
     Route::post('/testing-payment/generate', [DokuTestController::class, 'generate'])->name('doku-test.generate');
     Route::post('/testing-payment/query', [DokuTestController::class, 'query'])->name('doku-test.query');
+
+    // Walk-in Page (barber-facing, no auth)
+    Route::get('/kokuno', [WalkInPageController::class, 'index'])->name('walkin.index');
+    Route::post('/kokuno', [WalkInPageController::class, 'store'])->name('walkin.store');
+    Route::patch('/kokuno/{booking}/complete', [WalkInPageController::class, 'complete'])->name('walkin.complete');
+    Route::delete('/kokuno/{booking}', [WalkInPageController::class, 'cancel'])->name('walkin.cancel');
 
 });
