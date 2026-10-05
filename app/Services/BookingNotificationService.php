@@ -317,21 +317,31 @@ class BookingNotificationService
                             $name = strtolower(trim((string) $booking->name)) ?: 'pelanggan';
 
                             // Tentukan apakah DP atau FP
-                            $isPaidFull = (int) $booking->outstanding_amount === 0;
-                            $paymentType = $isPaidFull ? 'FP' : 'DP';
+                            $isCompleted = $booking->status === 'completed';
+                            $isDp = ($booking->payment_type === 'dp' || $booking->payment?->purpose === 'dp') && ! $isCompleted;
 
-                            // Tentukan nominal yang dibayarkan
-                            if ($isPaidFull) {
-                                $paidAmount = (int) $booking->total_amount;
-                            } else {
+                            if ($isDp) {
+                                $paymentType = 'DP';
                                 $paidAmount = $booking->payment?->amount
                                     ?? max(0, (int) $booking->total_amount - (int) $booking->outstanding_amount);
+                            } elseif ($isCompleted || (int) $booking->total_amount > 0) {
+                                $paymentType = 'FP';
+                                $paidAmount = (int) $booking->total_amount;
+                            } else {
+                                $paymentType = '';
+                                $paidAmount = 0;
                             }
 
                             // Format nominal dalam 'k' (misal: 40000 -> 40k)
-                            $amountFormatted = ($paidAmount >= 1000)
-                                ? ($paidAmount % 1000 === 0 ? ($paidAmount / 1000) : number_format($paidAmount / 1000, 1, ',', '')) . 'k'
-                                : $paidAmount;
+                            $amountFormatted = '';
+                            if ($paidAmount > 0) {
+                                $amountFormatted = ($paidAmount >= 1000)
+                                    ? ($paidAmount % 1000 === 0 ? ($paidAmount / 1000) : number_format($paidAmount / 1000, 1, ',', '')) . 'k'
+                                    : $paidAmount;
+                            }
+
+                            $paymentLabel = trim("{$paymentType} {$amountFormatted}");
+                            $paymentLabel = $paymentLabel !== '' ? " {$paymentLabel}" : '';
 
                             // Ambil kode services yang dipilih
                             $serviceCodes = $booking->items
@@ -380,8 +390,13 @@ class BookingNotificationService
         }
     }
 
-    private function send(string $phone, string $message): void
+    private function send(?string $phone, string $message): void
     {
+        if (empty($phone)) {
+            Log::warning('Booking WhatsApp notification skipped: recipient phone number is empty.');
+            return;
+        }
+
         try {
             $this->waha->sendMessage($phone, $message);
         } catch (\Throwable $exception) {

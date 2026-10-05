@@ -39,7 +39,7 @@ class WalkInPageController extends Controller
                 'services' => $items,
             ])->values();
 
-        $availableSchedules = \App\Models\Schedule::where('date', $today)
+        $availableSchedules = Schedule::where('date', $today)
             ->where('is_available', true)
             ->where('slot_time', '>=', now()->format('H:i:00'))
             ->orderBy('slot_time')
@@ -60,7 +60,7 @@ class WalkInPageController extends Controller
         ]);
     }
 
-    public function store(Request $request)
+    public function store(Request $request, BookingNotificationService $notifications)
     {
         $data = $request->validate([
             'barber_id'      => ['required', 'exists:barbers,id'],
@@ -69,6 +69,8 @@ class WalkInPageController extends Controller
             'scheduled_time' => ['nullable', 'required_if:booking_type,scheduled'],
             'phone'          => ['nullable', 'required_if:booking_type,scheduled', 'string', 'max:20'],
             'payment_type'   => ['nullable', 'in:full,dp'],
+            'dp_amount'          => ['nullable', 'required_if:payment_type,dp', 'numeric', 'min:1000'],
+            'dp_payment_method'  => ['nullable', 'required_if:payment_type,dp', 'in:cash,qris_static'],
         ]);
 
         $barber = Barber::where('id', $data['barber_id'])
@@ -152,6 +154,27 @@ class WalkInPageController extends Controller
                 ? $schedule->slot_time->format('H:i:s')
                 : $schedule->slot_time;
 
+            $paymentType = $data['payment_type'] ?? 'full';
+            $paymentId   = null;
+            $totalAmount = 0;
+            $outstandingAmount = 0;
+
+            // Jika dijadwalkan dengan DP, buat Payment langsung
+            if ($isScheduled && $paymentType === 'dp') {
+                $dpAmount = (int) $data['dp_amount'];
+                $dpPayment = Payment::create([
+                    'amount'      => $dpAmount,
+                    'method'      => $data['dp_payment_method'],
+                    'provider'    => 'manual',
+                    'purpose'     => 'dp',
+                    'status'      => 'paid',
+                    'recorded_by' => null,
+                ]);
+                $paymentId       = $dpPayment->id;
+                $totalAmount     = $dpAmount;
+                $outstandingAmount = 1; // Tandai belum lunas (akan dihitung ulang saat complete)
+            }
+
             Booking::create([
                 'schedule_id'        => $schedule->id,
                 'barber_id'          => $barber->id,
@@ -159,14 +182,21 @@ class WalkInPageController extends Controller
                 'phone'              => $data['phone'] ?? null,
                 'source'             => 'walk_in',
                 'status'             => 'confirmed',
-                'payment_type'       => $data['payment_type'] ?? 'full',
-                'total_amount'       => 0,
-                'outstanding_amount' => 0,
+                'payment_type'       => $paymentType,
+                'payment_id'         => $paymentId,
+                'total_amount'       => $totalAmount,
+                'outstanding_amount' => $outstandingAmount,
                 'scheduled_at'       => $today . ' ' . $slotTimeStr,
             ]);
 
             $schedule->update(['is_available' => false]);
         });
+
+        // Kirim rekap ke grup WA ops jika ada DP (slot terkunci dengan uang masuk)
+        $paymentType = $data['payment_type'] ?? 'full';
+        if ($data['booking_type'] === 'scheduled' && $paymentType === 'dp') {
+            $notifications->sendDailyRecapToOpsGroup($today);
+        }
 
         return redirect()->route('walkin.index')
             ->with('success', "Walk-in {$data['name']} berhasil didaftarkan.");
@@ -180,16 +210,27 @@ class WalkInPageController extends Controller
         abort_if($booking->source !== 'walk_in', 404);
         abort_if($booking->status === 'completed', 422, 'Sudah dilengkapi.');
 
-        $data = $request->validate([
-            'service_ids'    => ['required', 'array', 'min:1'],
-            'service_ids.*'  => ['integer', 'distinct', 'exists:services,id'],
-            'payment_type'   => ['required', 'in:full,dp'],
-            'payment_method' => ['required', 'in:cash,qris_static'],
-        ], [
+        $booking->load('payment');
+        $hasDp   = $booking->payment && $booking->payment->purpose === 'dp';
+        $dpPaid  = $hasDp ? (int) $booking->payment->amount : 0;
+
+        // Validasi dinamis berdasarkan apakah sudah ada DP
+        $rules = [
+            'service_ids'   => ['required', 'array', 'min:1'],
+            'service_ids.*' => ['integer', 'distinct', 'exists:services,id'],
+        ];
+        if (!$hasDp) {
+            $rules['payment_type']   = ['required', 'in:full,dp'];
+            $rules['payment_method'] = ['required', 'in:cash,qris_static'];
+        } else {
+            $rules['settlement_payment_method'] = ['nullable', 'in:cash,qris_static'];
+        }
+
+        $data = $request->validate($rules, [
             'service_ids.required' => 'Wajib memilih minimal 1 layanan.',
         ]);
 
-        DB::transaction(function () use ($data, $booking) {
+        DB::transaction(function () use ($data, $booking, $hasDp, $dpPaid) {
             $booking->load('barber');
             $barber = $booking->barber;
 
@@ -211,10 +252,7 @@ class WalkInPageController extends Controller
                 ];
             });
 
-            $total       = (int) $serviceItems->sum('price');
-            $dpAmount    = (int) config('booking.dp_amount', 40000);
-            $paid        = $data['payment_type'] === 'dp' ? $dpAmount : $total;
-            $outstanding = max(0, $total - $paid);
+            $total = (int) $serviceItems->sum('price');
 
             $booking->items()->createMany(
                 $serviceItems->map(fn ($item) => [
@@ -226,22 +264,55 @@ class WalkInPageController extends Controller
                 ])->all()
             );
 
-            $payment = Payment::create([
-                'amount'      => $paid,
-                'method'      => $data['payment_method'],
-                'provider'    => 'manual',
-                'purpose'     => $data['payment_type'] === 'dp' ? 'dp' : 'walk_in',
-                'status'      => 'paid',
-                'recorded_by' => null,
-            ]);
+            if ($hasDp) {
+                // Booking sudah memiliki DP - hitung sisa pelunasan
+                $sisa = max(0, $total - $dpPaid);
 
-            $booking->update([
-                'payment_id'         => $payment->id,
-                'payment_type'       => $data['payment_type'],
-                'total_amount'       => $total,
-                'outstanding_amount' => $outstanding,
-                'status'             => 'completed',
-            ]);
+                if ($sisa > 0) {
+                    Payment::create([
+                        'amount'               => $sisa,
+                        'method'               => $data['settlement_payment_method'] ?? 'cash',
+                        'provider'             => 'manual',
+                        'purpose'              => 'pelunasan',
+                        'status'               => 'paid',
+                        'recorded_by'          => null,
+                        'partner_reference_no' => 'PELUNASAN-BK-' . $booking->id,
+                        'provider_payload'     => [
+                            'booking_id'    => $booking->id,
+                            'dp_payment_id' => $booking->payment_id,
+                        ],
+                    ]);
+                }
+
+                $booking->update([
+                    'total_amount'       => $total,
+                    'outstanding_amount' => 0,
+                    'payment_type'       => 'full',
+                    'status'             => 'completed',
+                ]);
+            } else {
+                // Booking tanpa DP (Sekarang / Jadwalkan Full)
+                $dpAmount    = (int) config('booking.dp_amount', 40000);
+                $paid        = $data['payment_type'] === 'dp' ? $dpAmount : $total;
+                $outstanding = max(0, $total - $paid);
+
+                $payment = Payment::create([
+                    'amount'      => $paid,
+                    'method'      => $data['payment_method'],
+                    'provider'    => 'manual',
+                    'purpose'     => $data['payment_type'] === 'dp' ? 'dp' : 'walk_in',
+                    'status'      => 'paid',
+                    'recorded_by' => null,
+                ]);
+
+                $booking->update([
+                    'payment_id'         => $payment->id,
+                    'payment_type'       => $data['payment_type'],
+                    'total_amount'       => $total,
+                    'outstanding_amount' => $outstanding,
+                    'status'             => 'completed',
+                ]);
+            }
         });
 
         // Kirim rekap harian ke grup WA ops (dengan label walk-in)
@@ -253,7 +324,7 @@ class WalkInPageController extends Controller
             ->with('success', "Walk-in {$booking->name} berhasil dilengkapi.");
     }
 
-    public function cancel(Booking $booking)
+    public function cancel(Booking $booking, BookingNotificationService $notifications)
     {
         abort_if($booking->source !== 'walk_in', 404);
         abort_if(
@@ -269,6 +340,11 @@ class WalkInPageController extends Controller
                 $booking->schedule->update(['is_available' => true]);
             }
         });
+
+        // Kirim update rekap ke grup WA ops (slot sudah kosong)
+        $notifications->sendDailyRecapToOpsGroup(
+            Carbon::parse($booking->scheduled_at)->toDateString()
+        );
 
         return redirect()->route('walkin.index')
             ->with('success', "Walk-in {$booking->name} dibatalkan.");

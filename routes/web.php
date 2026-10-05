@@ -104,9 +104,9 @@ Route::domain('{subdomain?}' . config('app.domain', 'kref.test'))
     Route::post('/testing-payment/query', [DokuTestController::class, 'query'])->name('doku-test.query');
 
     // Walk-in Page (barber-facing, no auth)
-    Route::get('/kokuno', [WalkInPageController::class, 'index'])->name('walkin.index');
-    Route::post('/kokuno', [WalkInPageController::class, 'store'])->name('walkin.store');
-    Route::patch('/kokuno/{booking}/complete', [WalkInPageController::class, 'complete'])->name('walkin.complete');
-    Route::delete('/kokuno/{booking}', [WalkInPageController::class, 'cancel'])->name('walkin.cancel');
+    Route::get('/vv4lk-1n', [WalkInPageController::class, 'index'])->name('walkin.index');
+    Route::post('/vv4lk-1n', [WalkInPageController::class, 'store'])->name('walkin.store');
+    Route::patch('/vv4lk-1n/{booking}/complete', [WalkInPageController::class, 'complete'])->name('walkin.complete');
+    Route::delete('/vv4lk-1n/{booking}', [WalkInPageController::class, 'cancel'])->name('walkin.cancel');
 
 });

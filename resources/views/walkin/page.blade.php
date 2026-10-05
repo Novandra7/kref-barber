@@ -20,7 +20,7 @@
         <!-- Flash Messages -->
         @if(session('success'))
         <div class="mb-6 rounded-xl border-2 border-gray-900 bg-emerald-200 p-4 text-sm font-bold text-gray-900 shadow-[3px_3px_0px_0px_rgba(17,24,39,1)]">
-            ✅ {{ session('success') }}
+            {{ session('success') }}
         </div>
         @endif
         @if($errors->any())
@@ -80,6 +80,51 @@
                     </div>
                 </div>
 
+                <!-- Opsi Pembayaran Jadwalkan (DP / Full) -->
+                <div x-show="bookingType === 'scheduled'" x-cloak class="mb-5">
+                    <label class="block text-xs font-bold mb-2 uppercase tracking-wider text-gray-500">Tipe Pembayaran</label>
+                    <div class="grid grid-cols-2 gap-3 mb-3">
+                        <label class="flex cursor-pointer items-center justify-center gap-2 rounded-xl border-2 p-3 transition-all"
+                               :class="scheduledPaymentType === 'dp' ? 'border-gray-900 bg-amber-200 shadow-[2px_2px_0px_0px_rgba(17,24,39,1)]' : 'border-gray-300 bg-white/50'">
+                            <input type="radio" name="payment_type" value="dp" x-model="scheduledPaymentType" class="hidden">
+                            <span class="font-bold text-sm text-gray-900 uppercase">DP</span>
+                        </label>
+                        <label class="flex cursor-pointer items-center justify-center gap-2 rounded-xl border-2 p-3 transition-all"
+                               :class="scheduledPaymentType === 'full' ? 'border-gray-900 bg-emerald-200 shadow-[2px_2px_0px_0px_rgba(17,24,39,1)]' : 'border-gray-300 bg-white/50'">
+                            <input type="radio" name="payment_type" value="full" x-model="scheduledPaymentType" class="hidden">
+                            <span class="font-bold text-sm text-gray-900 uppercase">Full</span>
+                        </label>
+                    </div>
+
+                    <!-- DP Input Fields -->
+                    <div x-show="scheduledPaymentType === 'dp'" x-cloak class="space-y-3">
+                        <div>
+                            <label class="block text-xs font-bold mb-1.5 uppercase tracking-wider text-gray-500">Nominal DP</label>
+                            <input type="number" name="dp_amount" x-model.number="scheduledDpAmount" min="1000" step="1000" class="w-full rounded-xl border-2 border-gray-900 bg-[#FAF8F5] px-4 py-3 text-sm font-bold text-gray-900 shadow-[2px_2px_0px_0px_rgba(17,24,39,1)] focus:outline-none focus:ring-0 focus:shadow-[4px_4px_0px_0px_rgba(17,24,39,1)] transition-all">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold mb-1.5 uppercase tracking-wider text-gray-500">Metode Bayar DP</label>
+                            <div class="grid grid-cols-2 gap-3">
+                                <label class="flex cursor-pointer items-center gap-2 rounded-xl border-2 p-3 transition-all"
+                                       :class="scheduledPaymentMethod === 'cash' ? 'border-gray-900 bg-white shadow-[2px_2px_0px_0px_rgba(17,24,39,1)]' : 'border-gray-300 bg-white/50'">
+                                    <input type="radio" name="dp_payment_method" value="cash" x-model="scheduledPaymentMethod" class="hidden">
+                                    <span class="font-bold text-sm text-gray-900 uppercase">Tunai</span>
+                                </label>
+                                <label class="flex cursor-pointer items-center gap-2 rounded-xl border-2 p-3 transition-all"
+                                       :class="scheduledPaymentMethod === 'qris_static' ? 'border-gray-900 bg-white shadow-[2px_2px_0px_0px_rgba(17,24,39,1)]' : 'border-gray-300 bg-white/50'">
+                                    <input type="radio" name="dp_payment_method" value="qris_static" x-model="scheduledPaymentMethod" class="hidden">
+                                    <span class="font-bold text-sm text-gray-900 uppercase">QRIS</span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Full Info -->
+                    <div x-show="scheduledPaymentType === 'full'" x-cloak class="rounded-xl border-2 border-dashed border-gray-300 bg-gray-50 p-3 text-center">
+                        <span class="text-xs font-bold text-gray-500">Nominal awal: Rp 0 (Pelunasan setelah layanan selesai)</span>
+                    </div>
+                </div>
+
                 <div class="mb-6">
                     <label class="block text-xs font-bold mb-2 uppercase tracking-wider text-gray-500">Nama Customer</label>
                     <input type="text" name="name" required placeholder="Ketik nama..." class="w-full rounded-xl border-2 border-gray-900 bg-[#FAF8F5] px-4 py-3 text-sm font-bold text-gray-900 shadow-[2px_2px_0px_0px_rgba(17,24,39,1)] focus:outline-none focus:ring-0 focus:shadow-[4px_4px_0px_0px_rgba(17,24,39,1)] transition-all" autocomplete="off">
@@ -131,6 +176,21 @@
                                 <span>• WA: <span class="text-gray-900">{{ $walkin->phone }}</span></span>
                             @endif
                         </div>
+
+                        {{-- Badge DP / Jadwal Belum Bayar --}}
+                        @if($walkin->status !== 'completed' && $walkin->payment && $walkin->payment->purpose === 'dp')
+                            <div class="mb-3">
+                                <span class="inline-flex items-center rounded-lg border-2 border-gray-900 bg-amber-200 px-2.5 py-1 text-2xs font-black uppercase tracking-wider shadow-[1px_1px_0px_0px_rgba(17,24,39,1)] text-gray-900">
+                                    DP Rp {{ number_format($walkin->payment->amount, 0, ',', '.') }} ({{ $walkin->payment->method === 'cash' ? 'Tunai' : 'QRIS' }})
+                                </span>
+                            </div>
+                        @elseif($walkin->status !== 'completed' && !empty($walkin->phone) && (!$walkin->payment || $walkin->payment_type === 'full'))
+                            <div class="mb-3">
+                                <span class="inline-flex items-center rounded-lg border-2 border-dashed border-gray-400 bg-gray-50 px-2.5 py-1 text-2xs font-bold uppercase tracking-wider text-gray-500">
+                                    Jadwal (Belum Bayar)
+                                </span>
+                            </div>
+                        @endif
 
                         @if($walkin->status === 'completed')
                             <div class="mt-4 pt-4 border-t-2 border-dashed border-gray-300">
@@ -219,7 +279,7 @@
 
                 <!-- Modal Body -->
                 <div class="overflow-y-auto p-5">
-                    <form id="completeForm" :action="`/kokuno/${activeBooking?.id}/complete`" method="POST">
+                    <form id="completeForm" :action="`/vv4lk-1n/${activeBooking?.id}/complete`" method="POST">
                         @csrf
                         @method('PATCH')
                         
@@ -258,65 +318,109 @@
 
                         <div class="my-6 border-t-2 border-dashed border-gray-300"></div>
 
-                        <h4 class="mb-3 font-montserrat text-sm font-black uppercase tracking-widest text-gray-900">Pembayaran</h4>
-                        
-                        <div class="grid grid-cols-2 gap-3 mb-4">
-                            <label class="flex cursor-pointer items-center gap-2 rounded-xl border-2 p-3 transition-all"
-                                   :class="paymentType === 'full' ? 'border-gray-900 bg-white shadow-[2px_2px_0px_0px_rgba(17,24,39,1)]' : 'border-gray-300 bg-white/50 grayscale'">
-                                <input type="radio" name="payment_type" value="full" x-model="paymentType" class="hidden">
-                                <div class="flex h-5 w-5 items-center justify-center rounded-full border-2 border-gray-900 bg-white">
-                                    <div class="h-2 w-2 rounded-full bg-gray-900" x-show="paymentType === 'full'"></div>
+                        {{-- Pembayaran: Hanya tampil jika BELUM ada DP (booking Sekarang / Jadwalkan Full) --}}
+                        <template x-if="!hasPrepaidDp">
+                            <div>
+                                <h4 class="mb-3 font-montserrat text-sm font-black uppercase tracking-widest text-gray-900">Pembayaran</h4>
+                                
+                                <div class="grid grid-cols-2 gap-3 mb-4">
+                                    <label class="flex cursor-pointer items-center gap-2 rounded-xl border-2 p-3 transition-all"
+                                           :class="paymentType === 'full' ? 'border-gray-900 bg-white shadow-[2px_2px_0px_0px_rgba(17,24,39,1)]' : 'border-gray-300 bg-white/50 grayscale'">
+                                        <input type="radio" name="payment_type" value="full" x-model="paymentType" class="hidden">
+                                        <div class="flex h-5 w-5 items-center justify-center rounded-full border-2 border-gray-900 bg-white">
+                                            <div class="h-2 w-2 rounded-full bg-gray-900" x-show="paymentType === 'full'"></div>
+                                        </div>
+                                        <span class="font-bold text-sm text-gray-900 uppercase">Lunas</span>
+                                    </label>
+                                    <label class="flex items-center gap-2 rounded-xl border-2 p-3 transition-all"
+                                           :class="!activeBooking?.phone ? 'border-gray-300 bg-gray-100 opacity-50 cursor-not-allowed' : (paymentType === 'dp' ? 'border-gray-900 bg-white shadow-[2px_2px_0px_0px_rgba(17,24,39,1)] cursor-pointer' : 'border-gray-300 bg-white/50 grayscale cursor-pointer')">
+                                        <input type="radio" name="payment_type" value="dp" x-model="paymentType" class="hidden" :disabled="!activeBooking?.phone">
+                                        <div class="flex h-5 w-5 items-center justify-center rounded-full border-2 border-gray-900 bg-white" :class="!activeBooking?.phone ? 'opacity-50' : ''">
+                                            <div class="h-2 w-2 rounded-full bg-gray-900" x-show="paymentType === 'dp'"></div>
+                                        </div>
+                                        <span class="font-bold text-sm text-gray-900 uppercase">DP</span>
+                                    </label>
                                 </div>
-                                <span class="font-bold text-sm text-gray-900 uppercase">Lunas</span>
-                            </label>
-                            <label class="flex items-center gap-2 rounded-xl border-2 p-3 transition-all"
-                                   :class="!activeBooking?.phone ? 'border-gray-300 bg-gray-100 opacity-50 cursor-not-allowed' : (paymentType === 'dp' ? 'border-gray-900 bg-white shadow-[2px_2px_0px_0px_rgba(17,24,39,1)] cursor-pointer' : 'border-gray-300 bg-white/50 grayscale cursor-pointer')">
-                                <input type="radio" name="payment_type" value="dp" x-model="paymentType" class="hidden" :disabled="!activeBooking?.phone">
-                                <div class="flex h-5 w-5 items-center justify-center rounded-full border-2 border-gray-900 bg-white" :class="!activeBooking?.phone ? 'opacity-50' : ''">
-                                    <div class="h-2 w-2 rounded-full bg-gray-900" x-show="paymentType === 'dp'"></div>
-                                </div>
-                                <span class="font-bold text-sm text-gray-900 uppercase">DP</span>
-                            </label>
-                        </div>
 
-                        <div class="grid grid-cols-2 gap-3 mb-2">
-                            <label class="flex cursor-pointer items-center gap-2 rounded-xl border-2 p-3 transition-all"
-                                   :class="paymentMethod === 'cash' ? 'border-gray-900 bg-white shadow-[2px_2px_0px_0px_rgba(17,24,39,1)]' : 'border-gray-300 bg-white/50 grayscale'">
-                                <input type="radio" name="paymentMethod" value="cash" x-model="paymentMethod" class="hidden">
-                                <input type="hidden" name="payment_method" :value="paymentMethod">
-                                <div class="flex h-5 w-5 items-center justify-center rounded-full border-2 border-gray-900 bg-white">
-                                    <div class="h-2 w-2 rounded-full bg-gray-900" x-show="paymentMethod === 'cash'"></div>
+                                <div class="grid grid-cols-2 gap-3 mb-2">
+                                    <label class="flex cursor-pointer items-center gap-2 rounded-xl border-2 p-3 transition-all"
+                                           :class="paymentMethod === 'cash' ? 'border-gray-900 bg-white shadow-[2px_2px_0px_0px_rgba(17,24,39,1)]' : 'border-gray-300 bg-white/50 grayscale'">
+                                        <input type="radio" name="paymentMethod" value="cash" x-model="paymentMethod" class="hidden">
+                                        <input type="hidden" name="payment_method" :value="paymentMethod">
+                                        <div class="flex h-5 w-5 items-center justify-center rounded-full border-2 border-gray-900 bg-white">
+                                            <div class="h-2 w-2 rounded-full bg-gray-900" x-show="paymentMethod === 'cash'"></div>
+                                        </div>
+                                        <span class="font-bold text-sm text-gray-900 uppercase">Tunai</span>
+                                    </label>
+                                    <label class="flex cursor-pointer items-center gap-2 rounded-xl border-2 p-3 transition-all"
+                                           :class="paymentMethod === 'qris_static' ? 'border-gray-900 bg-white shadow-[2px_2px_0px_0px_rgba(17,24,39,1)]' : 'border-gray-300 bg-white/50 grayscale'">
+                                        <input type="radio" name="paymentMethodRadio" value="qris_static" x-model="paymentMethod" class="hidden">
+                                        <div class="flex h-5 w-5 items-center justify-center rounded-full border-2 border-gray-900 bg-white">
+                                            <div class="h-2 w-2 rounded-full bg-gray-900" x-show="paymentMethod === 'qris_static'"></div>
+                                        </div>
+                                        <span class="font-bold text-sm text-gray-900 uppercase">QRIS</span>
+                                    </label>
                                 </div>
-                                <span class="font-bold text-sm text-gray-900 uppercase">Tunai</span>
-                            </label>
-                            <label class="flex cursor-pointer items-center gap-2 rounded-xl border-2 p-3 transition-all"
-                                   :class="paymentMethod === 'qris_static' ? 'border-gray-900 bg-white shadow-[2px_2px_0px_0px_rgba(17,24,39,1)]' : 'border-gray-300 bg-white/50 grayscale'">
-                                <input type="radio" name="paymentMethodRadio" value="qris_static" x-model="paymentMethod" class="hidden">
-                                <div class="flex h-5 w-5 items-center justify-center rounded-full border-2 border-gray-900 bg-white">
-                                    <div class="h-2 w-2 rounded-full bg-gray-900" x-show="paymentMethod === 'qris_static'"></div>
+                            </div>
+                        </template>
+
+                        {{-- Pelunasan: Metode bayar sisa, hanya muncul jika ada DP dan sisa > 0 --}}
+                        <template x-if="hasPrepaidDp && remainingAmount > 0">
+                            <div>
+                                <h4 class="mb-3 font-montserrat text-sm font-black uppercase tracking-widest text-gray-900">Metode Pelunasan</h4>
+                                <div class="grid grid-cols-2 gap-3">
+                                    <label class="flex cursor-pointer items-center gap-2 rounded-xl border-2 p-3 transition-all"
+                                           :class="settlementPaymentMethod === 'cash' ? 'border-gray-900 bg-white shadow-[2px_2px_0px_0px_rgba(17,24,39,1)]' : 'border-gray-300 bg-white/50'">
+                                        <input type="radio" name="settlement_payment_method" value="cash" x-model="settlementPaymentMethod" class="hidden">
+                                        <span class="font-bold text-sm text-gray-900 uppercase">Tunai</span>
+                                    </label>
+                                    <label class="flex cursor-pointer items-center gap-2 rounded-xl border-2 p-3 transition-all"
+                                           :class="settlementPaymentMethod === 'qris_static' ? 'border-gray-900 bg-white shadow-[2px_2px_0px_0px_rgba(17,24,39,1)]' : 'border-gray-300 bg-white/50'">
+                                        <input type="radio" name="settlement_payment_method" value="qris_static" x-model="settlementPaymentMethod" class="hidden">
+                                        <span class="font-bold text-sm text-gray-900 uppercase">QRIS</span>
+                                    </label>
                                 </div>
-                                <span class="font-bold text-sm text-gray-900 uppercase">QRIS</span>
-                            </label>
-                        </div>
+                            </div>
+                        </template>
 
                     </form>
                 </div>
 
                 <!-- Modal Footer -->
                 <div class="border-t-2 border-gray-900 bg-white p-5">
-                    <div class="flex items-center justify-between mb-4">
-                        <span class="text-xs font-bold uppercase tracking-wider text-gray-500">Total Nilai</span>
-                        <span class="font-montserrat text-2xl font-black text-gray-900" x-text="'Rp ' + new Intl.NumberFormat('id-ID').format(total)"></span>
-                    </div>
+                    {{-- Footer untuk booking dengan DP: tampilkan rincian pelunasan --}}
+                    <template x-if="hasPrepaidDp">
+                        <div class="mb-4 space-y-2">
+                            <div class="flex items-center justify-between">
+                                <span class="text-xs font-bold uppercase tracking-wider text-gray-500">Total Layanan</span>
+                                <span class="font-bold text-gray-900" x-text="formatRupiah(total)"></span>
+                            </div>
+                            <div class="flex items-center justify-between">
+                                <span class="text-xs font-bold uppercase tracking-wider text-gray-500">DP Terbayar</span>
+                                <span class="font-bold text-emerald-600" x-text="'- ' + formatRupiah(prepaidDpAmount)"></span>
+                            </div>
+                            <div class="flex items-center justify-between border-t-2 border-dashed border-gray-300 pt-2">
+                                <span class="text-xs font-black uppercase tracking-wider text-gray-900">Sisa Pelunasan</span>
+                                <span class="font-montserrat text-2xl font-black" :class="remainingAmount > 0 ? 'text-red-600' : 'text-emerald-600'" x-text="formatRupiah(remainingAmount)"></span>
+                            </div>
+                        </div>
+                    </template>
+
+                    {{-- Footer untuk booking tanpa DP: total saja --}}
+                    <template x-if="!hasPrepaidDp">
+                        <div class="flex items-center justify-between mb-4">
+                            <span class="text-xs font-bold uppercase tracking-wider text-gray-500">Total Nilai</span>
+                            <span class="font-montserrat text-2xl font-black text-gray-900" x-text="formatRupiah(total)"></span>
+                        </div>
+                    </template>
 
                     <button type="submit" form="completeForm" class="w-full rounded-xl border-2 border-gray-900 bg-emerald-400 px-4 py-3.5 text-center text-sm font-black uppercase tracking-wider text-gray-900 shadow-[4px_4px_0px_0px_rgba(17,24,39,1)] transition-all hover:-translate-x-0.5 hover:-translate-y-0.5 hover:shadow-[5px_5px_0px_0px_rgba(17,24,39,1)] active:translate-x-0.5 active:translate-y-0.5 active:shadow-[1px_1px_0px_0px_rgba(17,24,39,1)] disabled:opacity-50 disabled:cursor-not-allowed" :disabled="selectedServices.length === 0">
-                        Simpan & Selesai
+                        <span x-text="hasPrepaidDp ? (remainingAmount > 0 ? 'Selesaikan Pelunasan' : 'Simpan & Selesai') : 'Simpan & Selesai'"></span>
                     </button>
                 </div>
             </div>
         </div>
     </div>
 
-    <script src="{{ asset('js/walkin.js') }}"></script>
 </body>
 </html>

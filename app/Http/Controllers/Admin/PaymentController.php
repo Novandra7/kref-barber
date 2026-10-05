@@ -54,6 +54,18 @@ class PaymentController extends Controller
                                 ->orWhere('phone', 'like', "%{$search}%")
                                 ->orWhere('id', $search);
                         });
+
+                    $matchedBookingIds = \App\Models\Booking::query()
+                        ->where('name', 'like', "%{$search}%")
+                        ->orWhere('phone', 'like', "%{$search}%")
+                        ->orWhere('id', $search)
+                        ->pluck('id');
+
+                    if ($matchedBookingIds->isNotEmpty()) {
+                        foreach ($matchedBookingIds as $bkId) {
+                            $query->orWhere('partner_reference_no', 'PELUNASAN-BK-' . $bkId);
+                        }
+                    }
                 });
             })
             ->when($request->filled('method'), fn (Builder $query) => $query->where('method', $request->input('method')))
@@ -72,6 +84,23 @@ class PaymentController extends Controller
             ->latest('created_at')
             ->paginate(10)
             ->withQueryString();
+
+        // Resolve pelunasan payments yang tidak punya relasi langsung ke bookings
+        // tapi menyimpan booking_id di provider_payload
+        $payments->getCollection()->transform(function (Payment $payment) {
+            if ($payment->purpose === 'pelunasan' && $payment->bookings->isEmpty()) {
+                $bookingId = $payment->provider_payload['booking_id'] ?? null;
+                if ($bookingId) {
+                    $booking = \App\Models\Booking::with('barber:id,name,role')
+                        ->select('id', 'payment_id', 'name', 'phone', 'barber_id')
+                        ->find($bookingId);
+                    if ($booking) {
+                        $payment->setRelation('bookings', collect([$booking]));
+                    }
+                }
+            }
+            return $payment;
+        });
 
         // Ambil daftar payment_source unik yang tersedia di database
         $sourceOptions = Payment::query()

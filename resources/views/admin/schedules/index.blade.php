@@ -257,7 +257,7 @@
                 </div>
                 <form method="POST" action="{{ route('admin.schedules.store') }}" data-store-url="{{ route('admin.schedules.store') }}" id="schedule-form" class="mt-4 space-y-4">
                     @csrf
-                    <input type="hidden" name="_method" id="schedule-form-method" value="">
+                    <input type="hidden" name="_method" id="schedule-form-method" value="POST">
                     <input type="hidden" name="barber_id" id="schedule-barber-id">
                     <input type="hidden" name="date" id="schedule-date">
                     <div>

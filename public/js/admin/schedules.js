@@ -11,7 +11,7 @@ document.addEventListener('DOMContentLoaded', () => {
             scheduleForm.action = isEdit ? button.dataset.updateUrl : storeUrl;
 
             const methodInput = document.getElementById('schedule-form-method');
-            if (methodInput) methodInput.value = isEdit ? 'PATCH' : '';
+            if (methodInput) methodInput.value = isEdit ? 'PATCH' : 'POST';
 
             const modalTitle = document.getElementById('schedule-modal-title');
             if (modalTitle) modalTitle.textContent = isEdit ? 'Edit schedule slot' : 'Add schedule slot';

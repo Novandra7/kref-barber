@@ -27,13 +27,19 @@ class SendBookingReminderJob implements ShouldQueue
      */
     public array $backoff = [60, 300];
 
+    public int $bookingId;
+
+    public ?string $expectedScheduledAt = null;
+
     /**
      * Create a new job instance.
      */
     public function __construct(
-        public int $bookingId,
-        public ?string $expectedScheduledAt = null
+        int $bookingId,
+        ?string $expectedScheduledAt = null
     ) {
+        $this->bookingId = $bookingId;
+        $this->expectedScheduledAt = $expectedScheduledAt;
     }
 
     /**
@@ -67,8 +73,14 @@ class SendBookingReminderJob implements ShouldQueue
             return;
         }
 
-        // 4. Pastikan ini bukan job usang dari jadwal yang lama (saat reschedule)
-        if ($this->expectedScheduledAt !== null) {
+        // 4. Pastikan booking memiliki nomor telepon
+        if (empty($booking->phone)) {
+            Log::info("SendBookingReminderJob: Diabaikan untuk booking #{$booking->id} karena tidak memiliki nomor telepon.");
+            return;
+        }
+
+        // 5. Pastikan ini bukan job usang dari jadwal yang lama (saat reschedule)
+        if (isset($this->expectedScheduledAt) && $this->expectedScheduledAt !== null) {
             if ($booking->scheduled_at && $booking->scheduled_at->format('Y-m-d H:i:s') !== $this->expectedScheduledAt) {
                 Log::info("SendBookingReminderJob: Diabaikan untuk booking #{$booking->id} karena jadwal telah berubah dari {$this->expectedScheduledAt} ke {$booking->scheduled_at}.");
                 return;
