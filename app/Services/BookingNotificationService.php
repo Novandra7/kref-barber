@@ -287,7 +287,7 @@ class BookingNotificationService
                     ->where('barber_id', $barber->id)
                     ->whereDate('scheduled_at', $dateString)
                     ->whereNotIn('status', ['cancelled'])
-                    ->with(['payment'])
+                    ->with(['payment', 'items.service'])
                     ->orderBy('scheduled_at')
                     ->get();
 
@@ -333,7 +333,32 @@ class BookingNotificationService
                                 ? ($paidAmount % 1000 === 0 ? ($paidAmount / 1000) : number_format($paidAmount / 1000, 1, ',', '')) . 'k'
                                 : $paidAmount;
 
-                            $lines[] = "{$time}: {$name} {$paymentType} {$amountFormatted}";
+                            // Ambil kode services yang dipilih
+                            $serviceCodes = $booking->items
+                                ->filter(fn ($item) => $item->item_type === 'service' || !empty($item->service_id))
+                                ->map(function ($item) {
+                                    if (!empty($item->service?->code)) {
+                                        return strtoupper(trim($item->service->code));
+                                    }
+
+                                    if (!empty($item->service_name_snapshot)) {
+                                        $words = preg_split('/\s+/', trim($item->service_name_snapshot));
+                                        $initials = '';
+                                        foreach ($words as $w) {
+                                            $initials .= strtoupper(substr($w, 0, 1));
+                                        }
+                                        return $initials ?: strtoupper(substr($item->service_name_snapshot, 0, 3));
+                                    }
+
+                                    return null;
+                                })
+                                ->filter()
+                                ->values()
+                                ->implode(' ');
+
+                            $serviceSuffix = $serviceCodes !== '' ? " | {$serviceCodes}" : '';
+
+                            $lines[] = "{$time}: {$name} {$paymentType} {$amountFormatted}{$serviceSuffix}";
                         } else {
                             // Slot kosong diakhiri tanda titik dua ':'
                             $lines[] = "{$time}:";
