@@ -80,8 +80,16 @@
                     </div>
                 </div>
 
-                <!-- Opsi Pembayaran Jadwalkan (DP / Full) -->
+                <div class="mb-6">
+                    <label class="block text-xs font-bold mb-2 uppercase tracking-wider text-gray-500">Nama Customer</label>
+                    <input type="text" name="name" required placeholder="Ketik nama..." class="w-full rounded-xl border-2 border-gray-900 bg-[#FAF8F5] px-4 py-3 text-sm font-bold text-gray-900 shadow-[2px_2px_0px_0px_rgba(17,24,39,1)] focus:outline-none focus:ring-0 focus:shadow-[4px_4px_0px_0px_rgba(17,24,39,1)] transition-all" autocomplete="off">
+                </div>
+
+                
                 <div x-show="bookingType === 'scheduled'" x-cloak class="mb-5">
+                    <!-- Opsi Pembayaran Jadwalkan (DP / Full) -->
+                    <div class="w-full h-0.5 bg-gray-300 mb-2"></div>
+
                     <label class="block text-xs font-bold mb-2 uppercase tracking-wider text-gray-500">Tipe Pembayaran</label>
                     <div class="grid grid-cols-2 gap-3 mb-3">
                         <label class="flex cursor-pointer items-center justify-center gap-2 rounded-xl border-2 p-3 transition-all"
@@ -106,12 +114,12 @@
                             <label class="block text-xs font-bold mb-1.5 uppercase tracking-wider text-gray-500">Metode Bayar DP</label>
                             <div class="grid grid-cols-2 gap-3">
                                 <label class="flex cursor-pointer items-center gap-2 rounded-xl border-2 p-3 transition-all"
-                                       :class="scheduledPaymentMethod === 'cash' ? 'border-gray-900 bg-white shadow-[2px_2px_0px_0px_rgba(17,24,39,1)]' : 'border-gray-300 bg-white/50'">
+                                       :class="scheduledPaymentMethod === 'cash' ? 'border-gray-900 bg-gray-300 shadow-[2px_2px_0px_0px_rgba(17,24,39,1)]' : 'border-gray-300 bg-white/50'">
                                     <input type="radio" name="dp_payment_method" value="cash" x-model="scheduledPaymentMethod" class="hidden">
                                     <span class="font-bold text-sm text-gray-900 uppercase">Tunai</span>
                                 </label>
                                 <label class="flex cursor-pointer items-center gap-2 rounded-xl border-2 p-3 transition-all"
-                                       :class="scheduledPaymentMethod === 'qris_static' ? 'border-gray-900 bg-white shadow-[2px_2px_0px_0px_rgba(17,24,39,1)]' : 'border-gray-300 bg-white/50'">
+                                       :class="scheduledPaymentMethod === 'qris_static' ? 'border-gray-900 bg-gray-300 shadow-[2px_2px_0px_0px_rgba(17,24,39,1)]' : 'border-gray-300 bg-white/50'">
                                     <input type="radio" name="dp_payment_method" value="qris_static" x-model="scheduledPaymentMethod" class="hidden">
                                     <span class="font-bold text-sm text-gray-900 uppercase">QRIS</span>
                                 </label>
@@ -125,10 +133,6 @@
                     </div>
                 </div>
 
-                <div class="mb-6">
-                    <label class="block text-xs font-bold mb-2 uppercase tracking-wider text-gray-500">Nama Customer</label>
-                    <input type="text" name="name" required placeholder="Ketik nama..." class="w-full rounded-xl border-2 border-gray-900 bg-[#FAF8F5] px-4 py-3 text-sm font-bold text-gray-900 shadow-[2px_2px_0px_0px_rgba(17,24,39,1)] focus:outline-none focus:ring-0 focus:shadow-[4px_4px_0px_0px_rgba(17,24,39,1)] transition-all" autocomplete="off">
-                </div>
                 <button type="submit" class="w-full rounded-xl border-2 border-gray-900 bg-brand px-4 py-3 text-center text-sm font-black uppercase tracking-wider text-[#FAF8F5] shadow-[4px_4px_0px_0px_rgba(17,24,39,1)] transition-all hover:-translate-x-0.5 hover:-translate-y-0.5 hover:shadow-[6px_6px_0px_0px_rgba(17,24,39,1)] active:translate-x-0.5 active:translate-y-0.5 active:shadow-[2px_2px_0px_0px_rgba(17,24,39,1)] cursor-pointer">
                     <span x-text="bookingType === 'now' ? '+ Daftarkan Sekarang' : '+ Jadwalkan'"></span>
                 </button>
