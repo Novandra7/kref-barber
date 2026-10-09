@@ -116,7 +116,7 @@
                                 <label class="flex cursor-pointer items-center gap-2 rounded-xl border-2 p-3 transition-all"
                                        :class="scheduledPaymentMethod === 'cash' ? 'border-gray-900 bg-gray-300 shadow-[2px_2px_0px_0px_rgba(17,24,39,1)]' : 'border-gray-300 bg-white/50'">
                                     <input type="radio" name="dp_payment_method" value="cash" x-model="scheduledPaymentMethod" class="hidden">
-                                    <span class="font-bold text-sm text-gray-900 uppercase">Tunai</span>
+                                    <span class="font-bold text-sm text-gray-900 uppercase">Cash</span>
                                 </label>
                                 <label class="flex cursor-pointer items-center gap-2 rounded-xl border-2 p-3 transition-all"
                                        :class="scheduledPaymentMethod === 'qris_static' ? 'border-gray-900 bg-gray-300 shadow-[2px_2px_0px_0px_rgba(17,24,39,1)]' : 'border-gray-300 bg-white/50'">
@@ -185,7 +185,7 @@
                         @if($walkin->status !== 'completed' && $walkin->payment && $walkin->payment->purpose === 'dp')
                             <div class="mb-3">
                                 <span class="inline-flex items-center rounded-lg border-2 border-gray-900 bg-amber-200 px-2.5 py-1 text-2xs font-black uppercase tracking-wider shadow-[1px_1px_0px_0px_rgba(17,24,39,1)] text-gray-900">
-                                    DP Rp {{ number_format($walkin->payment->amount, 0, ',', '.') }} ({{ $walkin->payment->method === 'cash' ? 'Tunai' : 'QRIS' }})
+                                    DP Rp {{ number_format($walkin->payment->amount, 0, ',', '.') }} ({{ $walkin->payment->method === 'cash' ? 'Cash' : 'QRIS' }})
                                 </span>
                             </div>
                         @elseif($walkin->status !== 'completed' && !empty($walkin->phone) && (!$walkin->payment || $walkin->payment_type === 'full'))
@@ -209,7 +209,7 @@
                                         <span class="font-black text-xl text-emerald-700">Rp {{ number_format($walkin->total_amount, 0, ',', '.') }}</span>
                                     </div>
                                     <span class="inline-flex items-center rounded-lg border-2 border-gray-900 bg-white px-2.5 py-1 text-2xs font-black uppercase tracking-wider shadow-[2px_2px_0px_0px_rgba(17,24,39,1)]">
-                                        {{ $walkin->payment_method ?? 'CASH' }} - {{ $walkin->payment_type ?? 'FULL' }}
+                                        {{ $walkin->payment_type_label }} - {{ $walkin->payment_method_label }}
                                     </span>
                                 </div>
                             </div>
@@ -349,16 +349,15 @@
                                 <div class="grid grid-cols-2 gap-3 mb-2">
                                     <label class="flex cursor-pointer items-center gap-2 rounded-xl border-2 p-3 transition-all"
                                            :class="paymentMethod === 'cash' ? 'border-gray-900 bg-white shadow-[2px_2px_0px_0px_rgba(17,24,39,1)]' : 'border-gray-300 bg-white/50 grayscale'">
-                                        <input type="radio" name="paymentMethod" value="cash" x-model="paymentMethod" class="hidden">
-                                        <input type="hidden" name="payment_method" :value="paymentMethod">
+                                        <input type="radio" name="payment_method" value="cash" x-model="paymentMethod" class="hidden">
                                         <div class="flex h-5 w-5 items-center justify-center rounded-full border-2 border-gray-900 bg-white">
                                             <div class="h-2 w-2 rounded-full bg-gray-900" x-show="paymentMethod === 'cash'"></div>
                                         </div>
-                                        <span class="font-bold text-sm text-gray-900 uppercase">Tunai</span>
+                                        <span class="font-bold text-sm text-gray-900 uppercase">Cash</span>
                                     </label>
                                     <label class="flex cursor-pointer items-center gap-2 rounded-xl border-2 p-3 transition-all"
                                            :class="paymentMethod === 'qris_static' ? 'border-gray-900 bg-white shadow-[2px_2px_0px_0px_rgba(17,24,39,1)]' : 'border-gray-300 bg-white/50 grayscale'">
-                                        <input type="radio" name="paymentMethodRadio" value="qris_static" x-model="paymentMethod" class="hidden">
+                                        <input type="radio" name="payment_method" value="qris_static" x-model="paymentMethod" class="hidden">
                                         <div class="flex h-5 w-5 items-center justify-center rounded-full border-2 border-gray-900 bg-white">
                                             <div class="h-2 w-2 rounded-full bg-gray-900" x-show="paymentMethod === 'qris_static'"></div>
                                         </div>
@@ -376,7 +375,7 @@
                                     <label class="flex cursor-pointer items-center gap-2 rounded-xl border-2 p-3 transition-all"
                                            :class="settlementPaymentMethod === 'cash' ? 'border-gray-900 bg-white shadow-[2px_2px_0px_0px_rgba(17,24,39,1)]' : 'border-gray-300 bg-white/50'">
                                         <input type="radio" name="settlement_payment_method" value="cash" x-model="settlementPaymentMethod" class="hidden">
-                                        <span class="font-bold text-sm text-gray-900 uppercase">Tunai</span>
+                                        <span class="font-bold text-sm text-gray-900 uppercase">Cash</span>
                                     </label>
                                     <label class="flex cursor-pointer items-center gap-2 rounded-xl border-2 p-3 transition-all"
                                            :class="settlementPaymentMethod === 'qris_static' ? 'border-gray-900 bg-white shadow-[2px_2px_0px_0px_rgba(17,24,39,1)]' : 'border-gray-300 bg-white/50'">

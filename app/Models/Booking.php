@@ -104,6 +104,26 @@ class Booking extends Model
         return $this->payment?->status;
     }
 
+    public function getPaymentMethodAttribute(): ?string
+    {
+        return $this->payment?->method;
+    }
+
+    public function getPaymentMethodLabelAttribute(): string
+    {
+        $method = $this->payment?->method;
+        if (! $method) {
+            return 'CASH';
+        }
+
+        return str_starts_with($method, 'qris') ? 'QRIS' : strtoupper($method);
+    }
+
+    public function getPaymentTypeLabelAttribute(): string
+    {
+        return strtoupper($this->payment_type ?? 'FULL');
+    }
+
     public function isPaidFull(): bool
     {
         return $this->outstanding_amount === 0;

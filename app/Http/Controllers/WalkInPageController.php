@@ -287,7 +287,6 @@ class WalkInPageController extends Controller
                 $booking->update([
                     'total_amount'       => $total,
                     'outstanding_amount' => 0,
-                    'payment_type'       => 'full',
                     'status'             => 'completed',
                 ]);
             } else {
