@@ -53,6 +53,7 @@ Route::domain('admin.' . config('app.domain', 'kref.test'))->group(function () {
         Route::get('/schedules', [ScheduleController::class, 'index'])->name('admin.schedules.index');
         Route::post('/schedules', [ScheduleController::class, 'store'])->name('admin.schedules.store');
         Route::patch('/schedules/{schedule}', [ScheduleController::class, 'update'])->name('admin.schedules.update');
+        Route::delete('/schedules/bulk-destroy', [ScheduleController::class, 'bulkDestroy'])->name('admin.schedules.bulk-destroy');
         Route::delete('/schedules/{schedule}', [ScheduleController::class, 'destroy'])->name('admin.schedules.destroy');
         Route::post('/schedules/bulk', [ScheduleController::class, 'bulkStore'])->name('admin.schedules.bulk');
         Route::post('/schedules/copy-previous-week', [ScheduleController::class, 'copyPreviousWeek'])->name('admin.schedules.copy-previous-week');

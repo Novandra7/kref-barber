@@ -42,15 +42,42 @@ class ScheduleController extends Controller
             ->orderBy('name')
             ->get();
 
+        $days = collect(range(0, 6))->map(fn (int $offset) => $weekStart->addDays($offset));
+
+        $allAvailableScheduleIds = [];
+        $cellAvailableMap = [];
+
+        foreach ($barbers as $b) {
+            foreach ($days as $day) {
+                $cellKey = $b->id . '_' . $day->toDateString();
+                $cellSlots = $b->schedules
+                    ->filter(fn ($s) => $s->date->isSameDay($day) && $s->is_available)
+                    ->sortBy('slot_time')
+                    ->values()
+                    ->map(fn ($s) => [
+                        'id' => $s->id,
+                        'time' => $s->slot_time->format('H:i'),
+                    ])
+                    ->all();
+
+                $cellAvailableMap[$cellKey] = $cellSlots;
+                foreach ($cellSlots as $cs) {
+                    $allAvailableScheduleIds[] = $cs['id'];
+                }
+            }
+        }
+
         return view('admin.schedules.index', [
             'barbers' => $barbers,
             'allBarbers' => Barber::query()->where('is_active', true)->orderBy('name')->get(['id', 'name']),
             'roles' => Barber::query()->where('is_active', true)->distinct()->orderBy('role')->pluck('role'),
             'weekStart' => $weekStart,
             'weekEnd' => $weekEnd,
-            'days' => collect(range(0, 6))->map(fn (int $offset) => $weekStart->addDays($offset)),
+            'days' => $days,
             'selectedRole' => $role,
             'selectedBarber' => $barberId,
+            'allAvailableScheduleIds' => $allAvailableScheduleIds,
+            'cellAvailableMap' => $cellAvailableMap,
         ]);
     }
 
@@ -83,6 +110,27 @@ class ScheduleController extends Controller
         $schedule->delete();
 
         return back()->with('success', 'Schedule deleted successfully.');
+    }
+
+    public function bulkDestroy(Request $request): RedirectResponse
+    {
+        $data = $request->validate([
+            'schedule_ids'   => ['required', 'array', 'min:1'],
+            'schedule_ids.*' => ['integer', 'exists:schedules,id'],
+        ]);
+
+        $deletedCount = Schedule::whereIn('id', $data['schedule_ids'])
+            ->where('is_available', true)
+            ->whereDoesntHave('bookings', function ($q) {
+                $q->whereNotIn('status', ['cancelled']);
+            })
+            ->delete();
+
+        if ($deletedCount === 0) {
+            return back()->with('error', 'Tidak ada slot jadwal yang dapat dihapus (slot mungkin sudah terisi pesanan).');
+        }
+
+        return back()->with('success', "{$deletedCount} slot jadwal berhasil dihapus.");
     }
 
     public function update(Request $request, Schedule $schedule): RedirectResponse

@@ -3,52 +3,75 @@
 @section('title', 'Schedule Management')
 
 @section('content')
-    <div class="space-y-6">
-        <!-- Banner Header Container Retro -->
+    <div class="space-y-6" x-data="scheduleBulkManager(@js($allAvailableScheduleIds), @js($cellAvailableMap))">
+        <!-- Header Banner & Action Controls -->
         <div class="rounded-2xl border-2 border-gray-900 bg-white p-6 shadow-[4px_4px_0px_0px_rgba(17,24,39,1)]">
-            <div class="flex flex-col justify-between gap-4 lg:flex-row lg:items-end">
-                <div>
-                    <span class="inline-block rounded-full border border-gray-900 bg-brand/10 px-3 py-0.5 text-xs font-bold uppercase tracking-wider text-brand">
-                        Management
-                    </span>
-                    <h1 class="mt-1 font-league text-4xl font-black uppercase text-gray-900">Weekly Schedules</h1>
-                    <p class="mt-1 text-xs font-bold text-gray-500">
-                        {{ $weekStart->format('d M Y') }} - {{ $weekEnd->format('d M Y') }}
-                    </p>
+            <div class="flex flex-col gap-5">
+                <!-- Top Row: Title & Primary Actions -->
+                <div class="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
+                    <div>
+                        <span class="inline-block rounded-full border border-gray-900 bg-brand/10 px-3 py-0.5 text-xs font-bold uppercase tracking-wider text-brand">
+                            Management
+                        </span>
+                        <h1 class="mt-1 font-league text-4xl font-black uppercase text-gray-900">Weekly Schedules</h1>
+                        <p class="mt-0.5 text-xs font-bold text-gray-500">
+                            {{ $weekStart->format('d M Y') }} &ndash; {{ $weekEnd->format('d M Y') }}
+                        </p>
+                    </div>
+
+                    <div class="flex flex-wrap items-center gap-2">
+                        <button type="button"
+                                data-modal-target="bulk-schedule-modal"
+                                data-modal-toggle="bulk-schedule-modal"
+                                class="inline-flex items-center gap-1.5 rounded-xl border-2 border-gray-900 bg-brand px-4 py-2.5 text-xs font-black uppercase text-white shadow-[2px_2px_0px_0px_rgba(17,24,39,1)] transition-all hover:-translate-x-0.5 hover:-translate-y-0.5 hover:shadow-[4px_4px_0px_0px_rgba(17,24,39,1)] active:translate-x-0 active:translate-y-0 active:shadow-none cursor-pointer">
+                            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/>
+                            </svg>
+                            Bulk Set
+                        </button>
+
+                        <form method="POST" action="{{ route('admin.schedules.copy-previous-week') }}" class="inline">
+                            @csrf
+                            <input type="hidden" name="week" value="{{ $weekStart->toDateString() }}">
+                            <button type="submit"
+                                    class="inline-flex items-center gap-1.5 rounded-xl border-2 border-gray-900 bg-amber-300 px-4 py-2.5 text-xs font-black uppercase text-gray-900 shadow-[2px_2px_0px_0px_rgba(17,24,39,1)] transition-all hover:-translate-x-0.5 hover:-translate-y-0.5 hover:shadow-[4px_4px_0px_0px_rgba(17,24,39,1)] active:translate-x-0 active:translate-y-0 active:shadow-none cursor-pointer">
+                                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2"/>
+                                </svg>
+                                Copy Previous
+                            </button>
+                        </form>
+                    </div>
                 </div>
 
-                <!-- Action Controls Retro -->
-                <div class="flex flex-wrap gap-2">
+                <!-- Bottom Row: Filter Controls & Week Navigation -->
+                <div class="flex flex-col justify-between gap-3 border-t border-gray-100 pt-4 lg:flex-row lg:items-center">
+                    <!-- Filters -->
                     <form method="GET" class="flex flex-wrap items-center gap-2">
                         <div class="relative">
                             <div class="pointer-events-none absolute inset-y-0 start-0 flex items-center ps-3">
-                                <svg class="h-4 w-4 text-gray-500" xmlns="http://www.w3.org/2000/svg"
-                                    fill="currentColor" viewBox="0 0 20 20">
+                                <svg class="h-4 w-4 text-gray-500" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 20 20">
                                     <path d="M20 4a2 2 0 0 0-2-2h-2V1a1 1 0 0 0-2 0v1H6V1a1 1 0 0 0-2 0v1H2a2 2 0 0 0-2 2v2h20V4ZM0 8v10a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V8H0Zm5 3h2v2H5v-2Zm4 0h2v2H9v-2Zm4 0h2v2h-2v-2Z"/>
                                 </svg>
                             </div>
+                            <input type="text"
+                                   name="week"
+                                   value="{{ $weekStart->format('Y-m-d') }}"
+                                   datepicker
+                                   datepicker-format="yyyy-mm-dd"
+                                   class="block rounded-xl border-2 border-gray-900 bg-white py-2 ps-9 pe-3 text-xs font-bold text-gray-900 focus:border-brand focus:ring-0"
+                                   placeholder="Pilih tanggal">
+                        </div>
 
-                            <input
-                                type="text"
-                                name="week"
-                                value="{{ $weekStart->format('Y-m-d') }}"
-                                datepicker
-                                datepicker-format="yyyy-mm-dd"
-                                class="block w-full rounded-xl border-2 border-gray-900 bg-white
-                                    py-2.5 ps-10 pe-3 text-xs font-bold text-gray-900
-                                    focus:border-brand focus:ring-0"
-                                placeholder="Select date"
-                            >
-                        </div>                       
-                        <select name="role" onchange="this.form.submit()" class="rounded-xl border-2 border-gray-900 text-xs font-bold text-gray-900 focus:border-brand focus:ring-0">
-                            <option value="">All roles</option>
+                        <select name="role" onchange="this.form.submit()" class="rounded-xl border-2 border-gray-900 py-2 text-xs font-bold text-gray-900 focus:border-brand focus:ring-0">
+                            <option value="">Semua role</option>
                             @foreach ($roles as $role)
                                 <option value="{{ $role }}" @selected($selectedRole === $role)>{{ $role }}</option>
                             @endforeach
                         </select>
 
-                        <select name="barber" onchange="this.form.submit()" class="rounded-xl border-2 border-gray-900 text-xs font-bold text-gray-900 focus:border-brand focus:ring-0">
-                            <option value="">All barbers</option>
+                        <select name="barber" onchange="this.form.submit()" class="rounded-xl border-2 border-gray-900 py-2 text-xs font-bold text-gray-900 focus:border-brand focus:ring-0">
+                            <option value="">Semua barber</option>
                             @foreach ($allBarbers as $filterBarber)
                                 <option value="{{ $filterBarber->id }}" @selected((string) $selectedBarber === (string) $filterBarber->id)>
                                     {{ $filterBarber->name }}
@@ -56,31 +79,33 @@
                             @endforeach
                         </select>
 
-                        <a href="{{ route('admin.schedules.index', ['week' => $weekStart->toDateString()]) }}"
-                           class="inline-flex items-center rounded-xl border-2 border-gray-900 bg-white px-3 py-2 text-xs font-black uppercase text-gray-700 shadow-[2px_2px_0px_0px_rgba(17,24,39,1)] transition-all hover:-translate-x-0.5 hover:-translate-y-0.5 hover:bg-gray-100 hover:shadow-[3px_3px_0px_0px_rgba(17,24,39,1)] active:translate-x-0 active:translate-y-0 active:shadow-none">
-                            Reset filter
+                        @if ($selectedRole || $selectedBarber)
+                            <a href="{{ route('admin.schedules.index', ['week' => $weekStart->toDateString()]) }}"
+                               class="rounded-xl border-2 border-gray-900 bg-gray-100 px-3 py-2 text-xs font-black uppercase text-gray-700 shadow-[1px_1px_0px_0px_rgba(17,24,39,1)] hover:bg-gray-200">
+                                Reset
+                            </a>
+                        @endif
+                    </form>
+
+                    <!-- Week Pagination Navigator -->
+                    <div class="flex items-center gap-1.5 self-start lg:self-auto">
+                        <a href="{{ route('admin.schedules.index', ['week' => $weekStart->subWeek()->toDateString(), 'role' => $selectedRole, 'barber' => $selectedBarber]) }}"
+                           class="inline-flex items-center gap-1 rounded-xl border-2 border-gray-900 bg-white px-3 py-2 text-xs font-black uppercase text-gray-900 shadow-[2px_2px_0px_0px_rgba(17,24,39,1)] transition-all hover:bg-amber-300 active:translate-x-0.5 active:translate-y-0.5 active:shadow-none"
+                           title="Minggu Sebelumnya">
+                            &larr; Prev
                         </a>
-                    </form>
 
-                    <a href="{{ route('admin.schedules.index', ['week' => $weekStart->subWeek()->toDateString(), 'role' => $selectedRole, 'barber' => $selectedBarber]) }}"
-                       class="inline-flex items-center rounded-xl border-2 border-gray-900 bg-white px-3 py-2 text-xs font-black uppercase text-gray-900 shadow-[2px_2px_0px_0px_rgba(17,24,39,1)] transition-all hover:-translate-x-0.5 hover:-translate-y-0.5 hover:bg-amber-300 active:translate-x-0 active:translate-y-0 active:shadow-none">Previous</a>
-
-                    <a href="{{ route('admin.schedules.index', ['week' => $weekStart->addWeek()->toDateString(), 'role' => $selectedRole, 'barber' => $selectedBarber]) }}"
-                       class="inline-flex items-center rounded-xl border-2 border-gray-900 bg-white px-3 py-2 text-xs font-black uppercase text-gray-900 shadow-[2px_2px_0px_0px_rgba(17,24,39,1)] transition-all hover:-translate-x-0.5 hover:-translate-y-0.5 hover:bg-amber-300 active:translate-x-0 active:translate-y-0 active:shadow-none">Next</a>
-
-                    <button type="button" data-modal-target="bulk-schedule-modal" data-modal-toggle="bulk-schedule-modal"
-                            class="inline-flex items-center rounded-xl border-2 border-gray-900 bg-brand px-4 py-2 text-xs font-black uppercase text-white shadow-[2px_2px_0px_0px_rgba(17,24,39,1)] transition-all hover:-translate-x-0.5 hover:-translate-y-0.5 hover:shadow-[4px_4px_0px_0px_rgba(17,24,39,1)] active:translate-x-0 active:translate-y-0 active:shadow-none">Bulk set</button>
-
-                    <form method="POST" action="{{ route('admin.schedules.copy-previous-week') }}" class="inline">
-                        @csrf
-                        <input type="hidden" name="week" value="{{ $weekStart->toDateString() }}">
-                        <button class="inline-flex items-center rounded-xl border-2 border-gray-900 bg-amber-300 px-4 py-2 text-xs font-black uppercase text-gray-900 shadow-[2px_2px_0px_0px_rgba(17,24,39,1)] transition-all hover:-translate-x-0.5 hover:-translate-y-0.5 hover:shadow-[4px_4px_0px_0px_rgba(17,24,39,1)] active:translate-x-0 active:translate-y-0 active:shadow-none">Copy previous</button>
-                    </form>
+                        <a href="{{ route('admin.schedules.index', ['week' => $weekStart->addWeek()->toDateString(), 'role' => $selectedRole, 'barber' => $selectedBarber]) }}"
+                           class="inline-flex items-center gap-1 rounded-xl border-2 border-gray-900 bg-white px-3 py-2 text-xs font-black uppercase text-gray-900 shadow-[2px_2px_0px_0px_rgba(17,24,39,1)] transition-all hover:bg-amber-300 active:translate-x-0.5 active:translate-y-0.5 active:shadow-none"
+                           title="Minggu Berikutnya">
+                            Next &rarr;
+                        </a>
+                    </div>
                 </div>
             </div>
         </div>
 
-        <!-- Flash Alerts Retro -->
+        <!-- Flash Alerts -->
         @if (session('success'))
             <div class="rounded-xl border-2 border-gray-900 bg-green-100 p-4 text-xs font-bold text-green-900 shadow-[3px_3px_0px_0px_rgba(17,24,39,1)]">
                 ✅ {{ session('success') }}
@@ -97,16 +122,17 @@
             </div>
         @endif
 
-        <!-- Drag & Drop Hint Banner Retro -->
-        <div class="rounded-xl border-2 border-dashed border-gray-900 bg-amber-50 p-3 text-xs font-bold text-gray-900 flex items-center justify-between gap-3">
+        <!-- Dismissible Drag & Drop Hint -->
+        <div x-data="{ showHint: true }" x-show="showHint" class="rounded-xl border-2 border-dashed border-gray-900 bg-amber-50 p-3 text-xs font-bold text-gray-900 flex items-center justify-between gap-3">
             <div class="flex items-center gap-2">
                 <span class="flex h-6 w-6 shrink-0 items-center justify-center rounded-lg border border-gray-900 bg-amber-300 font-black text-xs">
                     💡
                 </span>
                 <span>
-                    <strong>Reschedule Cepat:</strong> Tarik (drag) kotak booking abu-abu ke kolom hari mana pun. Waktu booking akan berpindah otomatis tanpa menimpa jadwal available lainnya (hanya mengisi jika sudah ada slot kosong di jam yang sama).
+                    <strong>Reschedule Cepat:</strong> Tarik (drag) kotak booking abu-abu ke kolom hari mana pun untuk memindahkan pesanan pelanggan.
                 </span>
             </div>
+            <button type="button" @click="showHint = false" class="text-gray-400 hover:text-gray-900 font-black text-base px-1 leading-none" title="Tutup petunjuk">&times;</button>
         </div>
 
         <!-- Grid Matrix Container Retro -->
@@ -117,9 +143,9 @@
                     <div class="grid grid-cols-[220px_repeat(7,minmax(110px,1fr))] border-b border-gray-200 bg-gray-50 text-xs font-bold uppercase tracking-wide text-gray-500">
                         <div class="p-4 flex items-center font-bold text-gray-900">Barber</div>
                         @foreach ($days as $day)
-                            <div class="border-l border-gray-200 p-4 text-center">
-                                <div>{{ $day->format('D') }}</div>
-                                <div class="mt-1 text-sm text-gray-900">{{ $day->format('d M') }}</div>
+                            <div class="border-l border-gray-200 p-3 text-center">
+                                <div class="text-xs text-gray-500 font-bold uppercase">{{ $day->format('D') }}</div>
+                                <div class="mt-0.5 text-sm font-black text-gray-900">{{ $day->format('d M') }}</div>
                             </div>
                         @endforeach
                     </div>
@@ -127,6 +153,7 @@
                     <!-- Rows Barber & Schedules -->
                     @forelse ($barbers as $barber)
                         <div class="grid grid-cols-[220px_repeat(7,minmax(110px,1fr))] border-b border-gray-100 last:border-0">
+                            <!-- Barber Column -->
                             <div class="flex items-center gap-3 p-4">
                                 @if ($barber->photo)
                                     <img src="{{ asset('storage/' . $barber->photo) }}" class="h-10 w-10 rounded-full object-cover" alt="{{ $barber->name }}">
@@ -135,13 +162,17 @@
                                         {{ strtoupper(substr($barber->name, 0, 1)) }}
                                     </div>
                                 @endif
-                                <div>
-                                    <div class="font-semibold text-gray-900">{{ $barber->name }}</div>
+                                <div class="min-w-0">
+                                    <div class="font-semibold text-gray-900 truncate">{{ $barber->name }}</div>
                                     <div class="text-xs text-gray-500">{{ $barber->role }}</div>
                                 </div>
                             </div>
+
+                            <!-- Day Columns -->
                             @foreach ($days as $day)
                                 @php
+                                    $cellKey = $barber->id . '_' . $day->toDateString();
+                                    $cellAvailableCount = count($cellAvailableMap[$cellKey] ?? []);
                                     $daySchedules = $barber->schedules->filter(
                                         fn ($schedule) => $schedule->date->isSameDay($day)
                                     );
@@ -156,6 +187,24 @@
                                          "time" => $s->slot_time->format("H:i"),
                                          "is_available" => (bool) $s->is_available
                                      ]))'>
+
+                                    <!-- Per-Barber Cell Day Subheader -->
+                                    @if ($cellAvailableCount > 0)
+                                        <div class="flex items-center justify-between gap-1 mb-1.5 px-1 py-0.5 rounded-md bg-gray-50 border border-gray-100">
+                                            <span class="text-[10px] font-bold text-gray-400 whitespace-nowrap">
+                                                {{ $cellAvailableCount }} slot
+                                            </span>
+                                            <button type="button"
+                                                    @click="toggleCell('{{ $cellKey }}')"
+                                                    title="Pilih / batalkan semua slot kosong barber ini di hari ini"
+                                                    class="inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[9px] font-black uppercase tracking-wider transition-all cursor-pointer whitespace-nowrap"
+                                                    :class="isCellAllSelected('{{ $cellKey }}') ? 'border border-gray-900 bg-amber-300 text-gray-900 shadow-[1px_1px_0px_0px_rgba(17,24,39,1)]' : (isCellPartiallySelected('{{ $cellKey }}') ? 'bg-amber-100 text-gray-800' : 'text-gray-500 hover:text-gray-900 hover:bg-gray-200/70')">
+                                                <span x-text="isCellAllSelected('{{ $cellKey }}') ? '✓ Terpilih' : 'Pilih Hari'"></span>
+                                            </button>
+                                        </div>
+                                    @endif
+
+                                    <!-- Slot List -->
                                     <div class="space-y-1">
                                         @forelse ($daySchedules as $schedule)
                                             @php
@@ -163,21 +212,38 @@
                                             @endphp
                                             <div class="group/slot relative" x-data="{ tooltipOpen: false }" @click.outside="tooltipOpen = false">
                                                 @if ($schedule->is_available)
-                                                    <div class="flex items-center justify-between gap-1 rounded-lg border-2 border-transparent bg-green-50 px-2 py-1.5 text-xs text-green-700 transition-all">
-                                                        <button type="button" data-modal-target="schedule-modal" data-modal-toggle="schedule-modal"
-                                                                data-barber-id="{{ $barber->id }}" data-date="{{ $day->toDateString() }}"
-                                                                data-slot-time="{{ $schedule->slot_time->format('H:i') }}"
-                                                                data-schedule-id="{{ $schedule->id }}"
-                                                                data-update-url="{{ route('admin.schedules.update', $schedule) }}"
-                                                                class="hover:underline font-bold">
-                                                            {{ $schedule->slot_time->format('H:i') }}
-                                                        </button>
-                                                        <form method="POST" action="{{ route('admin.schedules.destroy', $schedule) }}" onsubmit="return confirm('Delete this schedule slot?')">
+                                                    <!-- Available Slot Card -->
+                                                    <div class="flex items-center justify-between gap-1.5 rounded-lg border-2 px-1.5 py-1 text-xs transition-all select-none cursor-pointer"
+                                                         @click="handleSlotClick({{ $schedule->id }}, {{ $barber->id }}, '{{ $day->toDateString() }}', '{{ $schedule->slot_time->format('H:i') }}', $event)"
+                                                         :class="isSelected({{ $schedule->id }}) ? 'border-gray-900 bg-amber-200 text-gray-900 shadow-[2px_2px_0px_0px_rgba(17,24,39,1)]' : 'border-transparent bg-green-50 text-green-700 hover:border-green-300'">
+                                                        <div class="flex items-center gap-1.5 min-w-0">
+                                                            <input type="checkbox"
+                                                                   value="{{ $schedule->id }}"
+                                                                   :checked="isSelected({{ $schedule->id }})"
+                                                                   @click.stop="handleSlotClick({{ $schedule->id }}, {{ $barber->id }}, '{{ $day->toDateString() }}', '{{ $schedule->slot_time->format('H:i') }}', $event)"
+                                                                   class="h-3.5 w-3.5 rounded border-2 border-gray-900 text-brand focus:ring-0 cursor-pointer">
+                                                            <button type="button"
+                                                                    data-modal-target="schedule-modal"
+                                                                    data-modal-toggle="schedule-modal"
+                                                                    data-barber-id="{{ $barber->id }}"
+                                                                    data-date="{{ $day->toDateString() }}"
+                                                                    data-slot-time="{{ $schedule->slot_time->format('H:i') }}"
+                                                                    data-schedule-id="{{ $schedule->id }}"
+                                                                    data-update-url="{{ route('admin.schedules.update', $schedule) }}"
+                                                                    @click.stop
+                                                                    class="hover:underline font-bold truncate">
+                                                                {{ $schedule->slot_time->format('H:i') }}
+                                                            </button>
+                                                        </div>
+                                                        <form method="POST" action="{{ route('admin.schedules.destroy', $schedule) }}" onsubmit="return confirm('Hapus slot jadwal ini?')" @click.stop>
                                                             @csrf @method('DELETE')
-                                                            <button class="font-bold hover:text-red-600" aria-label="Delete schedule">&times;</button>
+                                                            <button type="submit"
+                                                                    class="font-bold opacity-0 group-hover/slot:opacity-100 hover:text-red-600 transition-opacity cursor-pointer text-gray-400"
+                                                                    aria-label="Delete schedule">&times;</button>
                                                         </form>
                                                     </div>
                                                 @else
+                                                    <!-- Booked / Unavailable Slot -->
                                                     @if ($booking)
                                                         <div draggable="true"
                                                              title="Tarik (drag) ke kolom hari mana pun untuk reschedule"
@@ -212,6 +278,7 @@
                                                             @endif
                                                         </div>
 
+                                                        <!-- Tooltip Pelanggan -->
                                                         <div x-show="tooltipOpen" x-cloak
                                                              class="py-3 mb-2 pointer-events-none absolute bottom-full left-1/2 z-20 hidden w-full -translate-x-1/2 rounded-lg bg-gray-900 text-center text-xs text-white shadow-lg md:block! md:opacity-0 md:group-hover/slot:opacity-100">
                                                             <p class="font-semibold">{{ $booking->name ?? 'Customer' }}</p>
@@ -230,6 +297,8 @@
                                             <span class="block rounded-lg bg-red-50 px-2 py-1.5 text-center text-xs font-semibold text-red-600">OFF</span>
                                         @endforelse
                                     </div>
+
+                                    <!-- Add Slot Quick Button -->
                                     <button type="button" data-modal-target="schedule-modal" data-modal-toggle="schedule-modal"
                                             data-barber-id="{{ $barber->id }}" data-date="{{ $day->toDateString() }}"
                                             data-create-schedule
@@ -240,200 +309,74 @@
                             @endforeach
                         </div>
                     @empty
-                        <div class="p-10 text-center text-sm text-gray-500">No active barbers match the selected filters.</div>
+                        <div class="p-10 text-center text-sm text-gray-500">Tidak ada barber aktif yang cocok dengan filter yang dipilih.</div>
                     @endforelse
                 </div>
             </div>
         </div>
-    </div>
 
-    <!-- Modal Single Slot Retro -->
-    <div id="schedule-modal" tabindex="-1" aria-hidden="true" class="fixed inset-0 z-50 hidden h-full w-full items-center justify-center overflow-y-auto bg-gray-900/60 p-4 backdrop-blur-xs">
-        <div class="relative w-full max-w-md">
-            <div class="relative rounded-2xl border-2 border-gray-900 bg-[#FAF8F5] p-5 shadow-[6px_6px_0px_0px_rgba(17,24,39,1)]">
-                <div class="flex items-center justify-between border-b-2 border-gray-900 pb-3">
-                    <h3 id="schedule-modal-title" class="font-league text-2xl font-black uppercase text-gray-900">Add schedule slot</h3>
-                    <button type="button" data-modal-hide="schedule-modal" class="rounded-lg border-2 border-gray-900 bg-white px-2 py-0.5 font-black">&times;</button>
+        <!-- Floating Bulk Action Bar Retro -->
+        <div x-show="selectedIds.length > 0"
+             x-transition:enter="transition ease-out duration-200"
+             x-transition:enter-start="opacity-0 translate-y-6"
+             x-transition:enter-end="opacity-100 translate-y-0"
+             x-transition:leave="transition ease-in duration-150"
+             x-transition:leave-start="opacity-100 translate-y-0"
+             x-transition:leave-end="opacity-0 translate-y-6"
+             x-cloak
+             class="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 w-[95%] max-w-2xl">
+            <div class="flex flex-wrap items-center justify-between gap-3 rounded-2xl border-2 border-gray-900 bg-white p-4 shadow-[6px_6px_0px_0px_rgba(17,24,39,1)]">
+                <div class="flex items-center gap-3">
+                    <span class="flex h-9 w-9 items-center justify-center rounded-xl border-2 border-gray-900 bg-amber-300 font-black text-sm text-gray-900 shadow-[2px_2px_0px_0px_rgba(17,24,39,1)]">
+                        ✓
+                    </span>
+                    <div>
+                        <div class="flex items-center gap-2">
+                            <span class="font-montserrat text-sm font-black uppercase text-gray-900">
+                                <span x-text="selectedIds.length"></span> Slot Terpilih
+                            </span>
+                            <span class="text-xs font-bold text-gray-400">/ <span x-text="allAvailableIds.length"></span> total kosong</span>
+                        </div>
+                        <p class="text-[11px] font-bold text-gray-500">Tahan <strong>Shift + Klik</strong> untuk pilih rentang jam</p>
+                    </div>
                 </div>
-                <form method="POST" action="{{ route('admin.schedules.store') }}" data-store-url="{{ route('admin.schedules.store') }}" id="schedule-form" class="mt-4 space-y-4">
-                    @csrf
-                    <input type="hidden" name="_method" id="schedule-form-method" value="POST">
-                    <input type="hidden" name="barber_id" id="schedule-barber-id">
-                    <input type="hidden" name="date" id="schedule-date">
-                    <div>
-                        <label class="mb-1 block text-xs font-black uppercase text-gray-700">Time</label>
-                        <input type="time" name="slot_time" id="schedule-slot-time" required class="block w-full rounded-xl border-2 border-gray-900 bg-white p-2.5 text-xs font-bold text-gray-900 focus:border-brand focus:ring-0">
-                    </div>
-                    <button id="schedule-submit" class="w-full rounded-xl border-2 border-gray-900 bg-brand px-4 py-2.5 text-xs font-black uppercase text-white shadow-[2px_2px_0px_0px_rgba(17,24,39,1)] active:shadow-none">Save slot</button>
-                </form>
-            </div>
-        </div>
-    </div>
 
-    <!-- Modal Bulk Schedule Retro -->
-    <div id="bulk-schedule-modal" x-data="{ timeSlots: [''] }" tabindex="-1" aria-hidden="true" class="fixed inset-0 z-50 hidden h-full w-full items-center justify-center overflow-y-auto bg-gray-900/60 p-4 backdrop-blur-xs">
-        <div class="relative w-full max-w-md">
-            <div class="relative rounded-2xl border-2 border-gray-900 bg-[#FAF8F5] p-5 shadow-[6px_6px_0px_0px_rgba(17,24,39,1)]">
-                <div class="flex items-center justify-between border-b-2 border-gray-900 pb-3">
-                    <h3 class="font-league text-2xl font-black uppercase text-gray-900">Atur Jadwal Sekaligus</h3>
-                    <button @click="timeSlots = ['']" type="button" data-modal-hide="bulk-schedule-modal" class="rounded-lg border-2 border-gray-900 bg-white px-2 py-0.5 font-black">&times;</button>
-                </div>
-                
-                <!-- Wrapper Alpine.js untuk mengelola dynamic slot time -->
-                <form method="POST" action="{{ route('admin.schedules.bulk') }}" class="mt-4 space-y-4">
-                    @csrf
-                    <input type="hidden" name="week" value="{{ $weekStart->toDateString() }}">
-                    
-                    <div>
-                        <label class="mb-1 block text-xs font-black uppercase text-gray-700">Pilih Barber</label>
-                        <select name="barber_id" required class="block w-full rounded-xl border-2 border-gray-900 bg-white p-2.5 text-xs font-bold text-gray-900 focus:border-brand focus:ring-0">
-                            <option value="">Pilih barber</option>
-                            @foreach ($barbers as $barber)
-                                <option value="{{ $barber->id }}">{{ $barber->name }}</option>
-                            @endforeach
-                        </select>
-                    </div>
+                <div class="flex items-center gap-2">
+                    <button type="button"
+                            @click="selectAll()"
+                            class="rounded-xl border-2 border-gray-900 bg-white px-3 py-2 text-xs font-black uppercase text-gray-900 shadow-[2px_2px_0px_0px_rgba(17,24,39,1)] transition-all hover:-translate-x-0.5 hover:-translate-y-0.5 hover:bg-gray-100 hover:shadow-[3px_3px_0px_0px_rgba(17,24,39,1)] active:translate-x-0 active:translate-y-0 active:shadow-none cursor-pointer">
+                        Pilih Semua
+                    </button>
 
-                    <!-- Section Dynamic Slot Time -->
-                    <div>
-                        <div class="flex items-center justify-between mb-1">
-                            <label class="block text-xs font-black uppercase text-gray-700">Waktu Slot</label>
-                            <button type="button" @click="timeSlots.push('')" class="flex items-center gap-1 rounded-lg border-2 border-gray-900 bg-brand px-2 py-0.5 text-[10px] font-black uppercase text-white shadow-[1px_1px_0px_0px_rgba(17,24,39,1)] hover:opacity-90">
-                                + Tambah Waktu
-                            </button>
-                        </div>
+                    <button type="button"
+                            @click="deselectAll()"
+                            class="rounded-xl border-2 border-gray-900 bg-white px-3 py-2 text-xs font-black uppercase text-gray-700 shadow-[2px_2px_0px_0px_rgba(17,24,39,1)] transition-all hover:-translate-x-0.5 hover:-translate-y-0.5 hover:bg-gray-100 hover:shadow-[3px_3px_0px_0px_rgba(17,24,39,1)] active:translate-x-0 active:translate-y-0 active:shadow-none cursor-pointer">
+                        Batal
+                    </button>
 
-                        <div class="space-y-2 max-h-36 overflow-y-auto pr-1">
-                            <template x-for="(slot, index) in timeSlots" :key="index">
-                                <div class="flex items-center gap-2">
-                                    <input type="time" name="slot_times[]" required class="block w-full rounded-xl border-2 border-gray-900 bg-white p-2.5 text-xs font-bold text-gray-900 focus:border-brand focus:ring-0" x-model="timeSlots[index]">
-                                    
-                                    <!-- Tombol Hapus Slot (Hanya muncul jika slot lebih dari 1) -->
-                                    <button type="button" x-show="timeSlots.length > 1" @click="timeSlots.splice(index, 1)" class="shrink-0 rounded-xl border-2 border-gray-900 bg-red-500 p-2 text-xs font-black text-white shadow-[1px_1px_0px_0px_rgba(17,24,39,1)] hover:bg-red-600">
-                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"/></svg>
-                                    </button>
-                                </div>
-                            </template>
-                        </div>
-                    </div>
-
-                    <div>
-                        <label class="mb-1 block text-xs font-black uppercase text-gray-700">Terapkan Pada Hari</label>
-                        <div class="grid grid-cols-2 gap-2 text-xs font-bold">
-                            @foreach ($days as $index => $day)
-                                <label class="flex items-center gap-2 rounded-xl border-2 border-gray-900 bg-white p-2 shadow-[1px_1px_0px_0px_rgba(17,24,39,1)]">
-                                    <input type="checkbox" name="days[]" value="{{ $index }}" class="rounded-md border-2 border-gray-900 text-brand focus:ring-0"> {{ $day->format('D d M') }}
-                                </label>
-                            @endforeach
-                        </div>
-                    </div>
-
-                    <input type="hidden" name="is_available" value="1">
-                    <button class="w-full rounded-xl border-2 border-gray-900 bg-brand px-4 py-2.5 text-xs font-black uppercase text-white shadow-[2px_2px_0px_0px_rgba(17,24,39,1)] active:shadow-none">Simpan Jadwal Sekaligus</button>
-                </form>
-            </div>
-        </div>
-    </div>
-
-    <!-- Trigger Modal Drag Reschedule (Hidden) -->
-    <button id="open-drag-modal-btn" type="button" data-modal-target="drag-reschedule-modal" data-modal-toggle="drag-reschedule-modal" class="hidden"></button>
-
-    <!-- Modal Konfirmasi Drag & Drop Reschedule -->
-    <div id="drag-reschedule-modal" tabindex="-1" aria-hidden="true" class="fixed inset-0 z-50 hidden h-full w-full items-center justify-center overflow-y-auto bg-gray-900/60 p-4 backdrop-blur-xs">
-        <div class="relative w-full max-w-lg">
-            <div class="relative rounded-2xl border-2 border-gray-900 bg-[#FAF8F5] p-6 shadow-[6px_6px_0px_0px_rgba(17,24,39,1)]">
-                <!-- Header Modal -->
-                <div class="flex items-center justify-between border-b-2 border-gray-900 pb-3">
-                    <div class="flex items-center gap-2">
-                        <span class="flex h-8 w-8 items-center justify-center rounded-lg border-2 border-gray-900 bg-brand text-white shadow-[2px_2px_0px_0px_rgba(17,24,39,1)]">
-                            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/>
+                    <form method="POST"
+                          action="{{ route('admin.schedules.bulk-destroy') }}"
+                          @submit="if(!confirm('Yakin ingin menghapus ' + selectedIds.length + ' slot jadwal terpilih?')) { $event.preventDefault(); }">
+                        @csrf
+                        @method('DELETE')
+                        <template x-for="id in selectedIds" :key="id">
+                            <input type="hidden" name="schedule_ids[]" :value="id">
+                        </template>
+                        <button type="submit"
+                                class="inline-flex items-center gap-1.5 rounded-xl border-2 border-gray-900 bg-red-500 px-4 py-2 text-xs font-black uppercase text-white shadow-[2px_2px_0px_0px_rgba(17,24,39,1)] transition-all hover:-translate-x-0.5 hover:-translate-y-0.5 hover:bg-red-600 hover:shadow-[4px_4px_0px_0px_rgba(17,24,39,1)] active:translate-x-0 active:translate-y-0 active:shadow-none cursor-pointer">
+                            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                             </svg>
-                        </span>
-                        <div>
-                            <h3 class="text-base font-black uppercase tracking-wider text-gray-900">Konfirmasi Reschedule</h3>
-                            <p class="text-[11px] font-bold text-gray-500">Pindahkan pesanan pelanggan ke slot jadwal baru</p>
-                        </div>
-                    </div>
-                    <button type="button" data-modal-hide="drag-reschedule-modal" class="rounded-lg border-2 border-gray-900 bg-white px-2.5 py-1 text-sm font-black hover:bg-gray-100 shadow-[1px_1px_0px_0px_rgba(17,24,39,1)] active:translate-x-0.5 active:translate-y-0.5">&times;</button>
+                            Hapus Terpilih
+                        </button>
+                    </form>
                 </div>
-
-                <form method="POST" action="{{ route('admin.schedules.reschedule-booking') }}" class="mt-5 space-y-4">
-                    @csrf
-                    <input type="hidden" name="booking_id" id="drag-booking-id">
-                    <input type="hidden" name="target_schedule_id" id="drag-target-schedule-id">
-                    <input type="hidden" name="target_barber_id" id="drag-target-barber-id">
-                    <input type="hidden" name="target_date" id="drag-target-date">
-                    <input type="hidden" name="target_time" id="drag-target-time">
-
-                    <!-- Customer Info Box -->
-                    <div class="rounded-xl border-2 border-gray-900 bg-white p-3 shadow-[2px_2px_0px_0px_rgba(17,24,39,1)]">
-                        <span class="text-[10px] font-black uppercase text-gray-400 tracking-wider">Pelanggan</span>
-                        <div class="mt-1 flex items-center justify-between">
-                            <p id="drag-modal-customer-name" class="font-black text-gray-900 text-sm">-</p>
-                            <span id="drag-modal-customer-phone" class="rounded-md border border-gray-900 bg-amber-100 px-2 py-0.5 text-xs font-bold text-gray-900">-</span>
-                        </div>
-                    </div>
-
-                    <!-- From -> To Grid -->
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3 items-center">
-                        <!-- Dari Jadwal Semula -->
-                        <div class="rounded-xl border-2 border-gray-900 bg-red-50 p-3 shadow-[2px_2px_0px_0px_rgba(17,24,39,1)]">
-                            <div class="flex items-center justify-between mb-1.5">
-                                <span class="text-[10px] font-black uppercase text-red-600 tracking-wider">Jadwal Semula</span>
-                                <span class="rounded bg-red-200 px-1.5 py-0.5 text-[9px] font-black text-red-800 uppercase">Lama</span>
-                            </div>
-                            <p id="drag-modal-source-barber" class="font-bold text-gray-900 text-xs">-</p>
-                            <p id="drag-modal-source-date" class="text-xs text-gray-600 font-semibold mt-0.5">-</p>
-                            <p id="drag-modal-source-time" class="text-xs font-black text-red-700 mt-0.5">-</p>
-                        </div>
-
-                        <!-- Ke Jadwal Baru -->
-                        <div class="rounded-xl border-2 border-gray-900 bg-green-50 p-3 shadow-[2px_2px_0px_0px_rgba(17,24,39,1)]">
-                            <div class="flex items-center justify-between mb-1.5">
-                                <span class="text-[10px] font-black uppercase text-green-700 tracking-wider">Jadwal Baru</span>
-                                <span class="rounded bg-green-200 px-1.5 py-0.5 text-[9px] font-black text-green-800 uppercase">Baru</span>
-                            </div>
-                            <p id="drag-modal-target-barber" class="font-bold text-gray-900 text-xs">-</p>
-                            <p id="drag-modal-target-date" class="text-xs text-gray-600 font-semibold mt-0.5">-</p>
-                            <p id="drag-modal-target-time" class="text-xs font-black text-green-700 mt-0.5">-</p>
-                        </div>
-                    </div>
-
-                    <!-- Dynamic Note Container -->
-                    <div id="drag-modal-note"></div>
-
-                    <!-- Release Old Slot Checkbox -->
-                    <label class="flex items-start gap-3 cursor-pointer rounded-xl border-2 border-gray-900 bg-white p-3 shadow-[2px_2px_0px_0px_rgba(17,24,39,1)] hover:bg-gray-50 transition">
-                        <input type="checkbox" name="release_old_slot" value="1" checked class="mt-0.5 h-4 w-4 rounded border-2 border-gray-900 text-brand focus:ring-0">
-                        <div class="text-xs">
-                            <span class="font-black text-gray-900">Bebaskan Slot Jadwal Lama</span>
-                            <p class="text-gray-500 font-medium text-[11px] mt-0.5">Jadikan slot jadwal asal berstatus tersedia (hijau) agar dapat dipesan pelanggan lain.</p>
-                        </div>
-                    </label>
-
-                    <!-- WhatsApp Notification Checkbox -->
-                    <label class="flex items-start gap-3 cursor-pointer rounded-xl border-2 border-gray-900 bg-white p-3 shadow-[2px_2px_0px_0px_rgba(17,24,39,1)] hover:bg-gray-50 transition">
-                        <input type="checkbox" name="notify_customer" value="1" checked class="mt-0.5 h-4 w-4 rounded border-2 border-gray-900 text-brand focus:ring-0">
-                        <div class="text-xs">
-                            <span class="font-black text-gray-900">Kirim Notifikasi WhatsApp</span>
-                            <p class="text-gray-500 font-medium text-[11px] mt-0.5">Otomatis kirim detail jadwal baru ke nomor WhatsApp pelanggan.</p>
-                        </div>
-                    </label>
-
-                    <!-- Modal Actions -->
-                    <div class="flex items-center justify-end gap-2 pt-2 border-t-2 border-gray-900">
-                        <button type="button" data-modal-hide="drag-reschedule-modal" class="rounded-xl border-2 border-gray-900 bg-white px-4 py-2.5 text-xs font-black uppercase text-gray-900 shadow-[2px_2px_0px_0px_rgba(17,24,39,1)] hover:bg-gray-100 active:shadow-none active:translate-x-0.5 active:translate-y-0.5">
-                            Batal
-                        </button>
-                        <button type="submit" class="rounded-xl border-2 border-gray-900 bg-brand px-5 py-2.5 text-xs font-black uppercase text-white shadow-[2px_2px_0px_0px_rgba(17,24,39,1)] hover:opacity-90 active:shadow-none active:translate-x-0.5 active:translate-y-0.5">
-                            Ya, Pindahkan Jadwal
-                        </button>
-                    </div>
-                </form>
             </div>
         </div>
     </div>
+
+    {{-- Modals Partial --}}
+    @include('admin.schedules._modals')
 @endsection
 
 @push('scripts')
