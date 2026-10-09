@@ -95,6 +95,12 @@
                             &larr; Prev
                         </a>
 
+                        <a href="{{ route('admin.schedules.index', ['role' => $selectedRole, 'barber' => $selectedBarber]) }}"
+                           class="inline-flex items-center gap-1 rounded-xl border-2 border-gray-900 {{ $weekStart->isSameDay(now()->startOfWeek(\Carbon\Carbon::MONDAY)) ? 'bg-amber-300' : 'bg-white' }} px-3 py-2 text-xs font-black uppercase text-gray-900 shadow-[2px_2px_0px_0px_rgba(17,24,39,1)] transition-all hover:bg-amber-300 active:translate-x-0.5 active:translate-y-0.5 active:shadow-none"
+                           title="Kembali ke Minggu Ini / Hari Ini">
+                            Hari Ini
+                        </a>
+
                         <a href="{{ route('admin.schedules.index', ['week' => $weekStart->addWeek()->toDateString(), 'role' => $selectedRole, 'barber' => $selectedBarber]) }}"
                            class="inline-flex items-center gap-1 rounded-xl border-2 border-gray-900 bg-white px-3 py-2 text-xs font-black uppercase text-gray-900 shadow-[2px_2px_0px_0px_rgba(17,24,39,1)] transition-all hover:bg-amber-300 active:translate-x-0.5 active:translate-y-0.5 active:shadow-none"
                            title="Minggu Berikutnya">
@@ -190,16 +196,16 @@
 
                                     <!-- Per-Barber Cell Day Subheader -->
                                     @if ($cellAvailableCount > 0)
-                                        <div class="flex items-center justify-between gap-1 mb-1.5 px-1 py-0.5 rounded-md bg-gray-50 border border-gray-100">
+                                        <div class="flex items-center justify-between gap-1 mb-1.5 px-0.5">
                                             <span class="text-[10px] font-bold text-gray-400 whitespace-nowrap">
                                                 {{ $cellAvailableCount }} slot
                                             </span>
                                             <button type="button"
                                                     @click="toggleCell('{{ $cellKey }}')"
                                                     title="Pilih / batalkan semua slot kosong barber ini di hari ini"
-                                                    class="inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[9px] font-black uppercase tracking-wider transition-all cursor-pointer whitespace-nowrap"
-                                                    :class="isCellAllSelected('{{ $cellKey }}') ? 'border border-gray-900 bg-amber-300 text-gray-900 shadow-[1px_1px_0px_0px_rgba(17,24,39,1)]' : (isCellPartiallySelected('{{ $cellKey }}') ? 'bg-amber-100 text-gray-800' : 'text-gray-500 hover:text-gray-900 hover:bg-gray-200/70')">
-                                                <span x-text="isCellAllSelected('{{ $cellKey }}') ? '✓ Terpilih' : 'Pilih Hari'"></span>
+                                                    class="inline-flex items-center gap-1 rounded-md border border-gray-900 px-1.5 py-0.5 text-[9px] font-black uppercase tracking-wider transition-all cursor-pointer whitespace-nowrap shadow-[1px_1px_0px_0px_rgba(17,24,39,1)] active:translate-x-0.5 active:translate-y-0.5"
+                                                    :class="isCellAllSelected('{{ $cellKey }}') ? 'bg-amber-300 text-gray-900' : (isCellPartiallySelected('{{ $cellKey }}') ? 'bg-amber-100 text-gray-800' : 'bg-white text-gray-700 hover:bg-amber-50')">
+                                                <span x-text="isCellAllSelected('{{ $cellKey }}') ? '✓ Terpilih' : 'Pilih Hari'">Pilih Hari</span>
                                             </button>
                                         </div>
                                     @endif

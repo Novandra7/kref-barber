@@ -2,13 +2,16 @@ import Alpine from 'alpinejs';
 import bookingForm from './bookingForm';
 import carousel from './carousel';
 import walkInApp from './walkInApp';
+import scheduleBulkManager from './scheduleBulkManager';
 import 'flowbite';
 import './echo';
 
 window.Alpine = Alpine;
+window.scheduleBulkManager = scheduleBulkManager;
 Alpine.data('bookingForm', bookingForm);
 Alpine.data('carousel', carousel);
 Alpine.data('walkInApp', walkInApp);
+Alpine.data('scheduleBulkManager', scheduleBulkManager);
 Alpine.start();
 
 /**
