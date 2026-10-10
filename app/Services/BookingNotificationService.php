@@ -315,6 +315,7 @@ class BookingNotificationService
 
                         if ($booking) {
                             $name = strtolower(trim((string) $booking->name)) ?: 'pelanggan';
+                            $sourcePrefix = $booking->source === 'walk_in' ? '[WI] ' : '';
 
                             // Tentukan apakah DP atau FP
                             $isCompleted = $booking->status === 'completed';
@@ -368,7 +369,7 @@ class BookingNotificationService
 
                             $serviceSuffix = $serviceCodes !== '' ? " | {$serviceCodes}" : '';
 
-                            $lines[] = "{$time}: {$name}{$paymentPart}{$serviceSuffix}";
+                            $lines[] = "{$time}: {$sourcePrefix}{$name}{$paymentPart}{$serviceSuffix}";
                         } else {
                             // Slot kosong diakhiri tanda titik dua ':'
                             $lines[] = "{$time}:";
