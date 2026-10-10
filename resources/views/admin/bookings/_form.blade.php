@@ -29,7 +29,17 @@
 
                 <div>
                     <label for="phone" class="block mb-2 text-sm font-medium text-gray-900">Phone <span class="text-red-500">*</span></label>
-                    <input type="tel" id="phone" name="phone" value="{{ old('phone', $booking->phone ?? '') }}" required class="block w-full rounded-lg border border-gray-300 bg-gray-50 p-2.5 text-sm text-gray-900 focus:border-brand focus:ring-brand placeholder:text-gray-400" placeholder="081234567890" />
+                    <div class="flex">
+                        <span class="inline-flex shrink-0 items-center rounded-s-lg border border-e-0 border-gray-300 bg-gray-100 px-3.5 text-sm font-bold text-gray-700">
+                            +62
+                        </span>
+                        <input type="tel" id="phone" name="phone"
+                            value="{{ old('phone', ltrim(preg_replace('/^(\+?62|0)+/', '', $booking->phone ?? ''), '0')) }}"
+                            required
+                            placeholder="81234567890"
+                            oninput="this.value = this.value.replace(/^(\+?62|0)+/, '').replace(/[^0-9]/g, '')"
+                            class="block w-full rounded-e-lg border border-gray-300 bg-gray-50 p-2.5 text-sm text-gray-900 focus:border-brand focus:ring-brand placeholder:text-gray-400" />
+                    </div>
                 </div>
 
                 <div>

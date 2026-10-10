@@ -76,7 +76,15 @@
                     </div>
                     <div>
                         <label class="block text-xs font-bold mb-2 uppercase tracking-wider text-gray-500">No. WhatsApp</label>
-                        <input type="tel" name="phone" :required="bookingType === 'scheduled'" class="w-full rounded-xl border-2 border-gray-900 bg-[#FAF8F5] px-4 py-3 text-sm font-bold text-gray-900 shadow-[2px_2px_0px_0px_rgba(17,24,39,1)] focus:outline-none focus:ring-0 focus:shadow-[4px_4px_0px_0px_rgba(17,24,39,1)] transition-all">
+                        <div class="flex">
+                            <span class="inline-flex shrink-0 items-center rounded-l-xl border-2 border-r-0 border-gray-900 bg-gray-200 px-3 text-xs font-black text-gray-900 shadow-[2px_2px_0px_0px_rgba(17,24,39,1)]">
+                                +62
+                            </span>
+                            <input type="tel" name="phone" :required="bookingType === 'scheduled'"
+                                placeholder="81234567890"
+                                oninput="this.value = this.value.replace(/^(\+?62|0)+/, '').replace(/[^0-9]/g, '')"
+                                class="w-full rounded-r-xl border-2 border-gray-900 bg-[#FAF8F5] px-4 py-3 text-sm font-bold text-gray-900 shadow-[2px_2px_0px_0px_rgba(17,24,39,1)] focus:outline-none focus:ring-0 focus:shadow-[4px_4px_0px_0px_rgba(17,24,39,1)] transition-all">
+                        </div>
                     </div>
                 </div>
 

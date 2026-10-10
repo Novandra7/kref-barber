@@ -144,6 +144,22 @@ class Booking extends Model
         return $this->reminder_sent_at !== null;
     }
 
+    protected function phone(): Attribute
+    {
+        return Attribute::make(
+            set: function (?string $value) {
+                if ($value === null || trim($value) === '') {
+                    return null;
+                }
+                $digits = preg_replace('/[^0-9]/', '', $value);
+                if (str_starts_with($digits, '62')) {
+                    $digits = substr($digits, 2);
+                }
+                return ltrim($digits, '0') ?: null;
+            }
+        );
+    }
+
     protected function formattedPhone(): Attribute
     {
         return Attribute::make(

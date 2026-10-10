@@ -139,6 +139,14 @@ class BookingAdminController extends Controller
             'dp_amount.min'         => 'Nominal DP minimal Rp 1.000.',
         ]);
 
+        if (!empty($data['phone'])) {
+            $normalizedPhone = preg_replace('/[^0-9]/', '', (string) $data['phone']);
+            if (str_starts_with($normalizedPhone, '62')) {
+                $normalizedPhone = substr($normalizedPhone, 2);
+            }
+            $data['phone'] = ltrim($normalizedPhone, '0') ?: null;
+        }
+
         DB::transaction(function () use ($data): void {
             $barber = Barber::query()
                 ->whereKey($data['barber_id'])
@@ -278,6 +286,14 @@ class BookingAdminController extends Controller
             'dp_amount.required_if' => 'Nominal DP wajib diisi jika tipe pembayaran adalah DP.',
             'dp_amount.min'         => 'Nominal DP minimal Rp 1.000.',
         ]);
+
+        if (!empty($data['phone'])) {
+            $normalizedPhone = preg_replace('/[^0-9]/', '', (string) $data['phone']);
+            if (str_starts_with($normalizedPhone, '62')) {
+                $normalizedPhone = substr($normalizedPhone, 2);
+            }
+            $data['phone'] = ltrim($normalizedPhone, '0') ?: null;
+        }
 
         DB::transaction(function () use ($data, $booking): void {
             $booking->load(['items', 'payment']);

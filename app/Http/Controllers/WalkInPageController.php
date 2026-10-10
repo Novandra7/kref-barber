@@ -73,6 +73,14 @@ class WalkInPageController extends Controller
             'dp_payment_method'  => ['nullable', 'required_if:payment_type,dp', 'in:cash,qris_static'],
         ]);
 
+        if (!empty($data['phone'])) {
+            $normalizedPhone = preg_replace('/[^0-9]/', '', (string) $data['phone']);
+            if (str_starts_with($normalizedPhone, '62')) {
+                $normalizedPhone = substr($normalizedPhone, 2);
+            }
+            $data['phone'] = ltrim($normalizedPhone, '0') ?: null;
+        }
+
         $barber = Barber::where('id', $data['barber_id'])
             ->where('is_active', true)->firstOrFail();
 
