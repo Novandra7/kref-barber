@@ -85,6 +85,29 @@ export default (
         return this.getBarberAvailableDates(barberId).length > 0;
     },
 
+    // Helper parse string tanggal YYYY-MM-DD menjadi Date yang aman di semua browser mobile
+    parseDateYMD(str) {
+        if (!str || typeof str !== 'string') return new Date();
+        const parts = str.split('-');
+        if (parts.length < 3) return new Date();
+        return new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
+    },
+
+    makeBeforeShowDay(availableDates) {
+        return (date) => {
+            const dateStr = this.toDateValue(date);
+            const todayStr = this.getTodayString();
+            
+            // Tanggal kemarin/lampau ATAU tanggal yang tidak ada di jadwal otomatis disabled
+            const isAvailable = dateStr >= todayStr && Array.isArray(availableDates) && availableDates.includes(dateStr);
+
+            return {
+                enabled: isAvailable,
+                classes: isAvailable ? '' : 'disabled opacity-30 cursor-not-allowed pointer-events-none'
+            };
+        };
+    },
+
     // 3. DIBENAHI: Konfigurasi datepicker mengunci penuh tanggal lampau
     buildDatepickerConfig(barberId) {
         const todayStr = this.getTodayString();
@@ -104,8 +127,8 @@ export default (
 
         // Matikan semua tanggal di antara minDate & maxDate yang tidak punya slot aktif
         const disabledDates = [];
-        const startDate = new Date(`${minDate}T00:00:00`);
-        const endDate = new Date(`${maxDate}T00:00:00`);
+        const startDate = this.parseDateYMD(minDate);
+        const endDate = this.parseDateYMD(maxDate);
 
         for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
             const dateStr = this.toDateValue(d);
@@ -123,80 +146,95 @@ export default (
     },
 
     getDefaultDateForBarber(dates) {
-        if (!dates.length) return "";
+        if (!Array.isArray(dates) || !dates.length) return "";
         const todayStr = this.getTodayString();
         return dates.includes(todayStr) ? todayStr : dates[0];
     },
 
-    // 4. DIBENAHI: Flowbite Datepicker dengan penanganan status disabled yang ketat
-    initDatepicker(element, inline = false) {
-        const initialConfig = this.buildDatepickerConfig(this.currentGuest.barber);
+    refreshDatepicker(barberId) {
+        if (!this.datepickerInstances || !this.datepickerInstances.length) return;
+        const config = this.buildDatepickerConfig(barberId);
 
-        const makeBeforeShowDay = (availableDates) => (date) => {
-            const dateStr = this.toDateValue(date);
-            const todayStr = this.getTodayString();
-            
-            // Tanggal kemarin/lampau ATAU tanggal yang tidak ada di jadwal otomatis disabled
-            const isAvailable = dateStr >= todayStr && availableDates.includes(dateStr);
-
-            return {
-                enabled: isAvailable,
-                classes: isAvailable ? '' : 'disabled opacity-30 cursor-not-allowed pointer-events-none'
-            };
-        };
-
-        const datepicker = new Datepicker(element, {
-            format: 'yyyy-mm-dd',
-            minDate: initialConfig.minDate,
-            maxDate: initialConfig.maxDate,
-            datesDisabled: initialConfig.datesDisabled,
-            beforeShowDay: makeBeforeShowDay(initialConfig.dates),
-            autohide: !inline,
-        });
-
-        element.addEventListener('changeDate', (event) => {
-            const date = event.detail.date;
-            const selectedStr = this.toDateValue(date);
-            const config = this.buildDatepickerConfig(this.currentGuest.barber);
-
-            // Validasi keras: cegah pengisian jika user memaksa pilih tanggal tidak valid
-            if (!config.dates.includes(selectedStr) || selectedStr < this.getTodayString()) {
-                this.currentGuest.date = "";
-                this.currentGuest.time = "";
-                return;
+        this.datepickerInstances.forEach(({ datepicker }) => {
+            try {
+                datepicker.setOptions({
+                    minDate: config.minDate,
+                    maxDate: config.maxDate,
+                    datesDisabled: config.datesDisabled,
+                    beforeShowDay: this.makeBeforeShowDay(config.dates),
+                });
+            } catch (err) {
+                console.warn('Error setting datepicker options:', err);
             }
-
-            this.currentGuest.date = selectedStr;
-            this.currentGuest.time = "";
         });
 
-        if (this.currentGuest.date) {
-            datepicker.setDate(this.currentGuest.date);
+        const dateStillValid = this.currentGuest?.date && config.dates.includes(this.currentGuest.date);
+
+        if (!this.currentGuest?.time || !dateStillValid) {
+            this.currentGuest.time = "";
+            this.currentGuest.date = this.getDefaultDateForBarber(config.dates);
+
+            this.datepickerInstances.forEach(({ datepicker }) => {
+                try {
+                    if (this.currentGuest.date) {
+                        datepicker.setDate(this.currentGuest.date);
+                    } else {
+                        datepicker.setDate({ clear: true });
+                    }
+                } catch (err) {
+                    console.warn('Error setting datepicker date:', err);
+                }
+            });
         }
+    },
 
-        this.$watch('currentGuest.barber', (barberId) => {
-            const config = this.buildDatepickerConfig(barberId);
+    // 4. DIBENAHI: Flowbite Datepicker dengan penanganan status disabled & error handling aman
+    initDatepicker(element, inline = false) {
+        if (!element) return;
 
-            datepicker.setOptions({
-                minDate: config.minDate,
-                maxDate: config.maxDate,
-                datesDisabled: config.datesDisabled,
-                beforeShowDay: makeBeforeShowDay(config.dates),
+        try {
+            const initialConfig = this.buildDatepickerConfig(this.currentGuest?.barber);
+
+            const datepicker = new Datepicker(element, {
+                format: 'yyyy-mm-dd',
+                minDate: initialConfig.minDate,
+                maxDate: initialConfig.maxDate,
+                datesDisabled: initialConfig.datesDisabled,
+                beforeShowDay: this.makeBeforeShowDay(initialConfig.dates),
+                autohide: !inline,
             });
 
-            const dateStillValid = this.currentGuest.date && config.dates.includes(this.currentGuest.date);
+            element.addEventListener('changeDate', (event) => {
+                const date = event.detail.date;
+                const selectedStr = this.toDateValue(date);
+                const config = this.buildDatepickerConfig(this.currentGuest?.barber);
 
-            if (!this.currentGuest.time || !dateStillValid) {
-                this.currentGuest.time = "";
-                this.currentGuest.date = this.getDefaultDateForBarber(config.dates);
-
-                if (this.currentGuest.date) {
-                    datepicker.setDate(this.currentGuest.date);
-                } else {
-                    datepicker.setDate({ clear: true });
+                // Validasi keras: cegah pengisian jika user memaksa pilih tanggal tidak valid
+                if (!config.dates.includes(selectedStr) || selectedStr < this.getTodayString()) {
+                    if (this.currentGuest) {
+                        this.currentGuest.date = "";
+                        this.currentGuest.time = "";
+                    }
+                    return;
                 }
+
+                if (this.currentGuest) {
+                    this.currentGuest.date = selectedStr;
+                    this.currentGuest.time = "";
+                }
+            });
+
+            if (this.currentGuest?.date) {
+                try {
+                    datepicker.setDate(this.currentGuest.date);
+                } catch (e) {}
             }
-        });
+
+            this.datepickerInstances = this.datepickerInstances || [];
+            this.datepickerInstances.push({ datepicker, element, inline });
+        } catch (error) {
+            console.warn('Datepicker initialization error (handled gracefully):', error);
+        }
     },
 
     toDateValue(date) {
@@ -253,8 +291,12 @@ export default (
     },
 
     async init() {
+        this.datepickerInstances = [];
         this.startNewGuest();
-        this.$watch('currentGuest.barber', () => this.syncHaircutWithBarber());
+        this.$watch('currentGuest.barber', (barberId) => {
+            this.syncHaircutWithBarber();
+            this.refreshDatepicker(barberId);
+        });
         await this.loadInitialData();
     },
 
@@ -273,6 +315,11 @@ export default (
                 this.barbers = data.barbers || [];
                 this.schedules = data.schedules || [];
                 this.availableDates = data.availableDates || [];
+
+                // Jika user sudah memilih barber sebelum data selesai diambil, perbarui datepicker & jam otomatis
+                if (this.currentGuest?.barber) {
+                    this.refreshDatepicker(this.currentGuest.barber);
+                }
             }
         } catch (error) {
             console.error('Gagal mengambil data booking:', error);
@@ -488,8 +535,9 @@ export default (
     selectedBarberObj() {
         if (!this.currentGuest?.barber) return null;
 
+        const barberList = Array.isArray(this.barbers) ? this.barbers : [];
         return (
-            this.barbers.find(
+            barberList.find(
                 (barber) =>
                     barber.id == this.currentGuest.barber ||
                     barber.name === this.currentGuest.barber,

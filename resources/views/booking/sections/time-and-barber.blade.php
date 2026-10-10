@@ -85,7 +85,19 @@
                 <p class="text-xs text-gray-500 mt-1">Tanggal dan waktu yang tersedia akan muncul di sini setelah memilih barber.</p>
             </div>
 
-            <div x-cloak x-show="currentGuest.barber && !barberHasSchedule(currentGuest.barber)" class="h-full flex flex-col items-center justify-center pb-14 pt-10 md:pb-12 md:pt-0 text-center">
+            {{-- Loading State saat data jadwal sedang dimuat --}}
+            <div x-cloak x-show="currentGuest.barber && isLoadingData" class="h-full flex flex-col items-center justify-center pb-14 pt-10 md:pb-12 md:pt-0 text-center">
+                <div class="flex h-12 w-12 items-center justify-center rounded-full bg-red-50 text-primary">
+                    <svg class="size-6 animate-spin text-primary" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                </div>
+                <p class="text-base font-semibold mt-3">Memuat jadwal...</p>
+                <p class="text-xs text-gray-500 mt-1">Mengambil ketersediaan tanggal dan jam barber.</p>
+            </div>
+
+            <div x-cloak x-show="currentGuest.barber && !isLoadingData && !barberHasSchedule(currentGuest.barber)" class="h-full flex flex-col items-center justify-center pb-14 pt-10 md:pb-12 md:pt-0 text-center">
                 <div class="flex h-12 w-12 items-center justify-center rounded-full bg-red-50 text-primary">
                     <svg class="size-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2Zm5-6h.01" />
@@ -95,7 +107,7 @@
                 <p class="text-xs text-gray-500 mt-1">Barber ini belum memiliki jadwal yang tersedia. Silakan pilih barber lain.</p>
             </div>
             
-            <div x-cloak x-show="currentGuest.barber && barberHasSchedule(currentGuest.barber)" class="flex flex-col sm:flex-row gap-6 items-start">
+            <div x-cloak x-show="currentGuest.barber && !isLoadingData && barberHasSchedule(currentGuest.barber)" class="flex flex-col sm:flex-row gap-6 items-start">
                 
                 <!-- Datepicker Container -->
                 <div class="w-full sm:w-1/2">
@@ -105,7 +117,7 @@
                         <div class="relative w-full">
                             <div class="absolute inset-y-0 inset-s-0 flex items-center ps-3 pointer-events-none">
                                 <svg class="w-4 h-4 text-gray-500" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                    <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 10h16m-8-3V4M7 7V4m10 3V4M5 20h14a1 1 0 0 0 1-1V7a1 1 0 0 0-1-1H5a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1Zm3-7h.01v.01H8V13Zm4 0h.01v.01H12V13Zm4 0h.01v.01H16V13Zm-8 4h.01v.01H8V17Zm4 0h.01v.01H12V17Zm4 0h.01v.01H16V17Z"/>
+                                    <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 10h16m-8-3V4M7 7V4m10 3V4M5 20h14a1 1 0 0 0 1-1V7a1 1 0 0 0-1-1H5a1 1 0 0 0-1 1v12a1 1 0 0 1 1 1Zm3-7h.01v.01H8V13Zm4 0h.01v.01H12V13Zm4 0h.01v.01H16V13Zm-8 4h.01v.01H8V17Zm4 0h.01v.01H12V17Zm4 0h.01v.01H16V17Z"/>
                                 </svg>
                             </div>
                             <input 
@@ -115,7 +127,7 @@
                                 class="block w-full ps-10 pe-3 py-2.5 bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-xl focus:ring-primary focus:border-primary cursor-pointer" 
                                 placeholder="Pilih tanggal"
                                 readonly
-                                x-init="$nextTick(() => initDatepicker($el))"
+                                x-init="$nextTick(() => { if (window.innerWidth < 640) initDatepicker($el); })"
                             >
                         </div>
                     </div>
@@ -125,7 +137,7 @@
                         <div class="rounded-xl w-full max-w-[320px]">
                             <div
                                 id="datepicker-inline"
-                                x-init="$nextTick(() => initDatepicker($el, true))"
+                                x-init="$nextTick(() => { if (window.innerWidth >= 640) initDatepicker($el, true); })"
                             ></div>
                         </div>
                     </div>

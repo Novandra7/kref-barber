@@ -5,16 +5,12 @@
             :class="(currentStep >= 1 || currentStep === 'guest') ? 'bg-primary text-white' : 'bg-gray-200 text-gray-500'">
             
             <!-- Tampilkan Centang Jika currentStep > 1 -->
-            <template x-if="currentStep > 1 || currentStep === 'guest'">
-                <svg class="w-6 h-6 stroke-[2.5]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" />
-                </svg>
-            </template>
+            <svg x-cloak x-show="currentStep > 1 || currentStep === 'guest'" class="w-6 h-6 stroke-[2.5]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" />
+            </svg>
             
             <!-- Tampilkan Angka 1 Jika Masih Di Step 1 -->
-            <template x-if="currentStep <= 1">
-                <span>1</span>
-            </template>
+            <span x-show="!(currentStep > 1 || currentStep === 'guest')">1</span>
         </div>
         <span class="mt-2 text-xs sm:text-sm font-semibold text-center whitespace-nowrap"
             :class="(currentStep >= 1 || currentStep === 'guest') ? 'text-primary' : 'text-gray-400'">
@@ -31,16 +27,12 @@
             :class="(currentStep >= 2 || currentStep === 'guest')? 'bg-primary text-white' : 'bg-gray-200 text-gray-500'">
             
             <!-- Tampilkan Centang Jika currentStep > 2 -->
-            <template x-if="currentStep > 2">
-                <svg class="w-6 h-6 stroke-[2.5]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" />
-                </svg>
-            </template>
+            <svg x-cloak x-show="currentStep > 2" class="w-6 h-6 stroke-[2.5]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" />
+            </svg>
 
             <!-- Tampilkan Angka 2 Jika Belum Melewati Step 2 -->
-            <template x-if="currentStep <= 2 || currentStep === 'guest'">
-                <span>2</span>
-            </template>
+            <span x-show="!(currentStep > 2)">2</span>
         </div>
         <span class="mt-2 text-xs sm:text-sm font-semibold text-center whitespace-nowrap"
             :class="currentStep >= 2 || currentStep === 'guest' ? 'text-primary' : 'text-gray-400'">
@@ -57,16 +49,12 @@
             :class="currentStep >= 3 ? 'bg-primary text-white' : 'bg-gray-200 text-gray-500'">
             
             <!-- Jika Step 3 Selesai (currentStep > 3) -->
-            <template x-if="currentStep > 3">
-                <svg class="w-6 h-6 stroke-[2.5]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" />
-                </svg>
-            </template>
+            <svg x-cloak x-show="currentStep > 3" class="w-6 h-6 stroke-[2.5]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" />
+            </svg>
 
             <!-- Tampilkan Angka 3 -->
-            <template x-if="currentStep <= 3 || currentStep === 'guest'">
-                <span>3</span>
-            </template>
+            <span x-show="!(currentStep > 3)">3</span>
         </div>
         <span class="mt-2 text-xs sm:text-sm font-semibold text-center whitespace-nowrap"
             :class="currentStep >= 3 ? 'text-primary' : 'text-gray-400'">

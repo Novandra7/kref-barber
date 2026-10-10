@@ -32,7 +32,7 @@
             @include('components.booking.stepper')
 
             <div class="w-full mt-8 mb-3">
-                <div x-cloak x-show="currentStep === 1">
+                <div x-show="currentStep === 1">
                     @include('booking.sections.time-and-barber')
                 </div>
 
