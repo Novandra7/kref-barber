@@ -1,3 +1,16 @@
+import scheduleTemplateManager from './scheduleTemplateManager';
+
+if (typeof window !== 'undefined') {
+    window.scheduleTemplateManager = scheduleTemplateManager;
+    if (window.Alpine) {
+        window.Alpine.data('scheduleTemplateManager', scheduleTemplateManager);
+    } else {
+        document.addEventListener('alpine:init', () => {
+            window.Alpine.data('scheduleTemplateManager', scheduleTemplateManager);
+        });
+    }
+}
+
 function initAdminSchedules() {
     // 1. Single Slot Modal Handlers (Add / Edit slot)
     const scheduleForm = document.getElementById('schedule-form');

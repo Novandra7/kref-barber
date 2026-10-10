@@ -3,15 +3,18 @@ import bookingForm from './bookingForm';
 import carousel from './carousel';
 import walkInApp from './walkInApp';
 import scheduleBulkManager from './scheduleBulkManager';
+import scheduleTemplateManager from './admin/scheduleTemplateManager';
 import 'flowbite';
 import './echo';
 
 window.Alpine = Alpine;
 window.scheduleBulkManager = scheduleBulkManager;
+window.scheduleTemplateManager = scheduleTemplateManager;
 Alpine.data('bookingForm', bookingForm);
 Alpine.data('carousel', carousel);
 Alpine.data('walkInApp', walkInApp);
 Alpine.data('scheduleBulkManager', scheduleBulkManager);
+Alpine.data('scheduleTemplateManager', scheduleTemplateManager);
 Alpine.start();
 
 /**

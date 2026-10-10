@@ -57,6 +57,7 @@ Route::domain('admin.' . config('app.domain', 'kref.test'))->group(function () {
         Route::delete('/schedules/{schedule}', [ScheduleController::class, 'destroy'])->name('admin.schedules.destroy');
         Route::post('/schedules/bulk', [ScheduleController::class, 'bulkStore'])->name('admin.schedules.bulk');
         Route::post('/schedules/copy-previous-week', [ScheduleController::class, 'copyPreviousWeek'])->name('admin.schedules.copy-previous-week');
+        Route::post('/schedules/apply-template', [ScheduleController::class, 'applyTemplate'])->name('admin.schedules.apply-template');
         Route::post('/schedules/reschedule-booking', [ScheduleController::class, 'rescheduleBooking'])->name('admin.schedules.reschedule-booking');
 
         // Bookings

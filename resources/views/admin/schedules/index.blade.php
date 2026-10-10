@@ -30,6 +30,16 @@
                             Bulk Set
                         </button>
 
+                        <button type="button"
+                                data-modal-target="template-schedule-modal"
+                                data-modal-toggle="template-schedule-modal"
+                                class="inline-flex items-center gap-1.5 rounded-xl border-2 border-gray-900 bg-emerald-400 px-4 py-2.5 text-xs font-black uppercase text-gray-900 shadow-[2px_2px_0px_0px_rgba(17,24,39,1)] transition-all hover:-translate-x-0.5 hover:-translate-y-0.5 hover:shadow-[4px_4px_0px_0px_rgba(17,24,39,1)] active:translate-x-0 active:translate-y-0 active:shadow-none cursor-pointer">
+                            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2Z"/>
+                            </svg>
+                            Template
+                        </button>
+
                         <form method="POST" action="{{ route('admin.schedules.copy-previous-week') }}" class="inline">
                             @csrf
                             <input type="hidden" name="week" value="{{ $weekStart->toDateString() }}">

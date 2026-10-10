@@ -223,6 +223,108 @@ class ScheduleController extends Controller
     }
 
     /**
+     * Terapkan template jadwal mingguan statis (Rizal & Sogi) dengan opsi bersihkan slot kosong lama.
+     */
+    public function applyTemplate(Request $request): RedirectResponse
+    {
+        $data = $request->validate([
+            'week'           => ['required', 'date_format:Y-m-d'],
+            'template_data'  => ['required'],
+            'clean_unbooked' => ['nullable'],
+        ]);
+
+        $weekStart = $this->weekStart($data['week']);
+        $cleanUnbooked = $request->boolean('clean_unbooked', true);
+
+        $raw = $data['template_data'];
+        $templates = is_array($raw) ? $raw : json_decode($raw, true);
+
+        if (empty($templates) || !is_array($templates)) {
+            return back()->with('error', 'Format data template tidak valid.');
+        }
+
+        $totalApplied = 0;
+
+        DB::transaction(function () use ($templates, $weekStart, $cleanUnbooked, &$totalApplied): void {
+            foreach ($templates as $barberId => $config) {
+                if (empty($config['active'])) {
+                    continue;
+                }
+
+                $barber = Barber::find($barberId);
+                if (! $barber) {
+                    continue;
+                }
+
+                // Ambil daftar slot per hari (offset 0: Senin s/d 6: Minggu)
+                $days = $config['days'] ?? [];
+
+                for ($offset = 0; $offset <= 6; $offset++) {
+                    $rawTimes = $days[$offset] ?? [];
+                    // Normalisasi jam ke format H:i
+                    $times = array_values(array_filter(array_unique(array_map(function ($t) {
+                        return substr(trim($t), 0, 5);
+                    }, $rawTimes))));
+
+                    $dateStr = $weekStart->addDays($offset)->toDateString();
+
+                    // 1. Jika opsi cleanUnbooked aktif: hapus slot lama yang tidak ada di template baru
+                    // HANYA JIKA slot tersebut belum ada pesanan aktif (aman 100%)
+                    if ($cleanUnbooked) {
+                        $allTimeFormats = [];
+                        foreach ($times as $t) {
+                            $allTimeFormats[] = $t;
+                            $allTimeFormats[] = "{$t}:00";
+                        }
+
+                        Schedule::where('barber_id', $barber->id)
+                            ->where('date', $dateStr)
+                            ->whereNotIn('slot_time', $allTimeFormats)
+                            ->whereDoesntHave('bookings', function ($q) {
+                                $q->whereNotIn('status', ['cancelled']);
+                            })
+                            ->where('is_available', true)
+                            ->delete();
+                    }
+
+                    // 2. Buat atau perbarui ketersediaan slot sesuai template
+                    foreach ($times as $timeStr) {
+                        $existing = Schedule::where('barber_id', $barber->id)
+                            ->where('date', $dateStr)
+                            ->where(function ($q) use ($timeStr) {
+                                $q->where('slot_time', $timeStr)
+                                  ->orWhere('slot_time', "{$timeStr}:00");
+                            })
+                            ->first();
+
+                        if ($existing) {
+                            // Cek jika slot sudah terisi pesanan aktif, jangan ubah is_available
+                            $hasActiveBookings = $existing->bookings()
+                                ->whereNotIn('status', ['cancelled'])
+                                ->exists();
+
+                            if (! $hasActiveBookings) {
+                                $existing->update(['is_available' => true]);
+                            }
+                        } else {
+                            Schedule::create([
+                                'barber_id'    => $barber->id,
+                                'date'         => $dateStr,
+                                'slot_time'    => $timeStr,
+                                'is_available' => true,
+                            ]);
+                        }
+
+                        $totalApplied++;
+                    }
+                }
+            }
+        });
+
+        return back()->with('success', "Template jadwal berhasil diterapkan ({$totalApplied} slot jadwal aktif).");
+    }
+
+    /**
      * Reschedule booking melalui aksi drag-and-drop jadwal oleh admin.
      */
     public function rescheduleBooking(Request $request, BookingNotificationService $notifications): RedirectResponse
