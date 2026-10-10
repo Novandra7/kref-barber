@@ -386,5 +386,5 @@
 @endsection
 
 @push('scripts')
-    <script src="{{ asset('js/admin/schedules.js') }}"></script>
+    @vite('resources/js/admin/schedules.js')
 @endpush

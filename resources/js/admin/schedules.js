@@ -1,4 +1,4 @@
-document.addEventListener('DOMContentLoaded', () => {
+function initAdminSchedules() {
     // 1. Single Slot Modal Handlers (Add / Edit slot)
     const scheduleForm = document.getElementById('schedule-form');
     const storeUrl = scheduleForm ? (scheduleForm.dataset.storeUrl || scheduleForm.action) : '';
@@ -223,4 +223,13 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
     });
-});
+}
+
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initAdminSchedules);
+} else {
+    initAdminSchedules();
+}
+
+export default initAdminSchedules;
+
