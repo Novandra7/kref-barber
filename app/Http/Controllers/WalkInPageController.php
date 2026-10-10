@@ -192,9 +192,8 @@ class WalkInPageController extends Controller
             $schedule->update(['is_available' => false]);
         });
 
-        // Kirim rekap ke grup WA ops jika ada DP (slot terkunci dengan uang masuk)
-        $paymentType = $data['payment_type'] ?? 'full';
-        if ($data['booking_type'] === 'scheduled' && $paymentType === 'dp') {
+        // Kirim rekap ke grup WA ops jika booking dijadwalkan (baik DP maupun Full)
+        if ($data['booking_type'] === 'scheduled') {
             $notifications->sendDailyRecapToOpsGroup($today);
         }
 

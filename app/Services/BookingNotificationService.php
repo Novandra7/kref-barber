@@ -328,7 +328,7 @@ class BookingNotificationService
                                 $paymentType = 'FP';
                                 $paidAmount = (int) $booking->total_amount;
                             } else {
-                                $paymentType = '';
+                                $paymentType = strtolower((string) $booking->payment_type) === 'full' ? 'FULL' : '';
                                 $paidAmount = 0;
                             }
 
@@ -341,7 +341,7 @@ class BookingNotificationService
                             }
 
                             $paymentLabel = trim("{$paymentType} {$amountFormatted}");
-                            $paymentLabel = $paymentLabel !== '' ? " {$paymentLabel}" : '';
+                            $paymentPart = $paymentLabel !== '' ? " {$paymentLabel}" : '';
 
                             // Ambil kode services yang dipilih
                             $serviceCodes = $booking->items
@@ -368,7 +368,7 @@ class BookingNotificationService
 
                             $serviceSuffix = $serviceCodes !== '' ? " | {$serviceCodes}" : '';
 
-                            $lines[] = "{$time}: {$name} {$paymentType} {$amountFormatted}{$serviceSuffix}";
+                            $lines[] = "{$time}: {$name}{$paymentPart}{$serviceSuffix}";
                         } else {
                             // Slot kosong diakhiri tanda titik dua ':'
                             $lines[] = "{$time}:";
