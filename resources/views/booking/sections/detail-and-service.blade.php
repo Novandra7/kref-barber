@@ -236,17 +236,31 @@
     </div>
 
     <!-- Tombol Navigasi -->
-    <div class="flex items-center justify-between mt-4 gap-2">
-        <button type="button" class="btn rounded-xl border border-gray-200 hover:bg-gray-100" @click="currentStep = 1">
-            <svg class="size-[1.4em]" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M12 22C6.477 22 2 17.523 2 12C2 6.477 6.477 2 12 2C17.523 2 22 6.477 22 12C22 17.523 17.523 22 12 22Z" stroke="black" stroke-width="2" stroke-linejoin="round"/>
-                <path d="M13.5 16.5L9 12L13.5 7.5" stroke="black" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    <div class="flex items-center justify-between mt-6 gap-2 w-full max-w-full">
+        <button 
+            type="button" 
+            class="btn rounded-xl border border-gray-200 hover:bg-gray-100 flex items-center justify-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 sm:py-2.5 text-xs sm:text-sm font-semibold transition-colors shrink-0" 
+            @click="currentStep = 1"
+            onclick="window.scrollTo({ top: 0, behavior: 'smooth' })"
+        >
+            <svg class="size-4 sm:size-5 shrink-0" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M12 22C6.477 22 2 17.523 2 12C2 6.477 6.477 2 12 2C17.523 2 22 6.477 22 12C22 17.523 17.523 22 12 22Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+                <path d="M13.5 16.5L9 12L13.5 7.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
             </svg>
-            Kembali : Barber & Waktu
+            <span>Kembali<span class="hidden sm:inline"> : Barber & Waktu</span></span>
         </button>
         
-        <button type="button" class="btn btn-primary rounded-xl" @click="validateStep2()" onclick="window.scrollTo({ top: 0, behavior: 'smooth' })">
-            Simpan & Lanjutkan
+        <button 
+            type="button" 
+            class="btn btn-primary rounded-xl flex items-center justify-center gap-1.5 sm:gap-2 px-3.5 sm:px-6 py-2 sm:py-2.5 text-xs sm:text-sm font-semibold transition-all duration-200 shrink-0" 
+            @click="validateStep2()" 
+            onclick="window.scrollTo({ top: 0, behavior: 'smooth' })"
+        >
+            <span><span class="hidden sm:inline">Simpan & </span>Lanjutkan</span>
+            <svg class="size-4 sm:size-5 shrink-0" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M12 22C17.523 22 22 17.523 22 12C22 6.477 17.523 2 12 2C6.477 2 2 6.477 2 12C2 17.523 6.477 22 12 22Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+                <path d="M10.5 16.5L15 12L10.5 7.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
         </button>
     </div>
 </section>

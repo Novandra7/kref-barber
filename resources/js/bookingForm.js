@@ -287,6 +287,8 @@ export default (
             selectedHaircut: null,
             selectedChemical: null,
             selectedTreatments: [],
+            tipAmount: 0,
+            isCustomTip: false,
         };
     },
 
@@ -402,6 +404,11 @@ export default (
         this.paymentState = "loading";
 
         try {
+            const guestsPayload = this.guests.map((guest) => ({
+                ...guest,
+                tip_amount: this.paymentType === "Full" ? (parseInt(guest.tipAmount, 10) || 0) : 0,
+            }));
+
             const response = await fetch("/booking/checkout", {
                 method: "POST",
                 headers: {
@@ -413,7 +420,7 @@ export default (
                 },
                 body: JSON.stringify({
                     payment_type: this.paymentType,
-                    guests: this.guests,
+                    guests: guestsPayload,
                 }),
             });
 
@@ -616,5 +623,40 @@ export default (
         return services.length > 0
             ? services.join(", ")
             : "No service selected";
+    },
+
+    setGuestTip(index, amount) {
+        if (!this.guests[index]) return;
+        this.guests[index].tipAmount = amount;
+        this.guests[index].isCustomTip = false;
+    },
+
+    toggleCustomTip(index) {
+        if (!this.guests[index]) return;
+        this.guests[index].isCustomTip = !this.guests[index].isCustomTip;
+        if (this.guests[index].isCustomTip && !this.guests[index].tipAmount) {
+            this.guests[index].tipAmount = 10000;
+        }
+    },
+
+    getTotalTip() {
+        if (this.paymentType !== "Full" || !Array.isArray(this.guests)) return 0;
+        return this.guests.reduce((sum, guest) => sum + (parseInt(guest.tipAmount, 10) || 0), 0);
+    },
+
+    getTotalPayment() {
+        if (this.paymentType === "DP") {
+            const dpPerGuest = 40000;
+            return dpPerGuest * (this.guests?.length || 1);
+        }
+        return this.getTotalPrice() + this.getTotalTip();
+    },
+
+    getBarberName(barberId) {
+        if (!barberId) return "-";
+        const barber = (Array.isArray(this.barbers) ? this.barbers : []).find(
+            (b) => b.id == barberId || b.name === barberId
+        );
+        return barber ? barber.name : barberId;
     },
 });

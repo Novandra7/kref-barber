@@ -327,7 +327,7 @@ class BookingNotificationService
                                     ?? max(0, (int) $booking->total_amount - (int) $booking->outstanding_amount);
                             } elseif ($isCompleted || (int) $booking->total_amount > 0) {
                                 $paymentType = 'FP';
-                                $paidAmount = (int) $booking->total_amount;
+                                $paidAmount = (int) $booking->total_amount + (int) ($booking->tip_amount ?? 0);
                             } else {
                                 $paymentType = strtolower((string) $booking->payment_type) === 'full' ? 'FULL' : '';
                                 $paidAmount = 0;
@@ -343,6 +343,16 @@ class BookingNotificationService
 
                             $paymentLabel = trim("{$paymentType} {$amountFormatted}");
                             $paymentPart = $paymentLabel !== '' ? " {$paymentLabel}" : '';
+
+                            // Format tip jika ada (misal: tip 20k)
+                            $tipPart = '';
+                            if (!empty($booking->tip_amount) && (int) $booking->tip_amount > 0) {
+                                $tipAmount = (int) $booking->tip_amount;
+                                $tipFormatted = ($tipAmount >= 1000)
+                                    ? ($tipAmount % 1000 === 0 ? ($tipAmount / 1000) : number_format($tipAmount / 1000, 1, ',', '')) . 'k'
+                                    : $tipAmount;
+                                $tipPart = " tip {$tipFormatted}";
+                            }
 
                             // Ambil kode services yang dipilih
                             $serviceCodes = $booking->items
@@ -369,7 +379,7 @@ class BookingNotificationService
 
                             $serviceSuffix = $serviceCodes !== '' ? " | {$serviceCodes}" : '';
 
-                            $lines[] = "{$time}: {$sourcePrefix}{$name}{$paymentPart}{$serviceSuffix}";
+                            $lines[] = "{$time}: {$sourcePrefix}{$name}{$paymentPart}{$tipPart}{$serviceSuffix}";
                         } else {
                             // Slot kosong diakhiri tanda titik dua ':'
                             $lines[] = "{$time}:";

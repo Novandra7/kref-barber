@@ -242,6 +242,11 @@
                                 </td>
                                 <td class="px-5 py-4 align-top">
                                     <div class="font-semibold text-gray-900">Rp {{ number_format($booking->total_amount, 0, ',', '.') }}</div>
+                                    @if ($booking->tip_amount > 0)
+                                        <div class="mt-0.5 inline-flex items-center text-2xs font-semibold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded">
+                                            + Tip Rp {{ number_format($booking->tip_amount, 0, ',', '.') }}
+                                        </div>
+                                    @endif
                                     @if ($booking->outstanding_amount > 0)
                                         <div class="mt-1 text-xs font-semibold text-amber-600">Sisa: Rp {{ number_format($booking->outstanding_amount, 0, ',', '.') }}</div>
                                     @endif
@@ -426,7 +431,10 @@
                         </div>
                         <div>
                             <h4 class="mb-2 font-semibold text-gray-900">Payment Summary</h4>
-                            <p>Total: <strong>Rp {{ number_format($booking->total_amount, 0, ',', '.') }}</strong></p>
+                            <p>Total Layanan: <strong>Rp {{ number_format($booking->total_amount, 0, ',', '.') }}</strong></p>
+                            @if ($booking->tip_amount > 0)
+                                <p class="text-emerald-700 font-medium">Tip Barber: <strong>+ Rp {{ number_format($booking->tip_amount, 0, ',', '.') }}</strong></p>
+                            @endif
                             <p>Outstanding: <strong>Rp {{ number_format($booking->outstanding_amount, 0, ',', '.') }}</strong></p>
                             <p class="capitalize text-gray-500">Type: {{ strtoupper($booking->payment_type) }}</p>
                         </div>
@@ -579,7 +587,12 @@
                                 </div>
                                 <div class="flex justify-between">
                                     <span class="text-gray-500">Total Booking:</span>
-                                    <span class="font-bold text-gray-900">Rp {{ number_format($booking->total_amount, 0, ',', '.') }}</span>
+                                    <span class="font-bold text-gray-900">
+                                        Rp {{ number_format($booking->grand_total, 0, ',', '.') }}
+                                        @if ($booking->tip_amount > 0)
+                                            <span class="text-2xs font-normal text-emerald-600">(Termasuk Tip Rp {{ number_format($booking->tip_amount, 0, ',', '.') }})</span>
+                                        @endif
+                                    </span>
                                 </div>
                                 <div class="flex justify-between">
                                     <span class="text-gray-500">Tipe Pembayaran:</span>

@@ -470,8 +470,8 @@ class BookingAdminController extends Controller
                                     ? min($remainingPaymentAmount, $dpPerBooking)
                                     : $remainingPaymentAmount;
                             } else {
-                                // Full Payment: Refund sesuai dengan total biaya booking items dari tamu yang dibatalkan
-                                $bookingCost = (int) $booking->total_amount;
+                                // Full Payment: Refund sesuai dengan total biaya booking items dari tamu yang dibatalkan (+ tip jika ada)
+                                $bookingCost = (int) $booking->total_amount + (int) ($booking->tip_amount ?? 0);
 
                                 $refundAmount = $otherActiveBookings
                                     ? min($remainingPaymentAmount, $bookingCost)

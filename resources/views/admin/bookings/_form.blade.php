@@ -214,6 +214,12 @@
                                 <span class="text-gray-600">Current Total</span>
                                 <strong class="font-bold text-gray-900">Rp {{ number_format($booking->total_amount ?? 0, 0, ',', '.') }}</strong>
                             </div>
+                            @if (($booking->tip_amount ?? 0) > 0)
+                                <div class="flex items-center justify-between text-sm">
+                                    <span class="text-gray-600">Tip Barber</span>
+                                    <strong class="font-bold text-emerald-600">+ Rp {{ number_format($booking->tip_amount, 0, ',', '.') }}</strong>
+                                </div>
+                            @endif
                             <div class="flex items-center justify-between text-sm">
                                 <span class="text-gray-600">Outstanding Amount</span>
                                 <strong class="font-bold text-amber-600">Rp {{ number_format($booking->outstanding_amount ?? 0, 0, ',', '.') }}</strong>

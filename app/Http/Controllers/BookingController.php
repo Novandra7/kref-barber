@@ -125,7 +125,9 @@ class BookingController extends Controller
         $checkout = DB::transaction(function () use ($data, $doku) {
             $bookingPayments = [];
             $totalAmount = 0;
+            $totalTips = 0;
             $primaryPhone = $data['guests'][0]['phone'] ?? null;
+            $isDp = strtolower($data['payment_type']) === 'dp';
 
             foreach ($data['guests'] as $guest) {
 
@@ -170,17 +172,21 @@ class BookingController extends Controller
                     abort(422, 'At least one service is required for every guest.');
                 }
 
+                // --- Tip untuk barber (hanya jika Full Payment) ---
+                $guestTip = $isDp ? 0 : max(0, (int) ($guest['tip_amount'] ?? 0));
+
                 // --- Buat record booking untuk tamu ini ---
                 $guestTotal = $services->sum('price');
                 $booking = Booking::create([
                     'schedule_id'        => $schedule->id,
                     'source'             => 'online',
-                    'payment_type'       => strtolower($data['payment_type']) === 'dp' ? 'dp' : 'full',
+                    'payment_type'       => $isDp ? 'dp' : 'full',
                     'status'             => 'pending',
                     'name'               => $guest['name'],
                     'phone'              => !empty($guest['phone']) ? $guest['phone'] : $primaryPhone,
                     'description'        => !empty($guest['notes']) ? strip_tags(trim($guest['notes'])) : null,
                     'barber_id'          => $barber->id,
+                    'tip_amount'         => $guestTip,
                     'total_amount'       => $guestTotal,
                     'outstanding_amount' => $guestTotal,
                     'scheduled_at'       => $guest['date'] . ' ' . $guest['time'],
@@ -199,18 +205,18 @@ class BookingController extends Controller
                 }
 
                 $totalAmount += $guestTotal;
+                $totalTips += $guestTip;
                 $bookingPayments[] = [$booking, $guestTotal];
 
                 // Tandai jadwal sebagai sudah tidak tersedia
                 $schedule->update(['is_available' => false]);
             }
 
-            // --- Hitung jumlah yang harus dibayar (DP per tamu atau Full) ---
-            $isDp = strtolower($data['payment_type']) === 'dp';
+            // --- Hitung jumlah yang harus dibayar (DP per tamu atau Full + Tips) ---
             $guestCount = count($bookingPayments);
             $dpAmount = (int) config('booking.dp_amount', 40000);
-            $amount = $isDp ? ($dpAmount * $guestCount) : $totalAmount;
-            if ($amount > $totalAmount) {
+            $amount = $isDp ? ($dpAmount * $guestCount) : ($totalAmount + $totalTips);
+            if ($isDp && $amount > $totalAmount) {
                 abort(422, 'DP amount cannot exceed the booking total.');
             }
 

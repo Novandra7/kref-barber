@@ -35,6 +35,7 @@ class CheckoutBookingRequest extends FormRequest
             'guests.*.selectedChemical'     => ['nullable', 'string', 'max:100'],
             'guests.*.selectedTreatments'   => ['nullable', 'array', 'max:10'],
             'guests.*.selectedTreatments.*' => ['string', 'max:100'],
+            'guests.*.tip_amount'           => ['nullable', 'integer', 'min:0', 'max:1000000'],
         ];
     }
 

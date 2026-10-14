@@ -30,9 +30,69 @@
                             <span class="text-2xs text-gray-500 font-normal">Bayar seluruh total biaya sekarang</span>
                         </label>
                     </div>
+
+                    <!-- Area Input Tip Minimalis (Inline Micro-Pills) -->
+                    <div x-show="paymentType === 'Full'" x-transition class="mt-3 pt-3 border-t border-gray-200/80 flex flex-col gap-2 cursor-default" @click.stop>
+                        <template x-for="(guest, index) in guests" :key="index">
+                            <div class="flex items-center justify-between gap-1 text-xs">
+                                <span class="text-gray-600 font-medium shrink-0 truncate max-w-[110px]" :title="getBarberName(guest.barber)">
+                                    Tip <strong class="text-gray-900 font-semibold" x-text="getBarberName(guest.barber)"></strong>:
+                                </span>
+                                <div class="flex items-center gap-1 shrink-0">
+                                    <button type="button"
+                                        :disabled="paymentTypeConfirmed || paymentData?.status === 'paid'"
+                                        @click="setGuestTip(index, 0)"
+                                        :class="(guest.tipAmount === 0 || !guest.tipAmount) && !guest.isCustomTip ? 'bg-brand text-white border-brand' : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-100'"
+                                        class="px-2 py-0.5 text-2xs font-semibold rounded border transition-colors">
+                                        0
+                                    </button>
+                                    <button type="button"
+                                        :disabled="paymentTypeConfirmed || paymentData?.status === 'paid'"
+                                        @click="setGuestTip(index, 10000)"
+                                        :class="guest.tipAmount === 10000 && !guest.isCustomTip ? 'bg-brand text-white border-brand' : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-100'"
+                                        class="px-2 py-0.5 text-2xs font-semibold rounded border transition-colors">
+                                        10k
+                                    </button>
+                                    <button type="button"
+                                        :disabled="paymentTypeConfirmed || paymentData?.status === 'paid'"
+                                        @click="setGuestTip(index, 20000)"
+                                        :class="guest.tipAmount === 20000 && !guest.isCustomTip ? 'bg-brand text-white border-brand' : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-100'"
+                                        class="px-2 py-0.5 text-2xs font-semibold rounded border transition-colors">
+                                        20k
+                                    </button>
+                                    <button type="button"
+                                        :disabled="paymentTypeConfirmed || paymentData?.status === 'paid'"
+                                        @click="setGuestTip(index, 50000)"
+                                        :class="guest.tipAmount === 50000 && !guest.isCustomTip ? 'bg-brand text-white border-brand' : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-100'"
+                                        class="px-2 py-0.5 text-2xs font-semibold rounded border transition-colors">
+                                        50k
+                                    </button>
+                                    <template x-if="!guest.isCustomTip">
+                                        <button type="button"
+                                            :disabled="paymentTypeConfirmed || paymentData?.status === 'paid'"
+                                            @click="toggleCustomTip(index)"
+                                            class="px-1.5 py-0.5 text-2xs text-gray-500 hover:text-brand font-medium">
+                                            +Lainnya
+                                        </button>
+                                    </template>
+                                    <template x-if="guest.isCustomTip">
+                                        <input type="number"
+                                            :disabled="paymentTypeConfirmed || paymentData?.status === 'paid'"
+                                            min="0"
+                                            step="5000"
+                                            placeholder="Rp"
+                                            x-model.number="guest.tipAmount"
+                                            class="w-16 px-1.5 py-0.5 text-2xs rounded border border-brand bg-white focus:ring-1 focus:ring-brand focus:outline-none"
+                                        />
+                                    </template>
+                                </div>
+                            </div>
+                        </template>
+                    </div>
+
                     <div :class="paymentType === 'Full' ? 'bg-primary/10' : 'bg-neutral-100'" class="flex flex-col items-center justify-center mt-3 rounded-[10px] py-2">
                         <span class="text-sm text-black mb-2">Anda akan membayar sekarang</span>
-                        <span class="text-[20px] font-semibold text-black" x-text="formatPrice(getTotalPrice())"></span>
+                        <span class="text-[20px] font-semibold text-black" x-text="formatPrice(getTotalPrice() + getTotalTip())"></span>
                     </div>
                 </div>
 
@@ -130,9 +190,10 @@
         <div class="w-full md:w-1/3 rounded-xl bg-base border border-gray-200 p-6">
             <h2 class="pb-4 text-xl font-montserrat font-bold tracking-tight text-brand">RINGKASAN PEMESANAN</h2>
             <template x-for="(guest, guestIndex) in guests" :key="guestIndex">
-                <div class="flex flex-col gap-2.5 py-4 border-b border-gray-200 last:border-b-0">
+                <div class="flex flex-col gap-2 py-3 border-b border-gray-200 last:border-b-0">
                     <div class="flex items-center justify-between gap-2.5">
                         <div class="text-md font-bold text-gray-900 truncate" x-text="guest.name || 'Nama Pelanggan'"></div>
+                        <div class="text-xs text-gray-500 font-medium" x-text="getBarberName(guest.barber)"></div>
                     </div>
 
                     <template x-for="service in getGuestSelectedServices(guest)" :key="service.name + '-' + guestIndex">
@@ -141,36 +202,58 @@
                             <span class="font-semibold text-brand" x-text="formatPrice(service.price)"></span>
                         </div>
                     </template>
+
+                    <!-- Tip Barber jika Full Payment & tip > 0 -->
+                    <template x-if="paymentType === 'Full' && (guest.tipAmount || 0) > 0">
+                        <div class="flex items-center justify-between gap-2 text-xs text-emerald-700 bg-emerald-50 px-2 py-1 rounded">
+                            <span class="font-medium">Tip Barber (<span x-text="getBarberName(guest.barber)"></span>)</span>
+                            <span class="font-semibold" x-text="'+ ' + formatPrice(guest.tipAmount)"></span>
+                        </div>
+                    </template>
                 </div>
             </template>
-            <div class="flex items-center justify-between gap-2 pt-2 border-t border-gray-200 text-lg font-bold">
-                <span class="text-black uppercase">Total</span>
-                <span class="font-bold text-brand" x-text="formatPrice(getTotalPrice())"></span>
+            <div class="pt-2 border-t border-gray-200 space-y-1">
+                <template x-if="paymentType === 'Full' && getTotalTip() > 0">
+                    <div class="flex items-center justify-between gap-2 text-xs text-gray-500">
+                        <span>Total Layanan</span>
+                        <span class="font-medium text-gray-700" x-text="formatPrice(getTotalPrice())"></span>
+                    </div>
+                </template>
+                <template x-if="paymentType === 'Full' && getTotalTip() > 0">
+                    <div class="flex items-center justify-between gap-2 text-xs text-emerald-700 font-medium">
+                        <span>Total Tip Barber</span>
+                        <span x-text="'+ ' + formatPrice(getTotalTip())"></span>
+                    </div>
+                </template>
+                <div class="flex items-center justify-between gap-2 pt-1 text-lg font-bold">
+                    <span class="text-black uppercase">Total</span>
+                    <span class="font-bold text-brand" x-text="formatPrice(paymentType === 'Full' ? (getTotalPrice() + getTotalTip()) : getTotalPrice())"></span>
+                </div>
             </div>
         </div>
     </div>
 
     <!-- TOMBOL NAVIGASI -->
-    <div class="flex justify-between mt-4">
+    <div class="flex items-center justify-between mt-6 gap-2 w-full max-w-full">
         <button 
             type="button" 
-            class="btn rounded-xl border border-gray-200 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-transparent flex items-center gap-2 px-4 py-2 text-sm font-semibold transition-colors"
+            class="btn rounded-xl border border-gray-200 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-transparent flex items-center justify-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 sm:py-2.5 text-xs sm:text-sm font-semibold transition-colors shrink-0"
             :disabled="paymentTypeConfirmed || Boolean(paymentData?.qrContent) || paymentState === 'loading' || paymentState === 'ready' || paymentData?.status === 'paid'" 
             @click="currentStep = 'guest'"
         >
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M12 22C6.477 22 2 17.523 2 12C2 6.477 6.477 2 12 2C17.523 2 22 6.477 22 12C22 17.523 17.523 22 12 22Z" stroke="black" stroke-width="2" stroke-linejoin="round"/>
-                <path d="M13.5 16.5L9 12L13.5 7.5" stroke="black" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <svg class="size-4 sm:size-5 shrink-0" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M12 22C6.477 22 2 17.523 2 12C2 6.477 6.477 2 12 2C17.523 2 22 6.477 22 12C22 17.523 17.523 22 12 22Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+                <path d="M13.5 16.5L9 12L13.5 7.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
             </svg>
-            Kembali : Pelanggan
+            <span>Kembali<span class="hidden sm:inline"> : Pelanggan</span></span>
         </button>
         <button
             type="button"
-            class="btn rounded-xl bg-brand text-white disabled:cursor-not-allowed disabled:opacity-50 flex items-center gap-2 px-4 py-2 text-sm font-semibold transition-colors"
+            class="btn rounded-xl bg-brand text-white disabled:cursor-not-allowed disabled:opacity-50 flex items-center justify-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 sm:py-2.5 text-xs sm:text-sm font-semibold transition-colors shrink-0"
             :disabled="paymentData?.status !== 'paid'"
             @click="window.location.href = '{{ route('landing') }}'"
         >
-            Kembali ke Beranda
+            <span><span class="hidden sm:inline">Kembali ke </span>Beranda</span>
             <svg class="size-4 sm:size-5 shrink-0" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <path d="M12 22C17.523 22 22 17.523 22 12C22 6.477 17.523 2 12 2C6.477 2 2 6.477 2 12C2 17.523 6.477 22 12 22Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
                 <path d="M10.5 16.5L15 12L10.5 7.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>

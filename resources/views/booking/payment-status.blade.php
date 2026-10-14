@@ -137,11 +137,20 @@
                                                 </span>
                                             </div>
                                         @endforeach
+
+                                        @if ($booking->tip_amount > 0)
+                                            <div class="flex items-center justify-between text-xs font-medium text-emerald-700 bg-emerald-50 px-2 py-1 rounded mt-1">
+                                                <span>Tip Barber ({{ $booking->barber?->name ?? 'Barber' }})</span>
+                                                <span class="font-bold text-emerald-700">
+                                                    + Rp {{ number_format($booking->tip_amount, 0, ',', '.') }}
+                                                </span>
+                                            </div>
+                                        @endif
                                     </div>
 
                                     <div class="mt-3 flex items-center justify-between border-t-2 border-gray-900 pt-2 text-xs font-black uppercase text-gray-900">
                                         <span>Total Booking</span>
-                                        <span>Rp {{ number_format($booking->total_amount, 0, ',', '.') }}</span>
+                                        <span>Rp {{ number_format($booking->grand_total, 0, ',', '.') }}</span>
                                     </div>
                                 @endif
                             </div>

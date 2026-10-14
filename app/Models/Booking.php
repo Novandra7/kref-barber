@@ -20,6 +20,7 @@ class Booking extends Model
         'phone',
         'description',
         'barber_id',
+        'tip_amount',
         'created_by',
         'source',
         'payment_type',
@@ -39,6 +40,7 @@ class Booking extends Model
             'reminder_sent_at' => 'datetime',
             'total_amount' => 'integer',
             'outstanding_amount' => 'integer',
+            'tip_amount' => 'integer',
         ];
     }
 
@@ -122,6 +124,11 @@ class Booking extends Model
     public function getPaymentTypeLabelAttribute(): string
     {
         return strtoupper($this->payment_type ?? 'FULL');
+    }
+
+    public function getGrandTotalAttribute(): int
+    {
+        return (int) $this->total_amount + (int) ($this->tip_amount ?? 0);
     }
 
     public function isPaidFull(): bool
