@@ -48,7 +48,7 @@
                 <div>
                     <div class="flex items-center justify-between mb-1">
                         <label class="block text-xs font-black uppercase text-gray-700">Waktu Slot</label>
-                        <button type="button" @click="timeSlots.push('')" class="flex items-center gap-1 rounded-lg border-2 border-gray-900 bg-brand px-2 py-0.5 text-[10px] font-black uppercase text-white shadow-[1px_1px_0px_0px_rgba(17,24,39,1)] hover:opacity-90">
+                        <button type="button" @click="timeSlots.push('')" class="flex items-center gap-1 rounded-lg border-2 border-gray-900 bg-brand px-2 py-0.5 text-2xs font-black uppercase text-white shadow-[1px_1px_0px_0px_rgba(17,24,39,1)] hover:opacity-90">
                             + Tambah Waktu
                         </button>
                     </div>
@@ -100,7 +100,7 @@
                         </svg>
                     </span>
                     <div>
-                        <h3 class="text-base font-black uppercase tracking-wider text-gray-900">Konfirmasi Reschedule</h3>
+                        <h3 class="font-black uppercase tracking-wider text-gray-900">Konfirmasi Reschedule</h3>
                         <p class="text-[11px] font-bold text-gray-500">Pindahkan pesanan pelanggan ke slot jadwal baru</p>
                     </div>
                 </div>
@@ -117,7 +117,7 @@
 
                 <!-- Customer Info Box -->
                 <div class="rounded-xl border-2 border-gray-900 bg-white p-3 shadow-[2px_2px_0px_0px_rgba(17,24,39,1)]">
-                    <span class="text-[10px] font-black uppercase text-gray-400 tracking-wider">Pelanggan</span>
+                    <span class="text-2xs font-black uppercase text-gray-400 tracking-wider">Pelanggan</span>
                     <div class="mt-1 flex items-center justify-between">
                         <p id="drag-modal-customer-name" class="font-black text-gray-900 text-sm">-</p>
                         <span id="drag-modal-customer-phone" class="rounded-md border border-gray-900 bg-amber-100 px-2 py-0.5 text-xs font-bold text-gray-900">-</span>
@@ -129,7 +129,7 @@
                     <!-- Dari Jadwal Semula -->
                     <div class="rounded-xl border-2 border-gray-900 bg-red-50 p-3 shadow-[2px_2px_0px_0px_rgba(17,24,39,1)]">
                         <div class="flex items-center justify-between mb-1.5">
-                            <span class="text-[10px] font-black uppercase text-red-600 tracking-wider">Jadwal Semula</span>
+                            <span class="text-2xs font-black uppercase text-red-600 tracking-wider">Jadwal Semula</span>
                             <span class="rounded bg-red-200 px-1.5 py-0.5 text-[9px] font-black text-red-800 uppercase">Lama</span>
                         </div>
                         <p id="drag-modal-source-barber" class="font-bold text-gray-900 text-xs">-</p>
@@ -140,7 +140,7 @@
                     <!-- Ke Jadwal Baru -->
                     <div class="rounded-xl border-2 border-gray-900 bg-green-50 p-3 shadow-[2px_2px_0px_0px_rgba(17,24,39,1)]">
                         <div class="flex items-center justify-between mb-1.5">
-                            <span class="text-[10px] font-black uppercase text-green-700 tracking-wider">Jadwal Baru</span>
+                            <span class="text-2xs font-black uppercase text-green-700 tracking-wider">Jadwal Baru</span>
                             <span class="rounded bg-green-200 px-1.5 py-0.5 text-[9px] font-black text-green-800 uppercase">Baru</span>
                         </div>
                         <p id="drag-modal-target-barber" class="font-bold text-gray-900 text-xs">-</p>
@@ -186,26 +186,26 @@
 
 <!-- Modal Template Jadwal Mingguan Compact -->
 <div id="template-schedule-modal"
-     x-data="scheduleTemplateManager()"
+     x-data="scheduleTemplateManager(@js($templateData ?? []), '{{ route('admin.schedules.save-template') }}')"
      tabindex="-1"
      aria-hidden="true"
-     class="fixed inset-0 z-50 hidden h-full w-full items-center justify-center overflow-y-auto bg-gray-900/60 p-4 backdrop-blur-xs">
-    <div class="relative w-full max-w-3xl">
-        <div class="relative rounded-2xl border-2 border-gray-900 bg-[#FAF8F5] p-5 shadow-[6px_6px_0px_0px_rgba(17,24,39,1)]">
+     class="fixed inset-0 z-50 hidden h-full w-full items-center justify-center overflow-y-auto bg-gray-900/60 p-2 sm:p-4 backdrop-blur-xs">
+    <div class="relative w-full max-w-3xl my-auto">
+        <div class="relative rounded-2xl border-2 border-gray-900 bg-[#FAF8F5] p-3.5 sm:p-5 shadow-[4px_4px_0px_0px_rgba(17,24,39,1)] sm:shadow-[6px_6px_0px_0px_rgba(17,24,39,1)]">
             <!-- Header Modal -->
-            <div class="flex items-center justify-between border-b-2 border-gray-900 pb-3">
-                <div class="flex items-center gap-2.5">
-                    <span class="flex h-8 w-8 items-center justify-center rounded-lg border-2 border-gray-900 bg-emerald-400 text-gray-900 shadow-[1px_1px_0px_0px_rgba(17,24,39,1)]">
+            <div class="flex items-center justify-between border-b-2 border-gray-900 pb-3 gap-2">
+                <div class="flex items-center gap-2 sm:gap-2.5 min-w-0">
+                    <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border-2 border-gray-900 bg-emerald-400 text-gray-900 shadow-[1px_1px_0px_0px_rgba(17,24,39,1)]">
                         <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2Z"/>
                         </svg>
                     </span>
-                    <div>
-                        <h3 class="font-league text-2xl font-black uppercase text-gray-900 leading-none">Template Jadwal Mingguan</h3>
-                        <p class="text-[11px] font-bold text-gray-500 mt-0.5">Jadwal kerja tetap seminggu untuk Rizal & Sogi.</p>
+                    <div class="min-w-0">
+                        <h3 class="font-league text-xl sm:text-2xl font-black uppercase text-gray-900 leading-none truncate">Template Jadwal Mingguan</h3>
+                        <p class="text-[10px] sm:text-[11px] font-bold text-gray-500 mt-0.5 truncate">Jadwal kerja tetap seminggu per barber di database.</p>
                     </div>
                 </div>
-                <button type="button" data-modal-hide="template-schedule-modal" class="rounded-lg border-2 border-gray-900 bg-white px-2 py-0.5 font-black hover:bg-gray-100">&times;</button>
+                <button type="button" data-modal-hide="template-schedule-modal" class="shrink-0 rounded-lg border-2 border-gray-900 bg-white px-2 py-0.5 font-black hover:bg-gray-100">&times;</button>
             </div>
 
             <form method="POST" action="{{ route('admin.schedules.apply-template') }}" class="mt-4 space-y-3" @submit="if(!confirm('Terapkan template jadwal untuk minggu ini?')) { $event.preventDefault(); }">
@@ -222,16 +222,16 @@
                     <button type="button"
                             @click="currentBarberId = 1"
                             :class="currentBarberId === 1 ? 'text-white' : 'text-gray-700 hover:text-gray-900'"
-                            class="relative z-10 flex items-center justify-center gap-2 rounded-xl py-2 text-xs font-black uppercase transition-colors duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] active:scale-95">
+                            class="relative z-10 flex items-center justify-center gap-2 rounded-xl py-2 text-xs font-black uppercase transition-colors duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] active:scale-95 cursor-pointer">
                         <span>Rizal</span>
-                        <span class="rounded bg-black/20 px-1.5 py-0.5 text-[10px]">Owner</span>
+                        <span class="rounded bg-black/20 px-1.5 py-0.5 text-2xs">Owner</span>
                     </button>
                     <button type="button"
                             @click="currentBarberId = 2"
                             :class="currentBarberId === 2 ? 'text-white' : 'text-gray-700 hover:text-gray-900'"
-                            class="relative z-10 flex items-center justify-center gap-2 rounded-xl py-2 text-xs font-black uppercase transition-colors duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] active:scale-95">
+                            class="relative z-10 flex items-center justify-center gap-2 rounded-xl py-2 text-xs font-black uppercase transition-colors duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] active:scale-95 cursor-pointer">
                         <span>Sogi</span>
-                        <span class="rounded bg-black/20 px-1.5 py-0.5 text-[10px]">Senior</span>
+                        <span class="rounded bg-black/20 px-1.5 py-0.5 text-2xs">Senior</span>
                     </button>
                 </div>
 
@@ -271,14 +271,14 @@
                             <div class="sm:w-22 shrink-0 flex items-center justify-between sm:flex-col sm:items-start">
                                 <span class="text-xs font-black uppercase text-gray-900" x-text="day.label"></span>
                                 <div class="flex items-center gap-1.5 mt-0.5">
-                                    <span class="rounded bg-gray-100 px-1.5 py-0.2 text-[10px] font-bold text-gray-600" x-text="(templates[currentBarberId]?.days[day.offset] || []).length + ' slot'"></span>
-                                    <button type="button" @click="selectAllInDay(currentBarberId, day.offset)" class="text-[10px] font-bold text-brand hover:underline">Pilih</button>
+                                    <span class="rounded bg-gray-100 px-1.5 py-0.2 text-2xs font-bold text-gray-600" x-text="(templates[currentBarberId]?.days?.[day.offset] || []).length + ' slot'"></span>
+                                    <button type="button" @click="selectAllInDay(currentBarberId, day.offset)" class="text-2xs font-bold text-brand hover:underline cursor-pointer">Pilih</button>
                                 </div>
                             </div>
 
                             <!-- Badges Slot Jam & Inline Add -->
                             <div class="flex flex-wrap items-center gap-1.5 flex-1 min-w-0">
-                                <template x-for="time in (templates[currentBarberId]?.days[day.offset] || [])" :key="time">
+                                <template x-for="time in (templates[currentBarberId]?.days?.[day.offset] || [])" :key="time">
                                     <div @click="handleSlotClick(currentBarberId, day.offset, time, $event)"
                                          :class="isSelected(currentBarberId, day.offset, time)
                                             ? 'bg-amber-300 border-gray-900 text-gray-900 font-black shadow-[2px_2px_0px_0px_rgba(17,24,39,1)] -translate-y-0.5'
@@ -287,7 +287,7 @@
                                         <span x-text="time"></span>
                                         <button type="button"
                                                 @click.stop="deleteSingleSlot(currentBarberId, day.offset, time)"
-                                                class="text-gray-400 hover:text-red-600 font-black text-sm leading-none"
+                                                class="text-gray-400 hover:text-red-600 font-black text-sm leading-none cursor-pointer"
                                                 title="Hapus jam ini">&times;</button>
                                     </div>
                                 </template>
@@ -300,7 +300,7 @@
                                            class="w-18 border-0 bg-transparent p-0 text-xs font-bold text-gray-900 focus:ring-0">
                                     <button type="button"
                                             @click="addSlot(currentBarberId, day.offset)"
-                                            class="rounded bg-brand px-1.5 py-0.5 text-[10px] font-black uppercase text-white hover:opacity-90"
+                                            class="rounded bg-brand px-1.5 py-0.5 text-2xs font-black uppercase text-white hover:opacity-90 cursor-pointer"
                                             title="Tambah jam">+ Jam</button>
                                 </div>
                             </div>
@@ -315,28 +315,94 @@
                 </label>
 
                 <!-- Footer Actions -->
-                <div class="flex items-center justify-between border-t border-gray-200 pt-3">
-                    <button type="button"
-                            @click="resetDefault()"
-                            class="text-xs font-black uppercase text-gray-500 hover:text-gray-900 underline">
-                        ↺ Reset Bawaan
-                    </button>
+                <div class="flex flex-col gap-3 border-t border-gray-200 pt-3 sm:flex-row sm:items-center sm:justify-between">
+                    <div class="text-[11px] font-bold text-gray-500">
+                        Total: <span class="font-black text-gray-900" x-text="totalSlotsCount()"></span> slot aktif
+                    </div>
 
-                    <div class="flex items-center gap-2">
+                    <div class="flex flex-col-reverse sm:flex-row items-stretch sm:items-center gap-2">
                         <button type="button"
                                 data-modal-hide="template-schedule-modal"
-                                class="rounded-xl border-2 border-gray-900 bg-white px-3.5 py-2 text-xs font-black uppercase text-gray-700 shadow-[1px_1px_0px_0px_rgba(17,24,39,1)] hover:bg-gray-50">
+                                class="inline-flex items-center justify-center rounded-xl border-2 border-gray-900 bg-white px-3.5 py-2 text-xs font-black uppercase text-gray-700 shadow-[1px_1px_0px_0px_rgba(17,24,39,1)] hover:bg-gray-50 active:translate-x-0.5 active:translate-y-0.5 cursor-pointer">
                             Batal
                         </button>
-                        <button type="submit"
-                                class="inline-flex items-center gap-1.5 rounded-xl border-2 border-gray-900 bg-emerald-400 px-4 py-2 text-xs font-black uppercase text-gray-900 shadow-[2px_2px_0px_0px_rgba(17,24,39,1)] hover:-translate-x-0.5 hover:-translate-y-0.5 hover:shadow-[3px_3px_0px_0px_rgba(17,24,39,1)] active:translate-x-0 active:translate-y-0 active:shadow-none cursor-pointer">
-                            <span>Terapkan Template</span>
-                            <span class="rounded bg-gray-900 px-1.5 py-0.2 text-[10px] text-white" x-text="totalSlotsCount()"></span>
-                        </button>
+
+                        <div class="grid grid-cols-2 gap-2 sm:flex sm:items-center">
+                            <!-- Tombol Save Changes AJAX -->
+                            <button type="button"
+                                    @click="saveChanges()"
+                                    :disabled="isSaving"
+                                    class="inline-flex items-center justify-center gap-1.5 rounded-xl border-2 border-gray-900 bg-amber-300 px-3 py-2 text-xs font-black uppercase text-gray-900 shadow-[2px_2px_0px_0px_rgba(17,24,39,1)] hover:-translate-x-0.5 hover:-translate-y-0.5 hover:shadow-[3px_3px_0px_0px_rgba(17,24,39,1)] active:translate-x-0 active:translate-y-0 active:shadow-none disabled:opacity-50 cursor-pointer">
+                                <template x-if="!isSaving">
+                                    <svg class="h-3.5 w-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"/>
+                                    </svg>
+                                </template>
+                                <template x-if="isSaving">
+                                    <svg class="h-3.5 w-3.5 shrink-0 animate-spin" fill="none" viewBox="0 0 24 24">
+                                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
+                                    </svg>
+                                </template>
+                                <span class="truncate" x-text="isSaving ? 'Menyimpan...' : 'Save Changes'">Save Changes</span>
+                            </button>
+
+                            <!-- Tombol Terapkan Template -->
+                            <button type="submit"
+                                    class="inline-flex items-center justify-center gap-1.5 rounded-xl border-2 border-gray-900 bg-emerald-400 px-3 py-2 text-xs font-black uppercase text-gray-900 shadow-[2px_2px_0px_0px_rgba(17,24,39,1)] hover:-translate-x-0.5 hover:-translate-y-0.5 hover:shadow-[3px_3px_0px_0px_rgba(17,24,39,1)] active:translate-x-0 active:translate-y-0 active:shadow-none cursor-pointer">
+                                <span class="truncate">Terapkan</span>
+                                <span class="rounded bg-gray-900 px-1.5 py-0.2 text-2xs text-white shrink-0" x-text="totalSlotsCount()"></span>
+                            </button>
+                        </div>
                     </div>
                 </div>
             </form>
         </div>
+    </div>
+
+    <!-- Flowbite Toast Notification for Schedule Template -->
+    <div id="toast-template-notification"
+         x-show="toast.show"
+         x-transition:enter="transition ease-out duration-300 transform"
+         x-transition:enter-start="opacity-0 translate-y-4 md:translate-y-0 md:translate-x-4 scale-95"
+         x-transition:enter-end="opacity-100 translate-y-0 md:translate-x-0 scale-100"
+         x-transition:leave="transition ease-in duration-200 transform"
+         x-transition:leave-start="opacity-100 translate-y-0 md:translate-x-0 scale-100"
+         x-transition:leave-end="opacity-0 translate-y-4 md:translate-y-0 md:translate-x-4 scale-95"
+         x-cloak
+         class="fixed bottom-5 right-4 left-4 sm:left-auto sm:right-5 z-70 flex max-w-sm items-center gap-3 rounded-2xl border-2 border-gray-900 p-4 font-mono shadow-[4px_4px_0px_0px_rgba(17,24,39,1)]"
+         :class="toast.type === 'success' ? 'bg-emerald-100 text-emerald-950' : 'bg-red-100 text-red-950'"
+         role="alert">
+
+        <!-- Icon Toast -->
+        <div class="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border-2 border-gray-900 shadow-[1px_1px_0px_0px_rgba(17,24,39,1)]"
+             :class="toast.type === 'success' ? 'bg-emerald-400' : 'bg-red-400'">
+            <template x-if="toast.type === 'success'">
+                <svg class="h-5 w-5 stroke-gray-900" fill="none" viewBox="0 0 24 24" stroke-width="2.5">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/>
+                </svg>
+            </template>
+            <template x-if="toast.type !== 'success'">
+                <svg class="h-5 w-5 stroke-gray-900" fill="none" viewBox="0 0 24 24" stroke-width="2.5">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                </svg>
+            </template>
+        </div>
+
+        <!-- Message Content -->
+        <div class="flex-1 text-xs font-bold leading-tight" x-text="toast.message"></div>
+
+        <!-- Flowbite Dismiss Button -->
+        <button type="button"
+                @click="closeToast()"
+                data-dismiss-target="#toast-template-notification"
+                class="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-lg border-2 border-gray-900 bg-white text-gray-900 shadow-[1px_1px_0px_0px_rgba(17,24,39,1)] transition hover:bg-gray-100 focus:ring-0 cursor-pointer"
+                aria-label="Close">
+            <span class="sr-only">Close</span>
+            <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"/>
+            </svg>
+        </button>
     </div>
 </div>
 

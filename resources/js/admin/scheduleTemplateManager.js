@@ -1,8 +1,9 @@
 /**
  * Alpine.js component for Schedule Template Manager
- * Supports 7 separate days (Senin s/d Minggu) for Rizal & Sogi with Multi-Select and Shift + Click.
+ * Supports 7 separate days (Senin s/d Minggu) for barbers with Multi-Select, Shift + Click,
+ * and asynchronous Save Changes (AJAX) to database with Flowbite Toast feedback.
  */
-export default () => {
+export default (initialTemplates = null, saveUrl = '') => {
     const daysList = [
         { offset: 0, label: 'Senin', short: 'Sen' },
         { offset: 1, label: 'Selasa', short: 'Sel' },
@@ -44,14 +45,83 @@ export default () => {
         }
     };
 
+    const effectiveTemplates = (initialTemplates && Object.keys(initialTemplates).length > 0)
+        ? JSON.parse(JSON.stringify(initialTemplates))
+        : JSON.parse(JSON.stringify(defaultTemplates));
+
+    const barberIds = Object.keys(effectiveTemplates);
+    const defaultBarberId = barberIds.length > 0 ? Number(barberIds[0]) : 1;
+
     return {
-        currentBarberId: 1,
+        currentBarberId: defaultBarberId,
         daysList: daysList,
-        templates: JSON.parse(JSON.stringify(defaultTemplates)),
+        templates: effectiveTemplates,
         selectedSlots: [],
         lastClicked: null,
         newTimeInputs: {},
         cleanUnbooked: true,
+        saveUrl: saveUrl,
+        isSaving: false,
+        toast: {
+            show: false,
+            message: '',
+            type: 'success',
+            timer: null
+        },
+
+        showToast(message, type = 'success') {
+            if (this.toast.timer) {
+                clearTimeout(this.toast.timer);
+            }
+            this.toast.show = true;
+            this.toast.message = message;
+            this.toast.type = type;
+
+            this.toast.timer = setTimeout(() => {
+                this.toast.show = false;
+            }, 4000);
+        },
+
+        closeToast() {
+            if (this.toast.timer) {
+                clearTimeout(this.toast.timer);
+            }
+            this.toast.show = false;
+        },
+
+        async saveChanges() {
+            if (this.isSaving) return;
+            this.isSaving = true;
+
+            const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+
+            try {
+                const response = await fetch(this.saveUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'X-CSRF-TOKEN': csrfToken || ''
+                    },
+                    body: JSON.stringify({
+                        templates: this.templates
+                    })
+                });
+
+                const data = await response.json();
+
+                if (response.ok && data.success) {
+                    this.showToast(data.message || 'Template jadwal mingguan berhasil disimpan!', 'success');
+                } else {
+                    this.showToast(data.message || 'Gagal menyimpan template jadwal.', 'error');
+                }
+            } catch (err) {
+                this.showToast('Terjadi kesalahan koneksi saat menyimpan template.', 'error');
+            } finally {
+                this.isSaving = false;
+            }
+        },
 
         slotKey(barberId, dayOffset, time) {
             return `${barberId}_${dayOffset}_${time}`;
@@ -67,7 +137,7 @@ export default () => {
             if (event.shiftKey && this.lastClicked) {
                 // Scope Shift + Click pada barber dan hari yang sama persis
                 if (this.lastClicked.barberId === barberId && this.lastClicked.dayOffset === dayOffset) {
-                    const times = this.templates[barberId].days[dayOffset] || [];
+                    const times = this.templates[barberId]?.days?.[dayOffset] || [];
                     const prevIdx = times.indexOf(this.lastClicked.time);
                     const currentIdx = times.indexOf(time);
 
@@ -105,7 +175,7 @@ export default () => {
 
         selectAllCurrentBarber() {
             const barber = this.templates[this.currentBarberId];
-            if (!barber) return;
+            if (!barber || !barber.days) return;
             for (let offset = 0; offset <= 6; offset++) {
                 const times = barber.days[offset] || [];
                 times.forEach(t => {
@@ -127,7 +197,7 @@ export default () => {
 
         deleteSelectedCurrentBarber() {
             const barber = this.templates[this.currentBarberId];
-            if (!barber) return;
+            if (!barber || !barber.days) return;
 
             for (let offset = 0; offset <= 6; offset++) {
                 const times = barber.days[offset] || [];
@@ -141,7 +211,7 @@ export default () => {
         },
 
         selectAllInDay(barberId, dayOffset) {
-            const times = this.templates[barberId].days[dayOffset] || [];
+            const times = this.templates[barberId]?.days?.[dayOffset] || [];
             times.forEach(time => {
                 const key = this.slotKey(barberId, dayOffset, time);
                 if (!this.selectedSlots.includes(key)) {
@@ -152,7 +222,7 @@ export default () => {
 
         deleteSingleSlot(barberId, dayOffset, time) {
             const key = this.slotKey(barberId, dayOffset, time);
-            const times = this.templates[barberId].days[dayOffset] || [];
+            const times = this.templates[barberId]?.days?.[dayOffset] || [];
             const idx = times.indexOf(time);
             if (idx !== -1) {
                 times.splice(idx, 1);
@@ -173,7 +243,11 @@ export default () => {
             const val = (this.newTimeInputs[inputKey] || '').trim();
             if (!val) return;
 
-            const times = this.templates[barberId].days[dayOffset] || [];
+            if (!this.templates[barberId]) return;
+            if (!this.templates[barberId].days) this.templates[barberId].days = {};
+            if (!this.templates[barberId].days[dayOffset]) this.templates[barberId].days[dayOffset] = [];
+
+            const times = this.templates[barberId].days[dayOffset];
             if (!times.includes(val)) {
                 times.push(val);
                 times.sort();
@@ -181,18 +255,9 @@ export default () => {
             this.newTimeInputs[inputKey] = '';
         },
 
-        resetDefault() {
-            if (confirm('Kembalikan template jadwal Rizal & Sogi ke jadwal bawaan?')) {
-                this.templates = JSON.parse(JSON.stringify(defaultTemplates));
-                this.selectedSlots = [];
-                this.lastClicked = null;
-            }
-        },
-
         totalSlotsCount() {
             let total = 0;
-            for (const bId of [1, 2]) {
-                const b = this.templates[bId];
+            for (const b of Object.values(this.templates || {})) {
                 if (b && b.active && b.days) {
                     for (let offset = 0; offset <= 6; offset++) {
                         total += (b.days[offset] || []).length;

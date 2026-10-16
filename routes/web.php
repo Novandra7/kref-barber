@@ -58,6 +58,7 @@ Route::domain('admin.' . config('app.domain', 'kref.test'))->group(function () {
         Route::post('/schedules/bulk', [ScheduleController::class, 'bulkStore'])->name('admin.schedules.bulk');
         Route::post('/schedules/copy-previous-week', [ScheduleController::class, 'copyPreviousWeek'])->name('admin.schedules.copy-previous-week');
         Route::post('/schedules/apply-template', [ScheduleController::class, 'applyTemplate'])->name('admin.schedules.apply-template');
+        Route::post('/schedules/save-template', [ScheduleController::class, 'saveTemplate'])->name('admin.schedules.save-template');
         Route::post('/schedules/reschedule-booking', [ScheduleController::class, 'rescheduleBooking'])->name('admin.schedules.reschedule-booking');
 
         // Bookings

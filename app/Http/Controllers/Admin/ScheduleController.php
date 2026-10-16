@@ -10,6 +10,7 @@ use App\Services\BookingNotificationService;
 use Carbon\Carbon;
 use Carbon\CarbonImmutable;
 use Illuminate\Contracts\View\View;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -67,6 +68,22 @@ class ScheduleController extends Controller
             }
         }
 
+        $templateBarbers = Barber::query()
+            ->where('is_active', true)
+            ->orderBy('id')
+            ->get();
+
+        $templateData = [];
+        foreach ($templateBarbers as $tb) {
+            $templateData[$tb->id] = [
+                'id'     => $tb->id,
+                'name'   => $tb->name,
+                'role'   => ucfirst($tb->role),
+                'active' => (bool) $tb->is_active,
+                'days'   => $tb->getWeeklyTemplate(),
+            ];
+        }
+
         return view('admin.schedules.index', [
             'barbers' => $barbers,
             'allBarbers' => Barber::query()->where('is_active', true)->orderBy('name')->get(['id', 'name']),
@@ -78,6 +95,8 @@ class ScheduleController extends Controller
             'selectedBarber' => $barberId,
             'allAvailableScheduleIds' => $allAvailableScheduleIds,
             'cellAvailableMap' => $cellAvailableMap,
+            'templateBarbers' => $templateBarbers,
+            'templateData' => $templateData,
         ]);
     }
 
@@ -258,6 +277,7 @@ class ScheduleController extends Controller
 
                 // Ambil daftar slot per hari (offset 0: Senin s/d 6: Minggu)
                 $days = $config['days'] ?? [];
+                $cleanedDays = [];
 
                 for ($offset = 0; $offset <= 6; $offset++) {
                     $rawTimes = $days[$offset] ?? [];
@@ -265,6 +285,8 @@ class ScheduleController extends Controller
                     $times = array_values(array_filter(array_unique(array_map(function ($t) {
                         return substr(trim($t), 0, 5);
                     }, $rawTimes))));
+                    sort($times);
+                    $cleanedDays[$offset] = $times;
 
                     $dateStr = $weekStart->addDays($offset)->toDateString();
 
@@ -318,10 +340,72 @@ class ScheduleController extends Controller
                         $totalApplied++;
                     }
                 }
+
+                // Sinkronkan juga konfigurasi template barber ke database
+                $barber->update([
+                    'schedule_template' => $cleanedDays,
+                ]);
             }
         });
 
         return back()->with('success', "Template jadwal berhasil diterapkan ({$totalApplied} slot jadwal aktif).");
+    }
+
+    /**
+     * Simpan template jadwal mingguan barber ke database secara dinamis via AJAX / Form.
+     */
+    public function saveTemplate(Request $request): JsonResponse|RedirectResponse
+    {
+        $data = $request->validate([
+            'templates' => ['required'],
+        ]);
+
+        $raw = $data['templates'];
+        $templates = is_array($raw) ? $raw : json_decode($raw, true);
+
+        if (empty($templates) || ! is_array($templates)) {
+            if ($request->wantsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Format data template tidak valid.',
+                ], 422);
+            }
+            return back()->with('error', 'Format data template tidak valid.');
+        }
+
+        DB::transaction(function () use ($templates): void {
+            foreach ($templates as $barberId => $config) {
+                $barber = Barber::find($barberId);
+                if (! $barber) {
+                    continue;
+                }
+
+                $days = $config['days'] ?? [];
+                $cleanedDays = [];
+
+                for ($offset = 0; $offset <= 6; $offset++) {
+                    $rawTimes = $days[$offset] ?? [];
+                    $times = array_values(array_filter(array_unique(array_map(function ($t) {
+                        return substr(trim($t), 0, 5);
+                    }, $rawTimes))));
+                    sort($times);
+                    $cleanedDays[$offset] = $times;
+                }
+
+                $barber->update([
+                    'schedule_template' => $cleanedDays,
+                ]);
+            }
+        });
+
+        if ($request->wantsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Template jadwal mingguan berhasil disimpan!',
+            ]);
+        }
+
+        return back()->with('success', 'Template jadwal mingguan berhasil disimpan!');
     }
 
     /**
