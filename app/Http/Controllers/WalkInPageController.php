@@ -216,10 +216,8 @@ class WalkInPageController extends Controller
             $schedule->update(['is_available' => false]);
         });
 
-        // Kirim rekap ke grup WA ops jika booking dijadwalkan (baik DP maupun Full)
-        if ($data['booking_type'] === 'scheduled') {
-            $notifications->sendDailyRecapToOpsGroup($today);
-        }
+        // Kirim rekap ke grup WA ops saat walk-in didaftarkan (baik Sekarang maupun Dijadwalkan)
+        $notifications->sendDailyRecapToOpsGroup($today);
 
         return redirect()->route('walkin.index')
             ->with('success', "Walk-in {$data['name']} berhasil didaftarkan.");

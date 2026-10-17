@@ -561,4 +561,83 @@ class WalkInTest extends TestCase
         $this->assertEquals(25000, $pelunasan->amount);
         $this->assertEquals('cash', $pelunasan->method);
     }
+
+    public function test_register_now_walkin_triggers_ops_group_notification_at_creation(): void
+    {
+        $mock = $this->mock(BookingNotificationService::class);
+        $mock->shouldReceive('sendDailyRecapToOpsGroup')
+            ->with($this->today)
+            ->once();
+
+        $response = $this->post(route('walkin.store'), [
+            'barber_id' => $this->barber1->id,
+            'name' => 'Walkin Customer Now',
+            'booking_type' => 'now',
+        ]);
+
+        $response->assertRedirect(route('walkin.index'));
+        $response->assertSessionHas('success');
+
+        $this->assertDatabaseHas('bookings', [
+            'name' => 'Walkin Customer Now',
+            'source' => 'walk_in',
+            'barber_id' => $this->barber1->id,
+            'status' => 'confirmed',
+        ]);
+    }
+
+    public function test_register_scheduled_walkin_triggers_ops_group_notification_at_creation(): void
+    {
+        $mock = $this->mock(BookingNotificationService::class);
+        $mock->shouldReceive('sendDailyRecapToOpsGroup')
+            ->with($this->today)
+            ->once();
+
+        $response = $this->post(route('walkin.store'), [
+            'barber_id' => $this->barber1->id,
+            'name' => 'Walkin Customer Scheduled',
+            'booking_type' => 'scheduled',
+            'scheduled_time' => '14:00',
+            'phone' => '081234567890',
+            'payment_type' => 'full',
+        ]);
+
+        $response->assertRedirect(route('walkin.index'));
+        $response->assertSessionHas('success');
+
+        $this->assertDatabaseHas('bookings', [
+            'name' => 'Walkin Customer Scheduled',
+            'source' => 'walk_in',
+            'barber_id' => $this->barber1->id,
+            'status' => 'confirmed',
+        ]);
+    }
+
+    public function test_now_walkin_triggers_notification_twice_on_registration_and_completion(): void
+    {
+        $mock = $this->mock(BookingNotificationService::class);
+        $mock->shouldReceive('sendDailyRecapToOpsGroup')
+            ->with($this->today)
+            ->twice();
+
+        // 1. Didaftarkan (Notifikasi ke-1)
+        $this->post(route('walkin.store'), [
+            'barber_id' => $this->barber1->id,
+            'name' => 'Walkin Customer 2x Notif',
+            'booking_type' => 'now',
+        ])->assertRedirect(route('walkin.index'));
+
+        $booking = Booking::where('name', 'Walkin Customer 2x Notif')->firstOrFail();
+
+        // 2. Diselesaikan (Notifikasi ke-2)
+        $this->patch(route('walkin.complete', ['booking' => $booking->id]), [
+            'service_ids'    => [$this->service1->id],
+            'payment_type'   => 'full',
+            'payment_method' => 'cash',
+        ])->assertSessionHas('success');
+
+        $booking->refresh();
+        $this->assertEquals('completed', $booking->status);
+    }
 }
+
