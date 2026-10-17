@@ -15,18 +15,32 @@ use Illuminate\Validation\ValidationException;
 
 class WalkInPageController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
         $barbers = Barber::where('is_active', true)
             ->orderBy('name')->get(['id', 'name', 'role']);
 
         $today = Carbon::today()->toDateString();
 
-        $walkIns = Booking::with(['barber:id,name,role', 'items.service:id,name', 'payment'])
-            ->where('source', 'walk_in')
+        $query = Booking::with(['barber:id,name,role', 'items', 'items.service:id,name,price', 'payment'])
             ->whereDate('scheduled_at', $today)
-            ->orderByDesc('scheduled_at')
-            ->get();
+            ->where(function ($q) {
+                $q->where('source', 'walk_in')
+                  ->orWhere(function ($onlineQuery) {
+                      $onlineQuery->where('source', 'online')
+                                  ->whereIn('status', ['confirmed', 'completed', 'cancelled']);
+                  });
+            });
+
+        if ($request->filled('barber')) {
+            $query->where('barber_id', $request->input('barber'));
+        }
+
+        if ($request->filled('source') && in_array($request->input('source'), ['walk_in', 'online'])) {
+            $query->where('source', $request->input('source'));
+        }
+
+        $walkIns = $query->orderByDesc('scheduled_at')->get();
 
         $services = Service::where('is_active', true)
             ->orderBy('category')->orderBy('name')
@@ -52,11 +66,13 @@ class WalkInPageController extends Controller
             });
 
         return view('walkin.page', [
-            'barbers'           => $barbers,
-            'walkIns'           => $walkIns,
-            'serviceCategories' => $serviceCategories,
-            'today'             => $today,
-            'availableSchedules'=> $availableSchedules,
+            'barbers'            => $barbers,
+            'walkIns'            => $walkIns,
+            'serviceCategories'  => $serviceCategories,
+            'today'              => $today,
+            'availableSchedules' => $availableSchedules,
+            'selectedBarber'     => $request->input('barber'),
+            'selectedSource'     => $request->input('source'),
         ]);
     }
 
@@ -214,53 +230,74 @@ class WalkInPageController extends Controller
         Booking $booking,
         BookingNotificationService $notifications
     ) {
-        abort_if($booking->source !== 'walk_in', 404);
+        abort_if(!in_array($booking->source, ['walk_in', 'online']), 404);
         abort_if($booking->status === 'completed', 422, 'Sudah dilengkapi.');
+        abort_if($booking->status === 'cancelled', 422, 'Booking yang dibatalkan tidak dapat dilengkapi.');
 
-        $booking->load('payment');
-        $hasDp   = $booking->payment && $booking->payment->purpose === 'dp';
-        $dpPaid  = $hasDp ? (int) $booking->payment->amount : 0;
+        $booking->load(['payment', 'barber', 'items']);
+        $hasDp = ($booking->payment_type === 'dp' || ($booking->payment && $booking->payment->purpose === 'dp'));
+        $isPrepaidFull = (!$hasDp && $booking->payment && $booking->payment->status === 'paid' && in_array($booking->payment->purpose, ['full_payment', 'walk_in']));
+        $prepaidAmount = $hasDp
+            ? ($booking->payment ? (int) $booking->payment->amount : 0)
+            : ($isPrepaidFull ? ($booking->payment ? (int) $booking->payment->amount : (int) $booking->total_amount) : 0);
 
-        // Validasi dinamis berdasarkan apakah sudah ada DP
+        // Validasi dinamis berdasarkan apakah sudah ada pembayaran (DP atau Online Full)
         $rules = [
-            'service_ids'   => ['required', 'array', 'min:1'],
-            'service_ids.*' => ['integer', 'distinct', 'exists:services,id'],
+            'service_ids'     => ['required', 'array', 'min:1'],
+            'service_ids.*'   => ['integer', 'distinct', 'exists:services,id'],
+            'custom_prices'   => ['nullable', 'array'],
+            'custom_prices.*' => ['nullable', 'integer', 'min:0'],
+            'description'     => ['nullable', 'string', 'max:1000'],
         ];
-        if (!$hasDp) {
+
+        if ($hasDp || $isPrepaidFull) {
+            $rules['settlement_payment_method'] = ['nullable', 'in:cash,qris_static'];
+        } else {
             $rules['payment_type']   = ['required', 'in:full,dp'];
             $rules['payment_method'] = ['required', 'in:cash,qris_static'];
-        } else {
-            $rules['settlement_payment_method'] = ['nullable', 'in:cash,qris_static'];
         }
 
         $data = $request->validate($rules, [
             'service_ids.required' => 'Wajib memilih minimal 1 layanan.',
         ]);
 
-        DB::transaction(function () use ($data, $booking, $hasDp, $dpPaid) {
-            $booking->load('barber');
+        DB::transaction(function () use ($data, $booking, $hasDp, $isPrepaidFull, $prepaidAmount) {
             $barber = $booking->barber;
+            $customPrices = $data['custom_prices'] ?? [];
 
             $services = Service::whereIn('id', $data['service_ids'])
                 ->where('is_active', true)->get();
             abort_if($services->count() !== count($data['service_ids']), 422);
 
-            // Owner price markup (konsisten dengan BookingAdminController)
-            $serviceItems = $services->map(function ($svc) use ($barber) {
+            // Owner price markup (konsisten dengan BookingAdminController) & custom price adjustments (e.g. Long Trim)
+            $serviceItems = $services->map(function ($svc) use ($barber, $customPrices) {
                 $isOwnerRegular = strtolower($barber->role) === 'owner'
                     && str_contains(strtolower($svc->name), 'regular haircut');
+                $basePrice = $svc->price + ($isOwnerRegular ? 10000 : 0);
+                $finalPrice = $basePrice;
+
+                if (isset($customPrices[$svc->id]) && is_numeric($customPrices[$svc->id])) {
+                    $custom = (int) $customPrices[$svc->id];
+                    // Custom price hanya berlaku jika >= harga dasar
+                    if ($custom >= $basePrice) {
+                        $finalPrice = $custom;
+                    }
+                }
+
                 return [
                     'service' => $svc,
                     'name'    => $isOwnerRegular
                         ? preg_replace('/^regular\s+/i', '', $svc->name)
                           . ' - By ' . $barber->name
                         : $svc->name,
-                    'price'   => $svc->price + ($isOwnerRegular ? 10000 : 0),
+                    'price'   => $finalPrice,
                 ];
             });
 
             $total = (int) $serviceItems->sum('price');
 
+            // Sync booking items (delete existing and recreate to match final selection)
+            $booking->items()->delete();
             $booking->items()->createMany(
                 $serviceItems->map(fn ($item) => [
                     'item_type'             => 'service',
@@ -271,9 +308,11 @@ class WalkInPageController extends Controller
                 ])->all()
             );
 
-            if ($hasDp) {
-                // Booking sudah memiliki DP - hitung sisa pelunasan
-                $sisa = max(0, $total - $dpPaid);
+            if ($hasDp || $isPrepaidFull) {
+                // Booking sudah memiliki pembayaran di awal (DP atau Online Full) - hitung sisa (memperhitungkan tip barber jika ada)
+                $tipAmount  = (int) ($booking->tip_amount ?? 0);
+                $grandTotal = $total + $tipAmount;
+                $sisa       = max(0, $grandTotal - $prepaidAmount);
 
                 if ($sisa > 0) {
                     Payment::create([
@@ -285,8 +324,8 @@ class WalkInPageController extends Controller
                         'recorded_by'          => null,
                         'partner_reference_no' => 'PELUNASAN-BK-' . $booking->id,
                         'provider_payload'     => [
-                            'booking_id'    => $booking->id,
-                            'dp_payment_id' => $booking->payment_id,
+                            'booking_id'         => $booking->id,
+                            'initial_payment_id' => $booking->payment_id,
                         ],
                     ]);
                 }
@@ -295,9 +334,10 @@ class WalkInPageController extends Controller
                     'total_amount'       => $total,
                     'outstanding_amount' => 0,
                     'status'             => 'completed',
+                    'description'        => $data['description'] ?? null,
                 ]);
             } else {
-                // Booking tanpa DP (Sekarang / Jadwalkan Full)
+                // Booking tanpa pembayaran awal (Sekarang / Jadwalkan Full)
                 $dpAmount    = (int) config('booking.dp_amount', 40000);
                 $paid        = $data['payment_type'] === 'dp' ? $dpAmount : $total;
                 $outstanding = max(0, $total - $paid);
@@ -317,22 +357,24 @@ class WalkInPageController extends Controller
                     'total_amount'       => $total,
                     'outstanding_amount' => $outstanding,
                     'status'             => 'completed',
+                    'description'        => $data['description'] ?? null,
                 ]);
             }
         });
 
-        // Kirim rekap harian ke grup WA ops (dengan label walk-in)
+        // Kirim rekap harian ke grup WA ops
         $notifications->sendDailyRecapToOpsGroup(
             Carbon::parse($booking->scheduled_at)->toDateString()
         );
 
-        return redirect()->route('walkin.index')
-            ->with('success', "Walk-in {$booking->name} berhasil dilengkapi.");
+        $label = $booking->source === 'online' ? 'Booking online' : 'Walk-in';
+        return redirect()->back()
+            ->with('success', "{$label} {$booking->name} berhasil dilengkapi.");
     }
 
     public function cancel(Booking $booking, BookingNotificationService $notifications)
     {
-        abort_if($booking->source !== 'walk_in', 404);
+        abort_if(!in_array($booking->source, ['walk_in', 'online']), 404);
         abort_if(
             in_array($booking->status, ['completed', 'cancelled']),
             422,
@@ -352,7 +394,8 @@ class WalkInPageController extends Controller
             Carbon::parse($booking->scheduled_at)->toDateString()
         );
 
-        return redirect()->route('walkin.index')
-            ->with('success', "Walk-in {$booking->name} dibatalkan.");
+        $label = $booking->source === 'online' ? 'Booking online' : 'Walk-in';
+        return redirect()->back()
+            ->with('success', "{$label} {$booking->name} dibatalkan.");
     }
 }
