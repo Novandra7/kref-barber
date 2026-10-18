@@ -15,6 +15,21 @@
         <span>Harap lengkapi semua kolom yang wajib diisi dan pilih setidaknya satu layanan sebelum melanjutkan.</span>
     </div>
 
+    <!-- Alert Bentrok Jam Layanan Chemical -->
+    <div
+        x-cloak
+        x-show="isChemicalCombo() && isNextSlotBlockedOrTaken()"
+        role="alert"
+        class="mb-5 flex items-center gap-3 rounded-xl border-2 border-red-500 bg-red-100 px-4 py-3 text-sm font-bold text-red-800 shadow-sm"
+    >
+        <svg class="size-6 shrink-0 text-red-600" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none">
+            <path d="M12 9v4m0 4h.01M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <span>
+            Layanan Chemical membutuhkan 2 jam pengerjaan (slot <span x-text="currentGuest?.time"></span> &amp; <span x-text="getNextSlotTime() || 'berikutnya'"></span>). Namun jam <span x-text="getNextSlotTime() || 'berikutnya'"></span> sudah terisi oleh pelanggan lain atau tidak tersedia. Silakan kembali ke langkah sebelumnya untuk memilih jam lain.
+        </span>
+    </div>
+
     <div class="flex flex-col md:flex-row gap-4">
         <!-- DETAIL ANDA -->
         <div class="w-full md:w-1/3 rounded-xl bg-base border border-gray-200 p-6">
@@ -101,6 +116,20 @@
             <h2 class="pb-4 text-xl font-montserrat font-bold tracking-tight text-brand">
                 PILIH LAYANAN *
             </h2>
+
+            <!-- Info Banner Chemical 2 Jam -->
+            <div
+                x-cloak
+                x-show="isChemicalCombo() && !isNextSlotBlockedOrTaken()"
+                class="mb-4 flex items-center gap-2.5 rounded-xl border border-blue-200 bg-blue-50 px-3.5 py-2.5 text-xs font-semibold text-blue-900 shadow-sm"
+            >
+                <svg class="size-5 shrink-0 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <span>
+                    Layanan Chemical membutuhkan 2 slot pengerjaan. Slot jam <span class="font-bold" x-text="currentGuest?.time"></span><template x-if="getNextSlotTime()"><span> &amp; <span class="font-bold" x-text="getNextSlotTime()"></span></span></template> akan otomatis terkunci untuk Anda.
+                </span>
+            </div>
 
             @foreach (collect($services)->groupBy('category') as $category => $categoryServices)
                 @php
@@ -210,7 +239,7 @@
                     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                         <path d="M12 7V12L15 15M21 12C21 13.1819 20.7672 14.3522 20.3149 15.4442C19.8626 16.5361 19.1997 17.5282 18.364 18.364C17.5282 19.1997 16.5361 19.8626 15.4442 20.3149C14.3522 20.7672 13.1819 21 12 21C10.8181 21 9.64778 20.7672 8.55585 20.3149C7.46392 19.8626 6.47177 19.1997 5.63604 18.364C4.80031 17.5282 4.13738 16.5361 3.68508 15.4442C3.23279 14.3522 3 13.1819 3 12C3 9.61305 3.94821 7.32387 5.63604 5.63604C7.32387 3.94821 9.61305 3 12 3C14.3869 3 16.6761 3.94821 18.364 5.63604C20.0518 7.32387 21 9.61305 21 12Z" stroke="#C83E3E" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                     </svg>
-                    <span class="text-sm font-semibold text-gray-900" x-text="currentGuest?.time || '-'"></span>
+                    <span class="text-sm font-semibold text-gray-900" x-text="getGuestTimeDisplay(currentGuest)"></span>
                 </div>
 
                 <hr class="my-2 border-gray-200">

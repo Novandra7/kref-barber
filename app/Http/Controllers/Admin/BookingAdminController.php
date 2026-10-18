@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Exports\BookingsExport;
 use App\Jobs\SendBookingReminderJob;
 use App\Models\Barber;
+use App\Models\BlockedSlot;
 use App\Models\Booking;
 use App\Models\Payment;
 use App\Models\Refund;
@@ -159,10 +160,12 @@ class BookingAdminController extends Controller
                 ]);
             }
 
+            $timeStr = Carbon::parse($data['time'])->format('H:i:00');
+
             $schedule = Schedule::query()
                 ->where('barber_id', $data['barber_id'])
                 ->whereDate('date', $data['date'])
-                ->whereTime('slot_time', $data['time'])
+                ->whereTime('slot_time', $timeStr)
                 ->lockForUpdate()
                 ->first();
 
@@ -177,7 +180,7 @@ class BookingAdminController extends Controller
                 $schedule = Schedule::create([
                     'barber_id'    => $data['barber_id'],
                     'date'         => $data['date'],
-                    'slot_time'    => $data['time'],
+                    'slot_time'    => $timeStr,
                     'is_available' => false,
                 ]);
             }
@@ -209,6 +212,36 @@ class BookingAdminController extends Controller
                 throw ValidationException::withMessages([
                     'dp_amount' => 'Nominal DP (Rp ' . number_format($amount, 0, ',', '.') . ') tidak boleh melebihi total biaya layanan (Rp ' . number_format($total, 0, ',', '.') . ').',
                 ]);
+            }
+
+            // Deteksi kombinasi Chemical yang membutuhkan penguncian 2 slot jadwal
+            $hasChemical = $services->contains(fn ($s) => strtolower($s->category) === 'chemical');
+            $hasHaircut = $services->contains(fn ($s) => strtolower($s->category) === 'haircut');
+            $hasTreatment = $services->contains(fn ($s) => strtolower($s->category) === 'treatment');
+            $isChemicalCombo = $hasChemical && ($hasHaircut || $hasTreatment);
+
+            $nextSchedule = null;
+            if ($isChemicalCombo) {
+                $timeStr = Carbon::parse($data['time'])->format('H:i:00');
+                $existingNext = Schedule::query()
+                    ->where('barber_id', $data['barber_id'])
+                    ->whereDate('date', $data['date'])
+                    ->where('slot_time', '>', $timeStr)
+                    ->orderBy('slot_time')
+                    ->lockForUpdate()
+                    ->first();
+
+                if ($existingNext) {
+                    if (! $existingNext->is_available) {
+                        $nextTimeDisplay = $existingNext->slot_time instanceof \DateTimeInterface
+                            ? $existingNext->slot_time->format('H:i')
+                            : substr((string) $existingNext->slot_time, 0, 5);
+                        throw ValidationException::withMessages([
+                            'time' => "Slot jadwal berikutnya ({$nextTimeDisplay}) untuk layanan chemical sudah terisi. Silakan pilih jam lain.",
+                        ]);
+                    }
+                    $nextSchedule = $existingNext;
+                }
             }
 
             // --- PERBAIKAN: Menghapus 'payment_status' dari array create ---
@@ -247,6 +280,17 @@ class BookingAdminController extends Controller
             $booking->update(['payment_id' => $payment->id]);
 
             $schedule->update(['is_available' => false]);
+
+            if ($isChemicalCombo && $nextSchedule) {
+                $nextSchedule->update(['is_available' => false]);
+                BlockedSlot::create([
+                    'schedule_id' => $nextSchedule->id,
+                    'booking_id'  => $booking->id,
+                    'reason'      => BlockedSlot::REASON_CHEMICAL,
+                    'notes'       => 'Lanjutan pengerjaan chemical untuk ' . $data['name'],
+                    'created_by'  => auth()->id(),
+                ]);
+            }
         });
 
         $notifications->sendDailyRecapToOpsGroup($data['date']);
@@ -305,10 +349,12 @@ class BookingAdminController extends Controller
                 ]);
             }
 
+            $timeStr = Carbon::parse($data['time'])->format('H:i:00');
+
             $schedule = Schedule::query()
                 ->where('barber_id', $data['barber_id'])
                 ->whereDate('date', $data['date'])
-                ->whereTime('slot_time', $data['time'])
+                ->whereTime('slot_time', $timeStr)
                 ->lockForUpdate()
                 ->first();
 
@@ -332,7 +378,7 @@ class BookingAdminController extends Controller
                 $schedule = Schedule::create([
                     'barber_id'    => $data['barber_id'],
                     'date'         => $data['date'],
-                    'slot_time'    => $data['time'],
+                    'slot_time'    => $timeStr,
                     'is_available' => $isCancelled,
                 ]);
 
@@ -343,6 +389,36 @@ class BookingAdminController extends Controller
 
             $services = Service::query()->whereIn('id', $data['service_ids'])->where('is_active', true)->get();
             abort_if($services->count() !== count($data['service_ids']), 422, 'One or more selected services are inactive.');
+
+            $hasChemical = $services->contains(fn ($s) => strtolower($s->category) === 'chemical');
+            $hasHaircut = $services->contains(fn ($s) => strtolower($s->category) === 'haircut');
+            $hasTreatment = $services->contains(fn ($s) => strtolower($s->category) === 'treatment');
+            $isChemicalCombo = $hasChemical && ($hasHaircut || $hasTreatment);
+
+            $nextSchedule = null;
+            if ($isChemicalCombo && ! $isCancelled) {
+                $timeStr = Carbon::parse($data['time'])->format('H:i:00');
+                $existingNext = Schedule::query()
+                    ->where('barber_id', $data['barber_id'])
+                    ->whereDate('date', $data['date'])
+                    ->where('slot_time', '>', $timeStr)
+                    ->orderBy('slot_time')
+                    ->lockForUpdate()
+                    ->first();
+
+                if ($existingNext) {
+                    $isSelfBlocked = $existingNext->blockedSlot && $existingNext->blockedSlot->booking_id === $booking->id;
+                    if (! $existingNext->is_available && ! $isSelfBlocked) {
+                        $nextTimeDisplay = $existingNext->slot_time instanceof \DateTimeInterface
+                            ? $existingNext->slot_time->format('H:i')
+                            : substr((string) $existingNext->slot_time, 0, 5);
+                        throw ValidationException::withMessages([
+                            'time' => "Slot jadwal berikutnya ({$nextTimeDisplay}) untuk layanan chemical sudah terisi oleh booking lain.",
+                        ]);
+                    }
+                    $nextSchedule = $existingNext;
+                }
+            }
 
             $serviceItems = $this->snapshotServices($services, $barber);
             $total = (int) $serviceItems->sum('price');
@@ -385,6 +461,32 @@ class BookingAdminController extends Controller
                 'outstanding_amount' => $outstanding,
                 'scheduled_at'       => $data['date'] . ' ' . $data['time'],
             ]);
+
+            if ($isCancelled) {
+                $booking->releaseSchedules();
+            } else {
+                // Lepaskan blocked slot lama jika jadwal/layanan berubah
+                $currentBlockedSlotIds = $booking->blockedSlots()->pluck('schedule_id')->all();
+                if ($nextSchedule) {
+                    $currentBlockedSlotIds = array_diff($currentBlockedSlotIds, [$nextSchedule->id]);
+                }
+                if (! empty($currentBlockedSlotIds)) {
+                    Schedule::whereIn('id', $currentBlockedSlotIds)->update(['is_available' => true]);
+                    BlockedSlot::whereIn('schedule_id', $currentBlockedSlotIds)->where('booking_id', $booking->id)->delete();
+                }
+
+                if ($isChemicalCombo && $nextSchedule) {
+                    $nextSchedule->update(['is_available' => false]);
+                    BlockedSlot::firstOrCreate([
+                        'schedule_id' => $nextSchedule->id,
+                        'booking_id'  => $booking->id,
+                    ], [
+                        'reason'      => BlockedSlot::REASON_CHEMICAL,
+                        'notes'       => 'Lanjutan pengerjaan chemical untuk ' . $data['name'],
+                        'created_by'  => auth()->id(),
+                    ]);
+                }
+            }
 
             $booking->items()->delete();
             $booking->items()->createMany($serviceItems->map(fn (array $item): array => [
@@ -545,9 +647,7 @@ class BookingAdminController extends Controller
                     }
 
                     // Bebaskan slot jadwal barber milik booking yang dibatalkan
-                    if ($booking->schedule) {
-                        $booking->schedule->update(['is_available' => true]);
-                    }
+                    $booking->releaseSchedules();
                 } elseif ($booking->status === 'cancelled') {
                     // Booking sebelumnya cancelled, di-restore → kunci kembali slot jadwalnya
                     if ($booking->schedule) {
@@ -567,9 +667,7 @@ class BookingAdminController extends Controller
                         $newSchedule = Schedule::find($booking->requested_schedule_id);
                         if ($newSchedule) {
                             // 1. Bebaskan slot jadwal lama
-                            if ($booking->schedule) {
-                                $booking->schedule->update(['is_available' => true]);
-                            }
+                            $booking->releaseSchedules();
                             // 2. Kunci slot jadwal baru
                             $newSchedule->update(['is_available' => false]);
 

@@ -45,7 +45,7 @@
                                             <circle cx="12" cy="12" r="10"></circle>
                                             <polyline points="12 6 12 16 14"></polyline>
                                         </svg>
-                                        <span x-text="guest.time || '-'"></span>
+                                        <span x-text="getGuestTimeDisplay(guest)"></span>
                                     </span>
                                 </div>
                             </div>

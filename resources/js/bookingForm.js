@@ -254,12 +254,97 @@ export default (
     },
 
     isScheduleTaken(schedule) {
-        return this.guests.some((guest, index) =>
-            index !== this.editingIndex &&
-            guest.barber == schedule.barber_id &&
-            guest.date === schedule.date &&
-            guest.time === schedule.slot_time
+        const schedTime = (schedule.slot_time || '').substring(0, 5);
+        return this.guests.some((guest, index) => {
+            if (index === this.editingIndex) return false;
+            if (guest.barber != schedule.barber_id || guest.date !== schedule.date) return false;
+            const guestTime = (guest.time || '').substring(0, 5);
+            if (guestTime === schedTime) return true;
+            if (this.isChemicalCombo(guest)) {
+                const nextTime = this.getNextSlotTime(guest.time, guest);
+                if (nextTime && nextTime === schedTime) {
+                    return true;
+                }
+            }
+            return false;
+        });
+    },
+
+    isChemicalCombo(guest = this.currentGuest) {
+        if (!guest) return false;
+        const hasChemical = Boolean(guest.selectedChemical);
+        const hasHaircut = Boolean(guest.selectedHaircut);
+        const hasTreatment = Array.isArray(guest.selectedTreatments) && guest.selectedTreatments.length > 0;
+        return hasChemical && (hasHaircut || hasTreatment);
+    },
+
+    getNextSchedule(guest = this.currentGuest) {
+        if (!guest?.barber || !guest?.date || !guest?.time) return null;
+        const barber = (Array.isArray(this.barbers) ? this.barbers : []).find(b => b.id == guest.barber || b.name === guest.barber);
+        const barberId = barber?.id || guest.barber;
+        const daySchedules = this.schedules
+            .filter(s => (s.barber_id == barberId || s.barber_id == guest.barber) && s.date === guest.date)
+            .sort((a, b) => a.slot_time.localeCompare(b.slot_time));
+
+        const targetTime = guest.time.substring(0, 5);
+        const currentIndex = daySchedules.findIndex(s => 
+            s.slot_time.substring(0, 5) === targetTime
         );
+        if (currentIndex === -1 || currentIndex >= daySchedules.length - 1) return null;
+        return daySchedules[currentIndex + 1];
+    },
+
+    getNextSlotTime(timeStr = this.currentGuest?.time, guest = this.currentGuest) {
+        if (!guest?.barber || !guest?.date) return null;
+        const target = (timeStr || guest.time || '').substring(0, 5);
+        if (!target) return null;
+
+        const barber = (Array.isArray(this.barbers) ? this.barbers : []).find(b => b.id == guest.barber || b.name === guest.barber);
+        const barberId = barber?.id || guest.barber;
+        const daySchedules = this.schedules
+            .filter(s => (s.barber_id == barberId || s.barber_id == guest.barber) && s.date === guest.date)
+            .sort((a, b) => a.slot_time.localeCompare(b.slot_time));
+
+        const currentIndex = daySchedules.findIndex(s => 
+            s.slot_time.substring(0, 5) === target
+        );
+        if (currentIndex === -1 || currentIndex >= daySchedules.length - 1) return null;
+        return daySchedules[currentIndex + 1].slot_time.substring(0, 5);
+    },
+
+    getGuestTimeDisplay(guest = this.currentGuest) {
+        if (!guest || !guest.time) return '-';
+        if (this.isChemicalCombo(guest)) {
+            const nextTime = this.getNextSlotTime(guest.time, guest);
+            if (nextTime) {
+                return `${guest.time} & ${nextTime}`;
+            }
+        }
+        return guest.time;
+    },
+
+    isNextSlotBlockedOrTaken(guest = this.currentGuest) {
+        if (!guest?.barber || !guest?.date || !guest?.time) return false;
+        const nextSchedule = this.getNextSchedule(guest);
+        // Jika tidak ada slot berikutnya sama sekali pada hari itu (misal slot terakhir), maka combo chemical tidak bisa dipesan
+        if (!nextSchedule) return true;
+
+        const isAvailable = nextSchedule.is_available === true || nextSchedule.is_available === 1 || nextSchedule.is_available === '1';
+        if (!isAvailable) return true;
+        if (this.isScheduleTaken(nextSchedule)) return true;
+        if (this.isTimePassed(nextSchedule.slot_time)) return true;
+
+        const nextTime = nextSchedule.slot_time.substring(0, 5);
+        const barberId = this.selectedBarberObj()?.id || guest.barber;
+        const takenByOtherGuest = this.guests.some((g, index) =>
+            index !== this.editingIndex &&
+            (g.barber == barberId || g.barber == guest.barber) &&
+            g.date === guest.date &&
+            (g.time || '').substring(0, 5) === nextTime
+        );
+        if (takenByOtherGuest) return true;
+
+        return false;
     },
 
     isAdditionalGuest() {
@@ -580,7 +665,9 @@ export default (
             (Array.isArray(this.currentGuest?.selectedTreatments) && this.currentGuest.selectedTreatments.length > 0)
         );
 
-        if (!hasName || !hasPhone || !hasService) {
+        const isChemicalClash = this.isChemicalCombo() && this.isNextSlotBlockedOrTaken();
+
+        if (!hasName || !hasPhone || !hasService || isChemicalClash) {
             this.validationAttempted = true;
             return;
         }

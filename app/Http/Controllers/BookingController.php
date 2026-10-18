@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Barber;
+use App\Models\BlockedSlot;
 use App\Models\Booking;
 use App\Models\BookingItem;
 use App\Models\Payment;
@@ -138,13 +139,43 @@ class BookingController extends Controller
                         ->orWhere('name', $guest['barber']))
                     ->firstOrFail();
 
+                $slotTime = Carbon::parse($guest['time'])->format('H:i:00');
+
                 // --- Kunci jadwal yang dipilih agar tidak double booking ---
                 $schedule = Schedule::where('barber_id', $barber->id)
                     ->whereDate('date', $guest['date'])
-                    ->whereTime('slot_time', $guest['time'])
+                    ->whereTime('slot_time', $slotTime)
                     ->where('is_available', true)
                     ->lockForUpdate()
                     ->firstOrFail();
+
+                // --- Deteksi jika tamu memilih kombinasi Chemical yang membutuhkan 2 slot jam ---
+                $hasChemical = !empty($guest['selectedChemical']);
+                $hasHaircut = !empty($guest['selectedHaircut']);
+                $hasTreatment = !empty($guest['selectedTreatments']) && count($guest['selectedTreatments']) > 0;
+                $isChemicalCombo = $hasChemical && ($hasHaircut || $hasTreatment);
+                $nextSchedule = null;
+
+                if ($isChemicalCombo) {
+                    $existingNextSchedule = Schedule::where('barber_id', $barber->id)
+                        ->whereDate('date', $guest['date'])
+                        ->where('slot_time', '>', $slotTime)
+                        ->orderBy('slot_time')
+                        ->lockForUpdate()
+                        ->first();
+
+                    if (!$existingNextSchedule) {
+                        abort(422, 'Layanan chemical membutuhkan 2 slot jadwal, namun tidak ada slot jadwal berikutnya yang tersedia pada hari tersebut.');
+                    }
+
+                    if (!$existingNextSchedule->is_available) {
+                        $nextTimeDisplay = $existingNextSchedule->slot_time instanceof \DateTimeInterface
+                            ? $existingNextSchedule->slot_time->format('H:i')
+                            : substr((string) $existingNextSchedule->slot_time, 0, 5);
+                        abort(422, "Slot jadwal berikutnya ({$nextTimeDisplay}) untuk pengerjaan chemical sudah terisi pelanggan lain. Silakan pilih jam lain.");
+                    }
+                    $nextSchedule = $existingNextSchedule;
+                }
 
                 // --- Kumpulkan semua service yang dipilih tamu ini ---
                 // (haircut, chemical, dan treatment tambahan)
@@ -210,6 +241,17 @@ class BookingController extends Controller
 
                 // Tandai jadwal sebagai sudah tidak tersedia
                 $schedule->update(['is_available' => false]);
+
+                // Jika kombinasi chemical, kunci juga slot jam berikutnya dan catat di BlockedSlot
+                if ($isChemicalCombo && $nextSchedule) {
+                    $nextSchedule->update(['is_available' => false]);
+                    BlockedSlot::create([
+                        'schedule_id' => $nextSchedule->id,
+                        'booking_id'  => $booking->id,
+                        'reason'      => BlockedSlot::REASON_CHEMICAL,
+                        'notes'       => 'Lanjutan pengerjaan chemical untuk ' . $guest['name'],
+                    ]);
+                }
             }
 
             // --- Hitung jumlah yang harus dibayar (DP per tamu atau Full + Tips) ---
@@ -407,10 +449,8 @@ class BookingController extends Controller
                     'status' => 'cancelled',
                 ]);
 
-                // Lepas kembali slot jadwal
-                if ($booking->schedule) {
-                    $booking->schedule->update(['is_available' => true]);
-                }
+                // Lepas kembali slot jadwal utama dan slot yang diblokir
+                $booking->releaseSchedules();
 
                 // Jika seluruh booking dalam transaksi tersebut sudah cancelled, tandai payment failed
                 $hasActiveBookings = $payment?->bookings()->where('status', '!=', 'cancelled')->exists();

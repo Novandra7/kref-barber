@@ -9,8 +9,20 @@
     <link href="https://fonts.googleapis.com/css2?family=Dosis:wght@400;500;600;700&family=League+Gothic&family=Montserrat:wght@400;500;600;700;900&display=swap" rel="stylesheet">
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
-<body class="bg-[#FAF8F5] text-gray-900 min-h-screen selection:bg-amber-300 selection:text-gray-900 font-montserrat">
-    <div class="max-w-lg mx-auto pb-16 sm:pb-20 pt-4 sm:pt-6 px-3 sm:px-4" x-data="walkInApp(@js($availableSchedules), '{{ $selectedBarber ?? '' }}', '{{ $selectedSource ?? '' }}')">
+    @php
+        $initialFormState = [
+            'bookingType'           => old('booking_type', 'now'),
+            'selectedBarberId'      => (string) old('barber_id', $selectedBarber ?? ''),
+            'selectedScheduledTime' => (string) old('scheduled_time', ''),
+            'customerName'          => (string) old('name', ''),
+            'customerPhone'         => (string) old('phone', ''),
+            'isChemical'            => (bool) old('is_chemical', false),
+            'scheduledPaymentType'  => (string) old('payment_type', 'dp'),
+            'scheduledDpAmount'     => (int) old('dp_amount', 40000),
+            'scheduledPaymentMethod'=> (string) old('dp_payment_method', 'cash'),
+        ];
+    @endphp
+    <div class="max-w-lg mx-auto pb-16 sm:pb-20 pt-4 sm:pt-6 px-3 sm:px-4" x-data="walkInApp(@js($availableSchedules), '{{ $selectedBarber ?? '' }}', '{{ $selectedSource ?? '' }}', @js($initialFormState))">
         
         <!-- Header -->
         <div class="mb-5 sm:mb-8 rounded-2xl border-2 border-gray-900 bg-brand p-3 sm:p-4 text-center shadow-[3px_3px_0px_0px_rgba(17,24,39,1)] sm:shadow-[4px_4px_0px_0px_rgba(17,24,39,1)]">
@@ -67,7 +79,7 @@
                 <div x-show="bookingType === 'scheduled'" x-cloak class="grid grid-cols-2 gap-2.5 sm:gap-4 mb-4 sm:mb-5">
                     <div>
                         <label class="block text-[11px] sm:text-xs font-bold mb-1.5 uppercase tracking-wider text-gray-500">Jam (Hari Ini)</label>
-                        <select name="scheduled_time" :required="bookingType === 'scheduled'" class="w-full rounded-xl border-2 border-gray-900 bg-[#FAF8F5] px-3.5 py-2.5 sm:px-4 sm:py-3 text-xs sm:text-sm font-bold text-gray-900 shadow-[2px_2px_0px_0px_rgba(17,24,39,1)] focus:outline-none focus:ring-0 focus:shadow-[4px_4px_0px_0px_rgba(17,24,39,1)] transition-all cursor-pointer">
+                        <select name="scheduled_time" x-model="selectedScheduledTime" :required="bookingType === 'scheduled'" class="w-full rounded-xl border-2 border-gray-900 bg-[#FAF8F5] px-3.5 py-2.5 sm:px-4 sm:py-3 text-xs sm:text-sm font-bold text-gray-900 shadow-[2px_2px_0px_0px_rgba(17,24,39,1)] focus:outline-none focus:ring-0 focus:shadow-[4px_4px_0px_0px_rgba(17,24,39,1)] transition-all cursor-pointer">
                             <option value="">-- Pilih Jam --</option>
                             <template x-for="slot in availableSlots" :key="slot.time">
                                 <option :value="slot.time" x-text="slot.time"></option>
@@ -80,7 +92,7 @@
                             <span class="inline-flex shrink-0 items-center rounded-l-xl border-2 border-r-0 border-gray-900 bg-gray-200 px-2.5 sm:px-3 text-2xs sm:text-xs font-black text-gray-900 shadow-[2px_2px_0px_0px_rgba(17,24,39,1)]">
                                 +62
                             </span>
-                            <input type="tel" name="phone" :required="bookingType === 'scheduled'"
+                            <input type="tel" name="phone" x-model="customerPhone" :required="bookingType === 'scheduled'"
                                 placeholder="81234567890"
                                 oninput="this.value = this.value.replace(/^(\+?62|0)+/, '').replace(/[^0-9]/g, '')"
                                 class="w-full rounded-r-xl border-2 border-gray-900 bg-[#FAF8F5] px-3.5 py-2.5 sm:px-4 sm:py-3 text-xs sm:text-sm font-bold text-gray-900 shadow-[2px_2px_0px_0px_rgba(17,24,39,1)] focus:outline-none focus:ring-0 focus:shadow-[4px_4px_0px_0px_rgba(17,24,39,1)] transition-all">
@@ -90,7 +102,19 @@
 
                 <div class="mb-4 sm:mb-6">
                     <label class="block text-[11px] sm:text-xs font-bold mb-1.5 uppercase tracking-wider text-gray-500">Nama Customer</label>
-                    <input type="text" name="name" required placeholder="Ketik nama..." class="w-full rounded-xl border-2 border-gray-900 bg-[#FAF8F5] px-3.5 py-2.5 sm:px-4 sm:py-3 text-xs sm:text-sm font-bold text-gray-900 shadow-[2px_2px_0px_0px_rgba(17,24,39,1)] focus:outline-none focus:ring-0 focus:shadow-[4px_4px_0px_0px_rgba(17,24,39,1)] transition-all" autocomplete="off">
+                    <input type="text" name="name" x-model="customerName" required placeholder="Ketik nama..." class="w-full rounded-xl border-2 border-gray-900 bg-[#FAF8F5] px-3.5 py-2.5 sm:px-4 sm:py-3 text-xs sm:text-sm font-bold text-gray-900 shadow-[2px_2px_0px_0px_rgba(17,24,39,1)] focus:outline-none focus:ring-0 focus:shadow-[4px_4px_0px_0px_rgba(17,24,39,1)] transition-all" autocomplete="off">
+                </div>
+
+                <!-- Toggle Layanan Chemical (Kunci 2 Slot Jam) -->
+                <div class="mb-4 sm:mb-6">
+                    <label class="flex cursor-pointer items-center gap-3 rounded-xl border-2 p-3 transition-all select-none"
+                           :class="isChemical ? 'border-gray-900 bg-amber-200 shadow-[2px_2px_0px_0px_rgba(17,24,39,1)]' : 'border-gray-300 bg-[#FAF8F5]'">
+                        <input type="checkbox" name="is_chemical" value="1" x-model="isChemical" class="size-4.5 rounded border-2 border-gray-900 text-brand focus:ring-0 cursor-pointer">
+                        <div class="flex flex-col">
+                            <span class="text-xs sm:text-sm font-black uppercase text-gray-900">Layanan Chemical (Kunci 2 Slot)</span>
+                            <span class="text-[11px] font-semibold text-gray-600">Otomatis mengunci jadwal terpilih + 1 slot berikutnya</span>
+                        </div>
+                    </label>
                 </div>
 
                 
@@ -249,7 +273,7 @@
                     <div class="flex items-center gap-1.5 flex-wrap">
                         <span>Filter aktif:</span>
                         @if(!empty($selectedSource ?? request('source')))
-                            <span class="rounded-md bg-sky-100 text-sky-800 px-2 py-0.5 border border-sky-400 font-black uppercase text-[10px]">
+                            <span class="rounded-md bg-sky-100 text-sky-800 px-2 py-0.5 border border-sky-400 font-black uppercase text-2xs">
                                 {{ ($selectedSource ?? request('source')) === 'online' ? 'Online' : 'Walk-in' }}
                             </span>
                         @endif
@@ -258,7 +282,7 @@
                                 $activeBarber = $barbers->firstWhere('id', $selectedBarber ?? request('barber'));
                             @endphp
                             @if($activeBarber)
-                                <span class="rounded-md bg-amber-100 text-amber-800 px-2 py-0.5 border border-amber-400 font-black uppercase text-[10px]">
+                                <span class="rounded-md bg-amber-100 text-amber-800 px-2 py-0.5 border border-amber-400 font-black uppercase text-2xs">
                                     {{ $activeBarber->name }}
                                 </span>
                             @endif
@@ -296,6 +320,8 @@
 
                                 @if($walkin->status === 'completed')
                                     <span class="inline-flex items-center rounded-md sm:rounded-lg border-[1.5px] sm:border-2 border-gray-900 bg-emerald-300 px-1.5 py-0.5 sm:px-2 text-2xs sm:text-xs font-black uppercase tracking-wider shadow-[1px_1px_0px_0px_rgba(17,24,39,1)] text-gray-900">Selesai</span>
+                                @elseif($walkin->status === 'confirmed')
+                                    <span class="inline-flex items-center rounded-md sm:rounded-lg border-[1.5px] sm:border-2 border-gray-900 bg-violet-300 px-1.5 py-0.5 sm:px-2 text-2xs sm:text-xs font-black uppercase tracking-wider shadow-[1px_1px_0px_0px_rgba(17,24,39,1)] text-gray-900">Dikonfirmasi</span>
                                 @elseif($walkin->status === 'cancelled')
                                     <span class="inline-flex items-center rounded-md sm:rounded-lg border-[1.5px] sm:border-2 border-gray-900 bg-red-300 px-1.5 py-0.5 sm:px-2 text-2xs sm:text-xs font-black uppercase tracking-wider shadow-[1px_1px_0px_0px_rgba(17,24,39,1)] text-gray-900">Batal</span>
                                 @else
@@ -307,13 +333,13 @@
                         <!-- Metadata Tags: Barber, WA, Status Pembayaran -->
                         <div class="flex flex-wrap items-center gap-y-1.5 gap-x-2 text-[11px] sm:text-xs font-bold text-gray-600 mb-2.5">
                             <div class="inline-flex items-center gap-1 rounded-md bg-gray-100 px-2 py-1 border border-gray-300 text-gray-800">
-                                <span class="text-gray-500 text-[10px] uppercase tracking-wider">Barber:</span>
+                                <span class="text-gray-500 text-2xs uppercase tracking-wider">Barber:</span>
                                 <span class="font-extrabold text-gray-900">{{ $walkin->barber->name }}</span>
                             </div>
 
                             @if(!empty($walkin->phone))
                                 <div class="inline-flex items-center gap-1 rounded-md bg-gray-100 px-2 py-1 border border-gray-300 text-gray-800">
-                                    <span class="text-gray-500 text-[10px] uppercase tracking-wider">WA:</span>
+                                    <span class="text-gray-500 text-2xs uppercase tracking-wider">WA:</span>
                                     <span class="font-extrabold text-gray-900">{{ $walkin->formatted_phone ?? $walkin->phone }}</span>
                                 </div>
                             @endif
@@ -337,13 +363,13 @@
                         {{-- Catatan (Description) jika ada --}}
                         @if(!empty($walkin->description))
                             <div class="mb-2.5 sm:mb-3 rounded-xl border border-amber-300 bg-amber-50/90 px-3 py-2 text-xs text-gray-800">
-                                <div class="flex items-center gap-1.5 text-amber-900 font-extrabold uppercase text-[10px] tracking-wider mb-0.5">
+                                <div class="flex items-center gap-1.5 text-amber-900 font-extrabold uppercase text-2xs tracking-wider mb-0.5">
                                     <svg class="h-3.5 w-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" />
                                     </svg>
                                     <span>Catatan</span>
                                 </div>
-                                <p class="italic text-gray-700 leading-relaxed font-medium break-words">{{ $walkin->description }}</p>
+                                <p class="italic text-gray-700 leading-relaxed font-medium wrap-break-word">{{ $walkin->description }}</p>
                             </div>
                         @endif
 
@@ -357,12 +383,12 @@
                                 <div class="flex justify-between items-end">
                                     <div>
                                         <span class="text-2xs sm:text-xs font-bold text-gray-500 uppercase tracking-wider block mb-0.5">Total</span>
-                                        <span class="font-black text-base sm:text-lg text-emerald-700">Rp {{ number_format($walkin->grand_total, 0, ',', '.') }}</span>
+                                        <span class="font-black sm:text-lg text-emerald-700">Rp {{ number_format($walkin->grand_total, 0, ',', '.') }}</span>
                                         @if(($walkin->tip_amount ?? 0) > 0)
-                                            <span class="text-[10px] font-bold text-gray-500 block leading-tight">(Termasuk Tip Rp {{ number_format($walkin->tip_amount, 0, ',', '.') }})</span>
+                                            <span class="text-2xs font-bold text-gray-500 block leading-tight">(Termasuk Tip Rp {{ number_format($walkin->tip_amount, 0, ',', '.') }})</span>
                                         @endif
                                     </div>
-                                    <span class="inline-flex items-center rounded-lg border-2 border-gray-900 bg-white px-2 py-0.5 sm:px-2.5 sm:py-1 text-[10px] sm:text-xs font-black uppercase tracking-wider shadow-[1.5px_1.5px_0px_0px_rgba(17,24,39,1)] sm:shadow-[2px_2px_0px_0px_rgba(17,24,39,1)]">
+                                    <span class="inline-flex items-center rounded-lg border-2 border-gray-900 bg-white px-2 py-0.5 sm:px-2.5 sm:py-1 text-2xs sm:text-xs font-black uppercase tracking-wider shadow-[1.5px_1.5px_0px_0px_rgba(17,24,39,1)] sm:shadow-[2px_2px_0px_0px_rgba(17,24,39,1)]">
                                         {{ $walkin->payment_type_label }} - {{ $walkin->payment_method_label }}
                                     </span>
                                 </div>
@@ -462,7 +488,7 @@
                                             <div class="mb-1.5 text-xs sm:text-sm font-bold leading-snug text-gray-900 pr-3 sm:pr-4">
                                                 {{ $service->name }}
                                             </div>
-                                            <div class="text-[10px] sm:text-xs font-black text-gray-700 bg-white border-2 border-gray-900 px-1.5 py-0.5 rounded-lg w-max">
+                                            <div class="text-2xs sm:text-xs font-black text-gray-700 bg-white border-2 border-gray-900 px-1.5 py-0.5 rounded-lg w-max">
                                                 {{ number_format($service->price, 0, ',', '.') }}
                                                 @if($isLongTrim)
                                                     <span class="text-[9px] font-bold text-gray-500 lowercase">(mulai)</span>

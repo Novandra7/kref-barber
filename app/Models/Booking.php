@@ -75,6 +75,26 @@ class Booking extends Model
         return $this->hasMany(BookingItem::class);
     }
 
+    public function blockedSlots(): HasMany
+    {
+        return $this->hasMany(BlockedSlot::class);
+    }
+
+    /**
+     * Lepas kembali slot jadwal utama dan semua slot jadwal yang diblokir oleh booking ini.
+     */
+    public function releaseSchedules(): void
+    {
+        if ($this->schedule) {
+            $this->schedule->update(['is_available' => true]);
+        }
+
+        foreach ($this->blockedSlots()->with('schedule')->get() as $blocked) {
+            $blocked->schedule?->update(['is_available' => true]);
+            $blocked->delete();
+        }
+    }
+
     /**
      * Booking belongs to satu Payment (FK payment_id ada di tabel bookings)
      */

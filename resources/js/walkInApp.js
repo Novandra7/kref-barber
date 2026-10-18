@@ -1,11 +1,20 @@
-export default (availableSchedules = [], initialBarber = '', initialSource = '') => ({
+export default (
+    availableSchedules = [],
+    initialBarber = '',
+    initialSource = '',
+    initialFormState = {}
+) => ({
     showModal: false,
     activeBooking: null,
     selectedServices: [],
     paymentType: 'full',
     paymentMethod: 'cash',
-    bookingType: 'now',
-    selectedBarberId: '',
+    bookingType: initialFormState.bookingType || 'now',
+    isChemical: Boolean(initialFormState.isChemical),
+    selectedBarberId: String(initialFormState.selectedBarberId || ''),
+    selectedScheduledTime: String(initialFormState.selectedScheduledTime || ''),
+    customerName: String(initialFormState.customerName || ''),
+    customerPhone: String(initialFormState.customerPhone || ''),
     allSchedules: availableSchedules,
 
     // Filter state
@@ -18,9 +27,23 @@ export default (availableSchedules = [], initialBarber = '', initialSource = '')
     },
 
     // Scheduled payment form state
-    scheduledPaymentType: 'dp',
-    scheduledDpAmount: 40000,
-    scheduledPaymentMethod: 'cash',
+    scheduledPaymentType: initialFormState.scheduledPaymentType || 'dp',
+    scheduledDpAmount: Number(initialFormState.scheduledDpAmount) || 40000,
+    scheduledPaymentMethod: initialFormState.scheduledPaymentMethod || 'cash',
+
+    init() {
+        if (this.selectedScheduledTime) {
+            const preservedTime = this.selectedScheduledTime;
+            this.$nextTick(() => {
+                this.selectedScheduledTime = preservedTime;
+            });
+        }
+        this.$watch('selectedBarberId', (newVal, oldVal) => {
+            if (oldVal && newVal !== oldVal) {
+                this.selectedScheduledTime = '';
+            }
+        });
+    },
 
     // Modal Lengkapi: DP & Prepaid settlement state
     hasPrepaidDp: false,
@@ -36,7 +59,11 @@ export default (availableSchedules = [], initialBarber = '', initialSource = '')
 
     get availableSlots() {
         if (!this.selectedBarberId) return [];
-        return this.allSchedules.filter(s => s.barber_id == this.selectedBarberId);
+        const slots = this.allSchedules.filter(s => s.barber_id == this.selectedBarberId);
+        if (this.selectedScheduledTime && !slots.some(s => s.time === this.selectedScheduledTime)) {
+            return [{ id: 'preserved', barber_id: this.selectedBarberId, time: this.selectedScheduledTime }, ...slots];
+        }
+        return slots;
     },
 
     get total() {

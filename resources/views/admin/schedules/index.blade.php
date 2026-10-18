@@ -304,7 +304,7 @@
                                                     @else
                                                         <div class="flex items-center justify-between gap-1 rounded-lg bg-gray-100 px-2 py-1.5 text-xs text-gray-500">
                                                             <span>{{ $schedule->slot_time->format('H:i') }}</span>
-                                                            <span class="rounded-full bg-gray-200 px-2 py-0.5 font-semibold text-gray-600">UNAVAIL</span>
+                                                            <span class="rounded-full bg-gray-200 px-2 py-0.5 font-semibold text-gray-600">BLOCK</span>
                                                         </div>
                                                     @endif
                                                 @endif

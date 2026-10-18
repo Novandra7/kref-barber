@@ -56,4 +56,9 @@ class Schedule extends Model
     {
         return $this->hasMany(Booking::class);
     }
+
+    public function blockedSlot(): \Illuminate\Database\Eloquent\Relations\HasOne
+    {
+        return $this->hasOne(BlockedSlot::class);
+    }
 }

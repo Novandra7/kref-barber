@@ -36,11 +36,11 @@ class ServiceSeeder extends Seeder
                 'is_active' => true,
             ],
 
-            // Chemicals
+            // Chemical
             [
                 'name' => 'Design Perm',
                 'code' => 'DSP',
-                'category' => 'Chemicals',
+                'category' => 'Chemical',
                 'price' => 300000,
                 'description' => 'https://www.instagram.com/s/aGlnaGxpZ2h0OjE4NDM5ODMyMzg2MTAwNjI2?story_media_id=3808496042430895460&igsi=MTYwbTRsem55cDhoMQ==',
                 'is_active' => true,
@@ -48,7 +48,7 @@ class ServiceSeeder extends Seeder
             [
                 'name' => 'Root Lift',
                 'code' => 'RL',
-                'category' => 'Chemicals',
+                'category' => 'Chemical',
                 'price' => 100000,
                 'description' => null,
                 'is_active' => true,
@@ -56,7 +56,7 @@ class ServiceSeeder extends Seeder
             [
                 'name' => 'Perming',
                 'code' => 'PRM',
-                'category' => 'Chemicals',
+                'category' => 'Chemical',
                 'price' => 250000,
                 'description' => 'https://www.instagram.com/reel/DZmen2fzMCj/?igsi=eGk0bHprYW0yYTB1',
                 'is_active' => true,
@@ -64,7 +64,7 @@ class ServiceSeeder extends Seeder
             [
                 'name' => 'Down Perm',
                 'code' => 'DWP',
-                'category' => 'Chemicals',
+                'category' => 'Chemical',
                 'price' => 150000,
                 'description' => 'https://www.instagram.com/s/aGlnaGxpZ2h0OjE4MTIzMTg0MjM0NTQ1ODIx?story_media_id=3801158354283479263&igsi=dWp0NG0xNHBtZzU1',
                 'is_active' => true,
@@ -72,7 +72,7 @@ class ServiceSeeder extends Seeder
             [
                 'name' => 'Fashion Color',
                 'code' => 'FC',
-                'category' => 'Chemicals',
+                'category' => 'Chemical',
                 'price' => 350000,
                 'description' => 'https://www.instagram.com/reel/DZ6ofD5TDc0/?igsi=MWF4amJnZ2xhanF1MA==',
                 'is_active' => true,
@@ -80,7 +80,7 @@ class ServiceSeeder extends Seeder
             [
                 'name' => 'Highlight',
                 'code' => 'HL',
-                'category' => 'Chemicals',
+                'category' => 'Chemical',
                 'price' => 250000,
                 'description' => 'https://www.instagram.com/s/aGlnaGxpZ2h0OjE4MDU3OTQ2NjQzMzU1OTgy?story_media_id=3824281106993352447&igsi=MjlmMDN3ZG94aHNt',
                 'is_active' => true,
@@ -88,7 +88,7 @@ class ServiceSeeder extends Seeder
             [
                 'name' => 'Toning',
                 'code' => 'TON',
-                'category' => 'Chemicals',
+                'category' => 'Chemical',
                 'price' => 130000,
                 'description' => 'https://www.instagram.com/s/aGlnaGxpZ2h0OjE3ODYyMzk4Nzk2NTkzOTEx?story_media_id=3906968852781804021&igsi=MW93Zm1xNDRmdWV1dA==',
                 'is_active' => true,

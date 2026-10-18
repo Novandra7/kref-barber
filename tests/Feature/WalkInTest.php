@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\Barber;
+use App\Models\BlockedSlot;
 use App\Models\Booking;
 use App\Models\BookingItem;
 use App\Models\Payment;
@@ -30,6 +31,7 @@ class WalkInTest extends TestCase
         // Mock notification service so WhatsApp messages aren't actually fired
         $this->mock(BookingNotificationService::class, function ($mock) {
             $mock->shouldReceive('sendDailyRecapToOpsGroup')->zeroOrMoreTimes();
+            $mock->shouldReceive('bookingReminder')->zeroOrMoreTimes();
         });
 
         $this->today = Carbon::today()->toDateString();
@@ -589,6 +591,7 @@ class WalkInTest extends TestCase
     public function test_register_scheduled_walkin_triggers_ops_group_notification_at_creation(): void
     {
         $mock = $this->mock(BookingNotificationService::class);
+        $mock->shouldReceive('bookingReminder')->zeroOrMoreTimes();
         $mock->shouldReceive('sendDailyRecapToOpsGroup')
             ->with($this->today)
             ->once();
@@ -638,6 +641,242 @@ class WalkInTest extends TestCase
 
         $booking->refresh();
         $this->assertEquals('completed', $booking->status);
+    }
+
+    public function test_register_scheduled_walkin_with_chemical_locks_two_slots_and_creates_blocked_slot(): void
+    {
+        $sched14 = Schedule::create([
+            'barber_id' => $this->barber1->id,
+            'date' => $this->today,
+            'slot_time' => '14:00:00',
+            'is_available' => true,
+        ]);
+
+        $sched15 = Schedule::create([
+            'barber_id' => $this->barber1->id,
+            'date' => $this->today,
+            'slot_time' => '15:00:00',
+            'is_available' => true,
+        ]);
+
+        $response = $this->post(route('walkin.store'), [
+            'barber_id' => $this->barber1->id,
+            'name' => 'Budi Chemical',
+            'booking_type' => 'scheduled',
+            'scheduled_time' => '14:00',
+            'phone' => '081234567890',
+            'payment_type' => 'full',
+            'is_chemical' => 1,
+        ]);
+
+        $response->assertRedirect(route('walkin.index'));
+        $response->assertSessionHas('success');
+
+        $sched14->refresh();
+        $sched15->refresh();
+        $this->assertFalse((bool) $sched14->is_available);
+        $this->assertFalse((bool) $sched15->is_available);
+
+        $booking = Booking::where('name', 'Budi Chemical')->firstOrFail();
+        $this->assertEquals($sched14->id, $booking->schedule_id);
+
+        $blockedSlot = BlockedSlot::where('booking_id', $booking->id)->first();
+        $this->assertNotNull($blockedSlot);
+        $this->assertEquals($sched15->id, $blockedSlot->schedule_id);
+        $this->assertEquals(BlockedSlot::REASON_CHEMICAL, $blockedSlot->reason);
+    }
+
+    public function test_register_scheduled_walkin_with_chemical_fails_if_next_slot_already_taken(): void
+    {
+        Schedule::create([
+            'barber_id' => $this->barber1->id,
+            'date' => $this->today,
+            'slot_time' => '14:00:00',
+            'is_available' => true,
+        ]);
+
+        // Slot 15:00 sudah terisi
+        Schedule::create([
+            'barber_id' => $this->barber1->id,
+            'date' => $this->today,
+            'slot_time' => '15:00:00',
+            'is_available' => false,
+        ]);
+
+        $response = $this->post(route('walkin.store'), [
+            'barber_id' => $this->barber1->id,
+            'name' => 'Budi Chemical Bentrok',
+            'booking_type' => 'scheduled',
+            'scheduled_time' => '14:00',
+            'phone' => '081234567890',
+            'payment_type' => 'full',
+            'is_chemical' => 1,
+        ]);
+
+        $response->assertSessionHasErrors('scheduled_time');
+        $this->assertDatabaseMissing('bookings', [
+            'name' => 'Budi Chemical Bentrok',
+        ]);
+    }
+
+    public function test_cancel_walkin_releases_both_primary_and_blocked_slots(): void
+    {
+        $sched14 = Schedule::create([
+            'barber_id' => $this->barber1->id,
+            'date' => $this->today,
+            'slot_time' => '14:00:00',
+            'is_available' => true,
+        ]);
+
+        $sched15 = Schedule::create([
+            'barber_id' => $this->barber1->id,
+            'date' => $this->today,
+            'slot_time' => '15:00:00',
+            'is_available' => true,
+        ]);
+
+        $this->post(route('walkin.store'), [
+            'barber_id' => $this->barber1->id,
+            'name' => 'Budi Batal Chemical',
+            'booking_type' => 'scheduled',
+            'scheduled_time' => '14:00',
+            'phone' => '081234567890',
+            'payment_type' => 'full',
+            'is_chemical' => 1,
+        ])->assertRedirect(route('walkin.index'));
+
+        $booking = Booking::where('name', 'Budi Batal Chemical')->firstOrFail();
+        $this->assertEquals(1, BlockedSlot::where('booking_id', $booking->id)->count());
+
+        // Batalkan booking
+        $response = $this->delete(route('walkin.cancel', ['booking' => $booking->id]));
+        $response->assertSessionHas('success');
+
+        $booking->refresh();
+        $sched14->refresh();
+        $sched15->refresh();
+
+        $this->assertEquals('cancelled', $booking->status);
+        $this->assertTrue((bool) $sched14->is_available);
+        $this->assertTrue((bool) $sched15->is_available);
+        $this->assertEquals(0, BlockedSlot::where('booking_id', $booking->id)->count());
+    }
+
+    public function test_register_now_walkin_with_chemical_locks_next_chronological_slot(): void
+    {
+        Carbon::setTestNow(Carbon::parse($this->today . ' 12:37:00'));
+
+        $sched1320 = Schedule::create([
+            'barber_id' => $this->barber1->id,
+            'date' => $this->today,
+            'slot_time' => '13:20:00',
+            'is_available' => true,
+        ]);
+
+        $response = $this->post(route('walkin.store'), [
+            'barber_id' => $this->barber1->id,
+            'name' => 'Novan Walkin Chemical',
+            'booking_type' => 'now',
+            'is_chemical' => 1,
+        ]);
+
+        $response->assertRedirect(route('walkin.index'));
+        $response->assertSessionHas('success');
+
+        $sched1320->refresh();
+        $this->assertFalse((bool) $sched1320->is_available);
+
+        $booking = Booking::where('name', 'Novan Walkin Chemical')->firstOrFail();
+        $blockedSlot = BlockedSlot::where('booking_id', $booking->id)->first();
+        $this->assertNotNull($blockedSlot);
+        $this->assertEquals($sched1320->id, $blockedSlot->schedule_id);
+        $this->assertEquals(BlockedSlot::REASON_CHEMICAL, $blockedSlot->reason);
+
+        Carbon::setTestNow();
+    }
+
+    public function test_register_scheduled_walkin_with_chemical_locks_next_slot_across_break_gap(): void
+    {
+        $sched1520 = Schedule::create([
+            'barber_id' => $this->barber1->id,
+            'date' => $this->today,
+            'slot_time' => '15:20:00',
+            'is_available' => true,
+        ]);
+
+        $sched1700 = Schedule::create([
+            'barber_id' => $this->barber1->id,
+            'date' => $this->today,
+            'slot_time' => '17:00:00',
+            'is_available' => true,
+        ]);
+
+        $response = $this->post(route('walkin.store'), [
+            'barber_id' => $this->barber1->id,
+            'name' => 'Walkin Break Gap Chem',
+            'booking_type' => 'scheduled',
+            'scheduled_time' => '15:20',
+            'phone' => '081234567890',
+            'payment_type' => 'full',
+            'is_chemical' => 1,
+        ]);
+
+        $response->assertRedirect(route('walkin.index'));
+        $response->assertSessionHas('success');
+
+        $sched1520->refresh();
+        $sched1700->refresh();
+        $this->assertFalse((bool) $sched1520->is_available);
+        $this->assertFalse((bool) $sched1700->is_available);
+
+        $booking = Booking::where('name', 'Walkin Break Gap Chem')->firstOrFail();
+        $blockedSlot = BlockedSlot::where('booking_id', $booking->id)->first();
+        $this->assertNotNull($blockedSlot);
+        $this->assertEquals($sched1700->id, $blockedSlot->schedule_id);
+        $this->assertEquals(BlockedSlot::REASON_CHEMICAL, $blockedSlot->reason);
+    }
+
+    public function test_scheduled_walkin_chemical_validation_failure_preserves_form_inputs_in_session_and_view(): void
+    {
+        $sched1520 = Schedule::create([
+            'barber_id' => $this->barber1->id,
+            'date' => $this->today,
+            'slot_time' => '15:20:00',
+            'is_available' => true,
+        ]);
+
+        $sched1700 = Schedule::create([
+            'barber_id' => $this->barber1->id,
+            'date' => $this->today,
+            'slot_time' => '17:00:00',
+            'is_available' => false, // next slot is already taken
+        ]);
+
+        $response = $this->from(route('walkin.index'))
+            ->followingRedirects()
+            ->post(route('walkin.store'), [
+                'barber_id' => $this->barber1->id,
+                'name' => 'Budi Preserved',
+                'booking_type' => 'scheduled',
+                'scheduled_time' => '15:20',
+                'phone' => '81234567890',
+                'is_chemical' => 1,
+                'payment_type' => 'dp',
+                'dp_amount' => 50000,
+                'dp_payment_method' => 'cash',
+            ]);
+
+        $response->assertOk();
+        $response->assertSee('Slot jadwal berikutnya (17:00) untuk layanan chemical sudah terisi. Silakan pilih jam lain.');
+
+        // Blade's @js directive encodes quotes as \u0022 inside JSON.parse('...')
+        $response->assertSee('\u0022bookingType\u0022:\u0022scheduled\u0022', false);
+        $response->assertSee('\u0022selectedScheduledTime\u0022:\u002215:20\u0022', false);
+        $response->assertSee('\u0022customerName\u0022:\u0022Budi Preserved\u0022', false);
+        $response->assertSee('\u0022customerPhone\u0022:\u002281234567890\u0022', false);
+        $response->assertSee('\u0022isChemical\u0022:true', false);
+        $response->assertSee('\u0022scheduledPaymentType\u0022:\u0022dp\u0022', false);
+        $response->assertSee('\u0022scheduledDpAmount\u0022:50000', false);
     }
 }
 

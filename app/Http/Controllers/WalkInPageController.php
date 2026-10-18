@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Barber;
+use App\Models\BlockedSlot;
 use App\Models\Booking;
 use App\Models\Payment;
 use App\Models\Schedule;
@@ -82,6 +83,7 @@ class WalkInPageController extends Controller
             'barber_id'      => ['required', 'exists:barbers,id'],
             'name'           => ['required', 'string', 'max:255'],
             'booking_type'   => ['required', 'in:now,scheduled'],
+            'is_chemical'    => ['nullable', 'boolean'],
             'scheduled_time' => ['nullable', 'required_if:booking_type,scheduled'],
             'phone'          => ['nullable', 'required_if:booking_type,scheduled', 'string', 'max:20'],
             'payment_type'   => ['nullable', 'in:full,dp'],
@@ -103,8 +105,9 @@ class WalkInPageController extends Controller
         $today = Carbon::today()->toDateString();
         $now   = now();
         $currentTime = $now->format('H:i:00');
+        $isChemical = $request->boolean('is_chemical');
 
-        DB::transaction(function () use ($data, $barber, $today, $now, $currentTime) {
+        DB::transaction(function () use ($data, $barber, $today, $now, $currentTime, $isChemical) {
             $isScheduled = $data['booking_type'] === 'scheduled';
             
             if ($isScheduled) {
@@ -112,8 +115,8 @@ class WalkInPageController extends Controller
                 $slotTime = $data['scheduled_time'] . ':00';
                 
                 $schedule = Schedule::where('barber_id', $barber->id)
-                    ->where('date', $today)
-                    ->where('slot_time', $slotTime)
+                    ->whereDate('date', $today)
+                    ->whereTime('slot_time', $slotTime)
                     ->first();
                     
                 if (!$schedule) {
@@ -137,7 +140,7 @@ class WalkInPageController extends Controller
 
                 // 1. Cari slot available yang akan datang dalam rentang <= 30 menit
                 $schedule = Schedule::where('barber_id', $barber->id)
-                    ->where('date', $today)
+                    ->whereDate('date', $today)
                     ->where('is_available', true)
                     ->whereBetween('slot_time', [$currentTime, $maxUpcomingTime])
                     ->orderBy('slot_time')
@@ -146,8 +149,8 @@ class WalkInPageController extends Controller
                 // 2. Jika tidak ada slot available <= 30 menit, assign ke jam saat itu juga
                 if (!$schedule) {
                     $schedule = Schedule::where('barber_id', $barber->id)
-                        ->where('date', $today)
-                        ->where('slot_time', $currentTime)
+                        ->whereDate('date', $today)
+                        ->whereTime('slot_time', $currentTime)
                         ->first();
 
                     if (!$schedule) {
@@ -178,6 +181,29 @@ class WalkInPageController extends Controller
                 ? $schedule->slot_time->format('H:i:s')
                 : $schedule->slot_time;
 
+            // Jika is_chemical, cari slot jadwal berikutnya untuk barber ini pada hari ini
+            $nextSchedule = null;
+            if ($isChemical) {
+                $existingNext = Schedule::where('barber_id', $barber->id)
+                    ->whereDate('date', $today)
+                    ->where('slot_time', '>', $slotTimeStr)
+                    ->orderBy('slot_time')
+                    ->lockForUpdate()
+                    ->first();
+
+                if ($existingNext) {
+                    if (!$existingNext->is_available) {
+                        $nextTimeDisplay = $existingNext->slot_time instanceof \DateTimeInterface
+                            ? $existingNext->slot_time->format('H:i')
+                            : substr((string) $existingNext->slot_time, 0, 5);
+                        throw ValidationException::withMessages([
+                            'scheduled_time' => "Slot jadwal berikutnya ({$nextTimeDisplay}) untuk layanan chemical sudah terisi. Silakan pilih jam lain."
+                        ]);
+                    }
+                    $nextSchedule = $existingNext;
+                }
+            }
+
             $paymentType = $data['payment_type'] ?? 'full';
             $paymentId   = null;
             $totalAmount = 0;
@@ -199,7 +225,7 @@ class WalkInPageController extends Controller
                 $outstandingAmount = 1; // Tandai belum lunas (akan dihitung ulang saat complete)
             }
 
-            Booking::create([
+            $booking = Booking::create([
                 'schedule_id'        => $schedule->id,
                 'barber_id'          => $barber->id,
                 'name'               => $data['name'],
@@ -214,6 +240,16 @@ class WalkInPageController extends Controller
             ]);
 
             $schedule->update(['is_available' => false]);
+
+            if ($isChemical && $nextSchedule) {
+                $nextSchedule->update(['is_available' => false]);
+                BlockedSlot::create([
+                    'schedule_id' => $nextSchedule->id,
+                    'booking_id'  => $booking->id,
+                    'reason'      => BlockedSlot::REASON_CHEMICAL,
+                    'notes'       => 'Lanjutan pengerjaan chemical untuk walk-in ' . $data['name'],
+                ]);
+            }
         });
 
         // Kirim rekap ke grup WA ops saat walk-in didaftarkan (baik Sekarang maupun Dijadwalkan)
@@ -382,9 +418,7 @@ class WalkInPageController extends Controller
         DB::transaction(function () use ($booking) {
             $booking->update(['status' => 'cancelled']);
 
-            if ($booking->schedule) {
-                $booking->schedule->update(['is_available' => true]);
-            }
+            $booking->releaseSchedules();
         });
 
         // Kirim update rekap ke grup WA ops (slot sudah kosong)

@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\Barber;
+use App\Models\BlockedSlot;
 use App\Models\Booking;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Log;
@@ -291,7 +292,12 @@ class BookingNotificationService
                     ->orderBy('scheduled_at')
                     ->get();
 
-                // Kumpulkan seluruh slot waktu dari jadwal dan booking agar kronologis
+                // Ambil slot yang diblokir untuk barber ini pada tanggal tersebut
+                $barberBlockedSlots = BlockedSlot::whereHas('schedule', function ($q) use ($barber, $dateString) {
+                    $q->where('barber_id', $barber->id)->whereDate('date', $dateString);
+                })->with(['schedule', 'booking'])->get();
+
+                // Kumpulkan seluruh slot waktu dari jadwal, booking, dan blocked slots agar kronologis
                 $scheduleSlots = $barber->schedules->map(function ($s) {
                     return $s->slot_time instanceof \DateTimeInterface
                         ? $s->slot_time->format('H:i')
@@ -302,7 +308,13 @@ class BookingNotificationService
                     return $b->scheduled_at ? $b->scheduled_at->format('H:i') : null;
                 })->filter();
 
-                $allTimes = $scheduleSlots->merge($bookingSlots)->unique()->sort()->values();
+                $blockedSlotsTimes = $barberBlockedSlots->map(function ($bs) {
+                    return $bs->schedule?->slot_time instanceof \DateTimeInterface
+                        ? $bs->schedule->slot_time->format('H:i')
+                        : ($bs->schedule ? Carbon::parse($bs->schedule->slot_time)->format('H:i') : null);
+                })->filter();
+
+                $allTimes = $scheduleSlots->merge($bookingSlots)->merge($blockedSlotsTimes)->unique()->sort()->values();
 
                 if ($allTimes->isEmpty()) {
                     $lines[] = 'Belum ada jadwal';
@@ -380,6 +392,15 @@ class BookingNotificationService
                             $serviceSuffix = $serviceCodes !== '' ? " | {$serviceCodes}" : '';
 
                             $lines[] = "{$time}: {$sourcePrefix}{$name}{$paymentPart}{$tipPart}{$serviceSuffix}";
+                        } elseif ($blocked = $barberBlockedSlots->first(function ($bs) use ($time) {
+                            $slotTime = $bs->schedule?->slot_time instanceof \DateTimeInterface
+                                ? $bs->schedule->slot_time->format('H:i')
+                                : ($bs->schedule ? Carbon::parse($bs->schedule->slot_time)->format('H:i') : null);
+                            return $slotTime === $time;
+                        })) {
+                            $guestName = $blocked->booking ? strtolower(trim((string) $blocked->booking->name)) : '';
+                            $label = $guestName !== '' ? " [Lanjutan Chemical - {$guestName}]" : " [Lanjutan Chemical]";
+                            $lines[] = "{$time}:{$label}";
                         } else {
                             // Slot kosong diakhiri tanda titik dua ':'
                             $lines[] = "{$time}:";

@@ -68,10 +68,8 @@ class PaymentExpirationService
                     'status' => 'cancelled',
                 ]);
 
-                // Lepas kembali slot jadwal barber agar dapat dipesan pelanggan lain
-                if ($booking->schedule) {
-                    $booking->schedule->update(['is_available' => true]);
-                }
+                // Lepas kembali slot jadwal utama dan slot yang diblokir agar dapat dipesan pelanggan lain
+                $booking->releaseSchedules();
 
                 if ($booking->phone) {
                     $bookingsToNotify[] = $booking;

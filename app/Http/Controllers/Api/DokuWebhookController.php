@@ -153,10 +153,8 @@ class DokuWebhookController extends Controller
                                     'status' => 'cancelled',
                                 ]);
 
-                                // Kalau pembayaran gagal/kedaluwarsa, lepas kembali slot jadwal
-                                if ($booking->schedule) {
-                                    $booking->schedule->update(['is_available' => true]);
-                                }
+                                // Kalau pembayaran gagal/kedaluwarsa, lepas kembali slot jadwal utama dan slot yang diblokir
+                                $booking->releaseSchedules();
                             }
                         }
 
