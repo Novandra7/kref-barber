@@ -214,33 +214,6 @@ class ScheduleController extends Controller
         return back()->with('success', 'Bulk schedule saved successfully.');
     }
 
-    public function copyPreviousWeek(Request $request): RedirectResponse
-    {
-        $data = $request->validate([
-            'week' => ['required', 'date_format:Y-m-d'],
-        ]);
-        $targetStart = $this->weekStart($data['week']);
-        $sourceStart = $targetStart->subWeek();
-        $sourceEnd = $sourceStart->addDays(6);
-
-        DB::transaction(function () use ($sourceStart, $sourceEnd, $targetStart): void {
-            Schedule::whereBetween('date', [$sourceStart->toDateString(), $sourceEnd->toDateString()])
-                ->get()
-                ->each(function (Schedule $schedule) use ($targetStart): void {
-                    Schedule::updateOrCreate(
-                        [
-                            'barber_id' => $schedule->barber_id,
-                            'date' => CarbonImmutable::parse($schedule->date)->addWeek()->toDateString(),
-                            'slot_time' => $schedule->slot_time->format('H:i'),
-                        ],
-                        ['is_available' => true],
-                    );
-                });
-        });
-
-        return back()->with('success', 'Previous week schedule copied successfully.');
-    }
-
     /**
      * Terapkan template jadwal mingguan statis (Rizal & Sogi) dengan opsi bersihkan slot kosong lama.
      */
