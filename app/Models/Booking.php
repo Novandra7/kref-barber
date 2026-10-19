@@ -19,6 +19,7 @@ class Booking extends Model
         'name',
         'phone',
         'description',
+        'barber_notes',
         'barber_id',
         'tip_amount',
         'created_by',

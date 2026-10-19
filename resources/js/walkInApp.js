@@ -52,7 +52,7 @@ export default (
     prepaidAmount: 0,
     tipAmount: 0,
     settlementPaymentMethod: 'cash',
-    bookingNotes: '',
+    barberNotes: '',
 
     // Custom prices for flexible services (e.g. Long Trim start from 80k)
     customPrices: {},
@@ -80,7 +80,7 @@ export default (
 
     openComplete(booking) {
         this.activeBooking = booking;
-        this.bookingNotes = booking.description || '';
+        this.barberNotes = booking.barber_notes || '';
         this.tipAmount = Number(booking.tip_amount || 0);
 
         const payment = booking.payment;

@@ -280,6 +280,7 @@ class WalkInPageController extends Controller
             'service_ids.*'   => ['integer', 'distinct', 'exists:services,id'],
             'custom_prices'   => ['nullable', 'array'],
             'custom_prices.*' => ['nullable', 'integer', 'min:0'],
+            'barber_notes'    => ['nullable', 'string', 'max:1000'],
             'description'     => ['nullable', 'string', 'max:1000'],
         ];
 
@@ -363,12 +364,18 @@ class WalkInPageController extends Controller
                     ]);
                 }
 
-                $booking->update([
+                $updateData = [
                     'total_amount'       => $total,
                     'outstanding_amount' => 0,
                     'status'             => 'completed',
-                    'description'        => $data['description'] ?? null,
-                ]);
+                ];
+                if (array_key_exists('barber_notes', $data)) {
+                    $updateData['barber_notes'] = $data['barber_notes'];
+                }
+                if (array_key_exists('description', $data) && empty($booking->description)) {
+                    $updateData['description'] = $data['description'];
+                }
+                $booking->update($updateData);
             } else {
                 // Booking tanpa pembayaran awal (Sekarang / Jadwalkan Full)
                 $dpAmount    = (int) config('booking.dp_amount', 40000);
@@ -384,14 +391,20 @@ class WalkInPageController extends Controller
                     'recorded_by' => null,
                 ]);
 
-                $booking->update([
+                $updateData = [
                     'payment_id'         => $payment->id,
                     'payment_type'       => $data['payment_type'],
                     'total_amount'       => $total,
                     'outstanding_amount' => $outstanding,
                     'status'             => 'completed',
-                    'description'        => $data['description'] ?? null,
-                ]);
+                ];
+                if (array_key_exists('barber_notes', $data)) {
+                    $updateData['barber_notes'] = $data['barber_notes'];
+                }
+                if (array_key_exists('description', $data) && empty($booking->description)) {
+                    $updateData['description'] = $data['description'];
+                }
+                $booking->update($updateData);
             }
         });
 

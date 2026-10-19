@@ -373,16 +373,29 @@
                             @endif
                         </div>
 
-                        {{-- Catatan (Description) jika ada --}}
+                        {{-- Catatan Customer jika ada --}}
                         @if(!empty($walkin->description))
                             <div class="mb-2.5 sm:mb-3 rounded-xl border border-amber-300 bg-amber-50/90 px-3 py-2 text-xs text-gray-800">
                                 <div class="flex items-center gap-1.5 text-amber-900 font-extrabold uppercase text-2xs tracking-wider mb-0.5">
                                     <svg class="h-3.5 w-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" />
                                     </svg>
-                                    <span>Catatan</span>
+                                    <span>Catatan Customer</span>
                                 </div>
                                 <p class="italic text-gray-700 leading-relaxed font-medium wrap-break-word">{{ $walkin->description }}</p>
+                            </div>
+                        @endif
+
+                        {{-- Catatan Barber jika ada --}}
+                        @if(!empty($walkin->barber_notes))
+                            <div class="mb-2.5 sm:mb-3 rounded-xl border border-sky-300 bg-sky-50/90 px-3 py-2 text-xs text-gray-800">
+                                <div class="flex items-center gap-1.5 text-sky-900 font-extrabold uppercase text-2xs tracking-wider mb-0.5">
+                                    <svg class="h-3.5 w-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                    </svg>
+                                    <span>Catatan Barber</span>
+                                </div>
+                                <p class="italic text-gray-700 leading-relaxed font-medium wrap-break-word">{{ $walkin->barber_notes }}</p>
                             </div>
                         @endif
 
@@ -555,10 +568,23 @@
 
                         <div class="my-4 sm:my-6 border-t-2 border-dashed border-gray-300"></div>
 
-                        <!-- Catatan (Notes) -->
+                        <!-- Catatan Customer (Read-only jika ada) -->
+                        <template x-if="activeBooking?.description">
+                            <div class="mb-3 rounded-xl border border-amber-300 bg-amber-50/90 px-3 py-2 text-xs text-gray-800">
+                                <div class="flex items-center gap-1.5 text-amber-900 font-extrabold uppercase text-2xs tracking-wider mb-0.5">
+                                    <svg class="h-3.5 w-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" />
+                                    </svg>
+                                    <span>Catatan Customer (Online)</span>
+                                </div>
+                                <p class="italic text-gray-700 leading-relaxed font-medium wrap-break-word" x-text="activeBooking.description"></p>
+                            </div>
+                        </template>
+
+                        <!-- Catatan Barber / Kasir -->
                         <div class="mb-4 sm:mb-5">
-                            <label class="block text-[11px] sm:text-xs font-bold mb-1.5 uppercase tracking-wider text-gray-500">Catatan (Notes)</label>
-                            <textarea name="description" x-model="bookingNotes" rows="2" placeholder="Tambahkan catatan jika ada (opsional)..." class="w-full rounded-xl border-2 border-gray-900 bg-[#FAF8F5] px-3.5 py-2.5 sm:px-4 sm:py-3 text-xs sm:text-sm font-bold text-gray-900 shadow-[2px_2px_0px_0px_rgba(17,24,39,1)] focus:outline-none focus:ring-0 focus:shadow-[4px_4px_0px_0px_rgba(17,24,39,1)] transition-all resize-none"></textarea>
+                            <label class="block text-[11px] sm:text-xs font-bold mb-1.5 uppercase tracking-wider text-gray-500">Catatan Barber / Kasir</label>
+                            <textarea name="barber_notes" x-model="barberNotes" rows="2" placeholder="Tambahkan catatan pengerjaan/kasir jika ada (opsional)..." class="w-full rounded-xl border-2 border-gray-900 bg-[#FAF8F5] px-3.5 py-2.5 sm:px-4 sm:py-3 text-xs sm:text-sm font-bold text-gray-900 shadow-[2px_2px_0px_0px_rgba(17,24,39,1)] focus:outline-none focus:ring-0 focus:shadow-[4px_4px_0px_0px_rgba(17,24,39,1)] transition-all resize-none"></textarea>
                         </div>
 
                         {{-- Info Online Prepaid Full --}}

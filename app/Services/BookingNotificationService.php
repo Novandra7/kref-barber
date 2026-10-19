@@ -391,7 +391,21 @@ class BookingNotificationService
 
                             $serviceSuffix = $serviceCodes !== '' ? " | {$serviceCodes}" : '';
 
-                            $lines[] = "{$time}: {$sourcePrefix}{$name}{$paymentPart}{$tipPart}{$serviceSuffix}";
+                            $notesParts = [];
+                            if (!empty($booking->description)) {
+                                $notesParts[] = trim($booking->description);
+                            }
+                            if (!empty($booking->barber_notes)) {
+                                $notesParts[] = 'barber: ' . trim($booking->barber_notes);
+                            }
+
+                            $notesSuffix = '';
+                            if (!empty($notesParts)) {
+                                $cleanNotes = preg_replace('/\s+/', ' ', implode(' | ', $notesParts));
+                                $notesSuffix = " (catatan: {$cleanNotes})";
+                            }
+
+                            $lines[] = "{$time}: {$sourcePrefix}{$name}{$paymentPart}{$tipPart}{$serviceSuffix}{$notesSuffix}";
                         } elseif ($blocked = $barberBlockedSlots->first(function ($bs) use ($time) {
                             $slotTime = $bs->schedule?->slot_time instanceof \DateTimeInterface
                                 ? $bs->schedule->slot_time->format('H:i')

@@ -891,5 +891,118 @@ class WalkInTest extends TestCase
         $response->assertSee('\u0022scheduledPaymentType\u0022:\u0022dp\u0022', false);
         $response->assertSee('\u0022scheduledDpAmount\u0022:50000', false);
     }
+
+    public function test_complete_booking_preserves_customer_description_and_saves_barber_notes(): void
+    {
+        $sched = Schedule::create([
+            'barber_id' => $this->barber1->id,
+            'date' => $this->today,
+            'slot_time' => '10:00:00',
+            'is_available' => false,
+        ]);
+
+        $booking = Booking::create([
+            'schedule_id' => $sched->id,
+            'barber_id' => $this->barber1->id,
+            'name' => 'John Customer',
+            'phone' => '081234567890',
+            'description' => 'Original Customer Note (Jangan pendek)',
+            'source' => 'online',
+            'status' => 'confirmed',
+            'payment_type' => 'full',
+            'total_amount' => 50000,
+            'outstanding_amount' => 0,
+            'scheduled_at' => $this->today . ' 10:00:00',
+        ]);
+
+        $payment = Payment::create([
+            'amount' => 50000,
+            'method' => 'qris_static',
+            'purpose' => 'full_payment',
+            'status' => 'paid',
+        ]);
+        $booking->update(['payment_id' => $payment->id]);
+
+        // Lengkapi booking dengan mengisi barber_notes
+        $response = $this->patch(route('walkin.complete', ['booking' => $booking->id]), [
+            'service_ids' => [$this->service1->id],
+            'barber_notes' => 'Catatan pengerjaan barber (Rambut tebal)',
+        ]);
+
+        $response->assertSessionHas('success');
+
+        $booking->refresh();
+        $this->assertEquals('completed', $booking->status);
+        // Customer description tetap utuh tidak tertimpa
+        $this->assertEquals('Original Customer Note (Jangan pendek)', $booking->description);
+        // Barber notes tersimpan dengan benar
+        $this->assertEquals('Catatan pengerjaan barber (Rambut tebal)', $booking->barber_notes);
+    }
+
+    public function test_ops_recap_message_includes_booking_notes_when_present_and_omits_when_empty(): void
+    {
+        $sched1 = Schedule::create([
+            'barber_id' => $this->barber1->id,
+            'date' => $this->today,
+            'slot_time' => '10:00:00',
+            'is_available' => false,
+        ]);
+
+        $sched2 = Schedule::create([
+            'barber_id' => $this->barber1->id,
+            'date' => $this->today,
+            'slot_time' => '11:00:00',
+            'is_available' => false,
+        ]);
+
+        $booking1 = Booking::create([
+            'schedule_id' => $sched1->id,
+            'barber_id' => $this->barber1->id,
+            'name' => 'John With Note',
+            'phone' => '081234567890',
+            'description' => 'Minta potong rapi',
+            'barber_notes' => 'Grooming selesai',
+            'source' => 'online',
+            'status' => 'confirmed',
+            'payment_type' => 'full',
+            'total_amount' => 50000,
+            'outstanding_amount' => 0,
+            'scheduled_at' => $this->today . ' 10:00:00',
+        ]);
+
+        $booking2 = Booking::create([
+            'schedule_id' => $sched2->id,
+            'barber_id' => $this->barber1->id,
+            'name' => 'Budi No Note',
+            'phone' => '081234567891',
+            'description' => null,
+            'barber_notes' => null,
+            'source' => 'walk_in',
+            'status' => 'confirmed',
+            'payment_type' => 'full',
+            'total_amount' => 50000,
+            'outstanding_amount' => 0,
+            'scheduled_at' => $this->today . ' 11:00:00',
+        ]);
+
+        $capturedMessage = '';
+        $wahaMock = $this->mock(\App\Services\WahaService::class);
+        $wahaMock->shouldReceive('sendMessage')
+            ->once()
+            ->andReturnUsing(function ($phone, $message) use (&$capturedMessage) {
+                $capturedMessage = $message;
+            });
+
+        // Unbind mock BookingNotificationService to test real BookingNotificationService with mocked WahaService
+        $this->app->forgetInstance(BookingNotificationService::class);
+        $service = app(BookingNotificationService::class);
+        $service->sendDailyRecapToOpsGroup($this->today);
+
+        $this->assertNotEmpty($capturedMessage);
+        // Booking 1 memuat catatan
+        $this->assertStringContainsString('(catatan: Minta potong rapi | barber: Grooming selesai)', $capturedMessage);
+        // Booking 2 TIDAK memuat catatan
+        $this->assertStringNotContainsString('budi no note (catatan:', strtolower($capturedMessage));
+    }
 }
 
