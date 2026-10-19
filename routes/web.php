@@ -109,6 +109,7 @@ Route::domain('{subdomain?}' . config('app.domain', 'kref.test'))
     // Walk-in Page (barber-facing, no auth)
     Route::get('/vv4lk-1n', [WalkInPageController::class, 'index'])->name('walkin.index');
     Route::post('/vv4lk-1n', [WalkInPageController::class, 'store'])->name('walkin.store');
+    Route::post('/vv4lk-1n/send-recap', [WalkInPageController::class, 'sendRecap'])->name('walkin.send-recap');
     Route::patch('/vv4lk-1n/{booking}/complete', [WalkInPageController::class, 'complete'])->name('walkin.complete');
     Route::delete('/vv4lk-1n/{booking}', [WalkInPageController::class, 'cancel'])->name('walkin.cancel');
 

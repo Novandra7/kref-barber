@@ -616,23 +616,23 @@ class WalkInTest extends TestCase
         ]);
     }
 
-    public function test_now_walkin_triggers_notification_twice_on_registration_and_completion(): void
+    public function test_now_walkin_triggers_notification_on_registration_but_not_on_completion(): void
     {
         $mock = $this->mock(BookingNotificationService::class);
         $mock->shouldReceive('sendDailyRecapToOpsGroup')
             ->with($this->today)
-            ->twice();
+            ->once();
 
         // 1. Didaftarkan (Notifikasi ke-1)
         $this->post(route('walkin.store'), [
             'barber_id' => $this->barber1->id,
-            'name' => 'Walkin Customer 2x Notif',
+            'name' => 'Walkin Customer No Spam Notif',
             'booking_type' => 'now',
         ])->assertRedirect(route('walkin.index'));
 
-        $booking = Booking::where('name', 'Walkin Customer 2x Notif')->firstOrFail();
+        $booking = Booking::where('name', 'Walkin Customer No Spam Notif')->firstOrFail();
 
-        // 2. Diselesaikan (Notifikasi ke-2)
+        // 2. Diselesaikan (Tidak mengirim notifikasi ke grup)
         $this->patch(route('walkin.complete', ['booking' => $booking->id]), [
             'service_ids'    => [$this->service1->id],
             'payment_type'   => 'full',
@@ -641,6 +641,19 @@ class WalkInTest extends TestCase
 
         $booking->refresh();
         $this->assertEquals('completed', $booking->status);
+    }
+
+    public function test_manual_send_recap_button_triggers_ops_group_notification(): void
+    {
+        $mock = $this->mock(BookingNotificationService::class);
+        $mock->shouldReceive('sendDailyRecapToOpsGroup')
+            ->with($this->today)
+            ->once();
+
+        $response = $this->post(route('walkin.send-recap'));
+
+        $response->assertRedirect();
+        $response->assertSessionHas('success', 'Rekapan hari ini berhasil dikirim ke grup WhatsApp.');
     }
 
     public function test_register_scheduled_walkin_with_chemical_locks_two_slots_and_creates_blocked_slot(): void

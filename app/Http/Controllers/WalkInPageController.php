@@ -261,8 +261,7 @@ class WalkInPageController extends Controller
 
     public function complete(
         Request $request,
-        Booking $booking,
-        BookingNotificationService $notifications
+        Booking $booking
     ) {
         abort_if(!in_array($booking->source, ['walk_in', 'online']), 404);
         abort_if($booking->status === 'completed', 422, 'Sudah dilengkapi.');
@@ -396,14 +395,18 @@ class WalkInPageController extends Controller
             }
         });
 
-        // Kirim rekap harian ke grup WA ops
-        $notifications->sendDailyRecapToOpsGroup(
-            Carbon::parse($booking->scheduled_at)->toDateString()
-        );
-
         $label = $booking->source === 'online' ? 'Booking online' : 'Walk-in';
         return redirect()->back()
             ->with('success', "{$label} {$booking->name} berhasil dilengkapi.");
+    }
+
+    public function sendRecap(BookingNotificationService $notifications)
+    {
+        $today = Carbon::today()->toDateString();
+        $notifications->sendDailyRecapToOpsGroup($today);
+
+        return redirect()->back()
+            ->with('success', 'Rekapan hari ini berhasil dikirim ke grup WhatsApp.');
     }
 
     public function cancel(Booking $booking, BookingNotificationService $notifications)

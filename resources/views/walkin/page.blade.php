@@ -175,7 +175,20 @@
         <div>
             <div class="flex items-center justify-between mb-3 sm:mb-4">
                 <h2 class="font-montserrat sm:text-lg font-black uppercase text-gray-900">Hari Ini</h2>
-                <div class="flex items-center gap-2">
+                <div class="flex items-center gap-1.5 sm:gap-2">
+                    <!-- Tombol Kirim Rekap ke Grup WA -->
+                    <form action="{{ route('walkin.send-recap') }}" method="POST" onsubmit="return confirm('Kirim rekapan hari ini ke grup WhatsApp?')" class="m-0 p-0">
+                        @csrf
+                        <button type="submit" 
+                                title="Kirim Rekapan ke Grup WA"
+                                class="inline-flex items-center gap-1 sm:gap-1.5 rounded-lg border-2 border-gray-900 bg-emerald-300 px-2 sm:px-2.5 py-1 text-[11px] sm:text-xs font-black uppercase tracking-wider text-gray-900 shadow-[2px_2px_0px_0px_rgba(17,24,39,1)] transition-all hover:-translate-x-0.5 hover:-translate-y-0.5 hover:shadow-[3px_3px_0px_0px_rgba(17,24,39,1)] active:translate-x-0.5 active:translate-y-0.5 cursor-pointer">
+                            <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M12.031 6.172c-3.181 0-5.767 2.586-5.768 5.766-.001 1.298.38 2.27 1.019 3.287l-.582 2.128 2.182-.573c.978.58 1.911.928 3.145.929 3.178 0 5.767-2.587 5.768-5.766.001-3.187-2.575-5.77-5.764-5.771zm3.392 8.244c-.144.405-.837.774-1.17.824-.299.045-.677.063-1.092-.069-.252-.08-.575-.187-.988-.365-1.739-.751-2.874-2.502-2.961-2.617-.087-.116-.708-.94-.708-1.793s.448-1.273.607-1.446c.159-.173.346-.217.462-.217l.332.006c.106.005.249-.04.39.298.144.347.491 1.2.534 1.287.043.087.072.188.014.304-.058.116-.087.188-.173.289l-.26.304c-.087.086-.177.18-.076.354.101.174.449.741.964 1.201.662.591 1.221.774 1.394.86s.275.072.376-.043c.101-.116.433-.506.549-.68.116-.173.231-.145.39-.087s1.011.477 1.184.564.289.13.332.202c.045.072.045.419-.099.824zm-3.423-14.416c-6.627 0-12 5.373-12 12 0 2.158.572 4.184 1.571 5.931l-1.571 5.738 5.894-1.546c1.706.945 3.666 1.477 5.751 1.477 6.627 0 12-5.373 12-12 0-6.627-5.373-12-12-12z"/>
+                            </svg>
+                            <span>Kirim Rekap</span>
+                        </button>
+                    </form>
+
                     <!-- Filter Pill Button (Disamping Kiri Pil Total) -->
                     <button type="button" 
                             @click="showFilter = !showFilter"
