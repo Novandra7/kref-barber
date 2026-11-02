@@ -92,12 +92,18 @@
                             @endphp
                             <div class="rounded-xl border-2 border-gray-900 bg-white p-4 shadow-[2px_2px_0px_0px_rgba(17,24,39,1)]">
 
-                                <!-- Header card: nama + tanggal -->
-                                <div class="flex items-center justify-between border-b-2 border-dashed border-gray-200 pb-2">
-                                    <p class="font-black uppercase text-gray-900">{{ $booking->name }}</p>
-                                    <span class="text-xs font-bold text-gray-500">
-                                        {{ $booking->scheduled_at?->format('d M Y, H:i') ?? '-' }}
-                                    </span>
+                                <!-- Header card: nama + tanggal & payment type -->
+                                <div class="space-y-1 border-b-2 border-dashed border-gray-200 pb-2">
+                                    <div class="flex items-center justify-between">
+                                        <p class="font-black uppercase text-gray-900">{{ $booking->name }}</p>
+                                        <span class="text-xs font-bold text-gray-500">
+                                            {{ $booking->scheduled_at?->format('d M Y, H:i') ?? '-' }}
+                                        </span>
+                                    </div>
+                                    <div class="flex items-center justify-between text-xs font-semibold text-gray-600">
+                                        <span>Payment Type:</span>
+                                        <span class="font-bold text-gray-900">{{ $booking->payment_type_label }}</span>
+                                    </div>
                                 </div>
 
                                 <!-- Barber + Booking Status dalam satu baris -->
