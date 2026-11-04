@@ -139,7 +139,9 @@
                                     <div class="font-mono font-bold text-gray-900">#PAY-{{ $payment->id }}</div>
                                     @if ($payment->partner_reference_no)
                                         <div class="mt-1 max-w-50 truncate text-xs text-gray-500" title="{{ $payment->partner_reference_no }}">
-                                            Ref: {{ $payment->partner_reference_no }}
+                                            <a href="{{ route('booking.payment.detail', ['reference' => $payment->partner_reference_no]) }}" target="_blank" class="hover:text-brand hover:underline">
+                                                Ref: {{ $payment->partner_reference_no }}
+                                            </a>
                                         </div>
                                     @endif
                                 </td>
