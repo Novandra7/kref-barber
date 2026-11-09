@@ -82,12 +82,40 @@ class Booking extends Model
     }
 
     /**
-     * Lepas kembali slot jadwal utama dan semua slot jadwal yang diblokir oleh booking ini.
+     * Lepas kembali slot jadwal utama, slot tujuan reschedule, dan semua slot jadwal yang diblokir oleh booking ini.
      */
     public function releaseSchedules(): void
     {
         if ($this->schedule) {
-            $this->schedule->update(['is_available' => true]);
+            $scheduleId = $this->schedule_id;
+            $hasOtherActive = self::where('id', '!=', $this->id)
+                ->where('status', '!=', 'cancelled')
+                ->where(function ($q) use ($scheduleId) {
+                    $q->where('schedule_id', $scheduleId)
+                      ->orWhere('requested_schedule_id', $scheduleId);
+                })
+                ->exists();
+
+            if (! $hasOtherActive) {
+                $this->schedule->update(['is_available' => true]);
+            }
+        }
+
+        if ($this->requested_schedule_id) {
+            $requestedId = $this->requested_schedule_id;
+            $hasActiveOnRequested = self::where('id', '!=', $this->id)
+                ->where('status', '!=', 'cancelled')
+                ->where(function ($q) use ($requestedId) {
+                    $q->where('schedule_id', $requestedId)
+                      ->orWhere('requested_schedule_id', $requestedId);
+                })
+                ->exists();
+
+            if (! $hasActiveOnRequested) {
+                Schedule::whereKey($requestedId)->update(['is_available' => true]);
+            }
+
+            $this->updateQuietly(['requested_schedule_id' => null]);
         }
 
         foreach ($this->blockedSlots()->with('schedule')->get() as $blocked) {

@@ -411,7 +411,7 @@ class ScheduleController extends Controller
         }
 
         // Jika slot di target day sudah ada dan tidak available (sudah dibooking orang lain)
-        if ($targetSchedule && ! $targetSchedule->is_available && $targetSchedule->id !== $booking->schedule_id) {
+        if ($targetSchedule && ! $targetSchedule->is_available && ! in_array($targetSchedule->id, [$booking->schedule_id, $booking->requested_schedule_id], true)) {
             return back()->with('error', 'Gagal memindahkan jadwal: Slot jam ' . $targetSchedule->slot_time->format('H:i') . ' pada tanggal tersebut sudah terisi oleh pesanan pelanggan lain.');
         }
 
@@ -430,6 +430,11 @@ class ScheduleController extends Controller
                 } else {
                     $oldSchedule->delete();
                 }
+            }
+
+            // 1b. Jika ada slot yang sedang di-hold untuk reschedule namun tidak jadi dipakai, bebaskan kembali
+            if ($booking->requested_schedule_id && (! $targetSchedule || $booking->requested_schedule_id !== $targetSchedule->id)) {
+                Schedule::whereKey($booking->requested_schedule_id)->update(['is_available' => true]);
             }
 
             // 2. Kunci atau buat slot jadwal baru

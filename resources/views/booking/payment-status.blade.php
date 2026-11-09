@@ -167,7 +167,9 @@
                 <!-- Action Buttons -->
                 @php
                     $cancelableBookings    = $bookings->filter(fn($b) => !in_array(strtolower((string)$b->status), ['cancelled', 'cancel_requested']));
-                    $reschedulableBookings = $bookings->filter(fn($b) => !in_array(strtolower((string)$b->status), ['cancelled', 'cancel_requested', 'reschedule_requested']));
+                    $reschedulableBookings = strtolower($paymentStatus) === 'paid'
+                        ? $bookings->filter(fn($b) => !in_array(strtolower((string)$b->status), ['pending', 'cancelled', 'cancel_requested', 'reschedule_requested', 'completed']))
+                        : collect();
 
                     $allCancelled          = $cancelableBookings->isEmpty();
                     $allRequested          = $bookings->isNotEmpty() && $bookings->every(fn($b) => strtolower((string)$b->status) === 'cancel_requested');

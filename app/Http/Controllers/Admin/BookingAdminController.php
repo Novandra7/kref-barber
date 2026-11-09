@@ -361,7 +361,7 @@ class BookingAdminController extends Controller
             $isCancelled = $data['status'] === 'cancelled';
 
             if ($schedule) {
-                if ($schedule->id !== $booking->schedule_id && ! $schedule->is_available) {
+                if (! in_array($schedule->id, [$booking->schedule_id, $booking->requested_schedule_id], true) && ! $schedule->is_available) {
                     throw ValidationException::withMessages([
                         'time' => 'Jadwal untuk barber tersebut pada tanggal dan jam ini sudah terisi oleh booking lain.',
                     ]);
@@ -369,6 +369,10 @@ class BookingAdminController extends Controller
 
                 if ($booking->schedule_id && $booking->schedule_id !== $schedule->id) {
                     Schedule::whereKey($booking->schedule_id)->update(['is_available' => true]);
+                }
+
+                if ($booking->requested_schedule_id && $booking->requested_schedule_id !== $schedule->id) {
+                    Schedule::whereKey($booking->requested_schedule_id)->update(['is_available' => true]);
                 }
 
                 $schedule->update([
@@ -384,6 +388,10 @@ class BookingAdminController extends Controller
 
                 if ($booking->schedule_id && $booking->schedule_id !== $schedule->id) {
                     Schedule::whereKey($booking->schedule_id)->update(['is_available' => true]);
+                }
+
+                if ($booking->requested_schedule_id && $booking->requested_schedule_id !== $schedule->id) {
+                    Schedule::whereKey($booking->requested_schedule_id)->update(['is_available' => true]);
                 }
             }
 
@@ -450,16 +458,17 @@ class BookingAdminController extends Controller
             $outstanding = max(0, $total - $paid);
 
             $booking->update([
-                'schedule_id'        => $schedule->id,
-                'name'               => $data['name'],
-                'phone'              => $data['phone'],
-                'description'        => $data['description'] ?? null,
-                'barber_id'          => $barber->id,
-                'payment_type'       => $data['payment_type'],
-                'status'             => $data['status'],
-                'total_amount'       => $total,
-                'outstanding_amount' => $outstanding,
-                'scheduled_at'       => $data['date'] . ' ' . $data['time'],
+                'schedule_id'           => $schedule->id,
+                'requested_schedule_id' => null,
+                'name'                  => $data['name'],
+                'phone'                 => $data['phone'],
+                'description'           => $data['description'] ?? null,
+                'barber_id'             => $barber->id,
+                'payment_type'          => $data['payment_type'],
+                'status'                => $data['status'],
+                'total_amount'          => $total,
+                'outstanding_amount'    => $outstanding,
+                'scheduled_at'          => $data['date'] . ' ' . $data['time'],
             ]);
 
             if ($isCancelled) {
@@ -666,17 +675,18 @@ class BookingAdminController extends Controller
                     if ($booking->requested_schedule_id) {
                         $newSchedule = Schedule::find($booking->requested_schedule_id);
                         if ($newSchedule) {
+                            $booking->requested_schedule_id = null;
+
                             // 1. Bebaskan slot jadwal lama
                             $booking->releaseSchedules();
                             // 2. Kunci slot jadwal baru
-                            $newSchedule->update(['is_available' => false]);
+                            Schedule::whereKey($newSchedule->id)->update(['is_available' => false]);
 
                             $oldScheduledAt = $booking->scheduled_at;
 
                             // 3. Pindahkan booking ke slot jadwal baru
                             $booking->schedule_id = $newSchedule->id;
                             $booking->scheduled_at = Carbon::parse($newSchedule->date->format('Y-m-d') . ' ' . $newSchedule->slot_time->format('H:i:s'));
-                            $booking->requested_schedule_id = null;
 
                             $rescheduleNotificationData = [
                                 'booking'        => $booking,
@@ -810,6 +820,9 @@ class BookingAdminController extends Controller
             ->where('is_available', true)
             ->when($booking?->schedule_id, function (Builder $query, $currentScheduleId) {
                 $query->orWhere('id', $currentScheduleId);
+            })
+            ->when($booking?->requested_schedule_id, function (Builder $query, $requestedScheduleId) {
+                $query->orWhere('id', $requestedScheduleId);
             })
             ->orderBy('date')
             ->orderBy('slot_time')

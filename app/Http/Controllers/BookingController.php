@@ -554,7 +554,7 @@ class BookingController extends Controller
             return $this->rescheduleFailed($reference, $booking ? 'Booking tidak terkait dengan transaksi ini.' : 'Booking tidak ditemukan.');
         }
 
-        if (in_array($booking->status, ['cancelled', 'cancel_requested', 'completed'], true)) {
+        if ($payment->status !== 'paid' || in_array($booking->status, ['pending', 'cancelled', 'cancel_requested', 'completed'], true)) {
             return $this->rescheduleFailed($reference, 'Booking ini sudah tidak dapat dijadwalkan ulang.');
         }
 
