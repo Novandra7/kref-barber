@@ -107,7 +107,7 @@ class WalkInPageController extends Controller
         $currentTime = $now->format('H:i:00');
         $isChemical = $request->boolean('is_chemical');
 
-        DB::transaction(function () use ($data, $barber, $today, $now, $currentTime, $isChemical) {
+        $booking = DB::transaction(function () use ($data, $barber, $today, $now, $currentTime, $isChemical) {
             $isScheduled = $data['booking_type'] === 'scheduled';
             
             if ($isScheduled) {
@@ -250,7 +250,19 @@ class WalkInPageController extends Controller
                     'notes'       => 'Lanjutan pengerjaan chemical untuk walk-in ' . $data['name'],
                 ]);
             }
+
+            return $booking;
         });
+
+        // Kirim notifikasi konfirmasi + E-Receipt ke pelanggan untuk walk-in Jadwalkan
+        if ($data['booking_type'] === 'scheduled' && !empty($booking->phone)) {
+            $reference = 'BK-' . $booking->id;
+            $notifications->paymentSucceeded(
+                $booking,
+                $reference,
+                route('booking.payment.detail', ['reference' => $reference])
+            );
+        }
 
         // Kirim rekap ke grup WA ops saat walk-in didaftarkan (baik Sekarang maupun Dijadwalkan)
         $notifications->sendDailyRecapToOpsGroup($today);
