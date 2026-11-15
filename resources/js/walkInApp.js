@@ -2,7 +2,8 @@ export default (
     availableSchedules = [],
     initialBarber = '',
     initialSource = '',
-    initialFormState = {}
+    initialFormState = {},
+    slotRules = []
 ) => ({
     showModal: false,
     activeBooking: null,
@@ -11,11 +12,31 @@ export default (
     paymentMethod: 'cash',
     bookingType: initialFormState.bookingType || 'now',
     isChemical: Boolean(initialFormState.isChemical),
+    slotRules: Array.isArray(slotRules) ? slotRules : [],
+    selectedRuleIds: Array.isArray(initialFormState.selectedRuleIds)
+        ? initialFormState.selectedRuleIds.map(String)
+        : [],
     selectedBarberId: String(initialFormState.selectedBarberId || ''),
     selectedScheduledTime: String(initialFormState.selectedScheduledTime || ''),
     customerName: String(initialFormState.customerName || ''),
     customerPhone: String(initialFormState.customerPhone || ''),
     allSchedules: availableSchedules,
+
+    get applicableSlotRules() {
+        return this.slotRules.filter((rule) => {
+            if (rule.barber_id === null || rule.barber_id === undefined) return true;
+            if (!this.selectedBarberId) return false;
+            return String(rule.barber_id) === String(this.selectedBarberId);
+        });
+    },
+
+    get totalSelectedSlots() {
+        const checked = this.applicableSlotRules.filter((r) =>
+            this.selectedRuleIds.includes(String(r.id))
+        );
+        if (checked.length === 0) return 1;
+        return checked.reduce((sum, r) => sum + Number(r.slots_required || 1), 0);
+    },
 
     // Filter state
     showFilter: false,
@@ -42,6 +63,8 @@ export default (
             if (oldVal && newVal !== oldVal) {
                 this.selectedScheduledTime = '';
             }
+            const validIds = this.applicableSlotRules.map((r) => String(r.id));
+            this.selectedRuleIds = this.selectedRuleIds.filter((id) => validIds.includes(String(id)));
         });
     },
 

@@ -14,11 +14,13 @@ use App\Models\Schedule;
 use App\Models\Service;
 use App\Services\BookingNotificationService;
 use App\Services\DokuService;
+use App\Services\SlotRuleService;
 use Carbon\Carbon;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
@@ -214,35 +216,9 @@ class BookingAdminController extends Controller
                 ]);
             }
 
-            // Deteksi kombinasi Chemical yang membutuhkan penguncian 2 slot jadwal
-            $hasChemical = $services->contains(fn ($s) => strtolower($s->category) === 'chemical');
-            $hasHaircut = $services->contains(fn ($s) => strtolower($s->category) === 'haircut');
-            $hasTreatment = $services->contains(fn ($s) => strtolower($s->category) === 'treatment');
-            $isChemicalCombo = $hasChemical && ($hasHaircut || $hasTreatment);
-
-            $nextSchedule = null;
-            if ($isChemicalCombo) {
-                $timeStr = Carbon::parse($data['time'])->format('H:i:00');
-                $existingNext = Schedule::query()
-                    ->where('barber_id', $data['barber_id'])
-                    ->whereDate('date', $data['date'])
-                    ->where('slot_time', '>', $timeStr)
-                    ->orderBy('slot_time')
-                    ->lockForUpdate()
-                    ->first();
-
-                if ($existingNext) {
-                    if (! $existingNext->is_available) {
-                        $nextTimeDisplay = $existingNext->slot_time instanceof \DateTimeInterface
-                            ? $existingNext->slot_time->format('H:i')
-                            : substr((string) $existingNext->slot_time, 0, 5);
-                        throw ValidationException::withMessages([
-                            'time' => "Slot jadwal berikutnya ({$nextTimeDisplay}) untuk layanan chemical sudah terisi. Silakan pilih jam lain.",
-                        ]);
-                    }
-                    $nextSchedule = $existingNext;
-                }
-            }
+            // Evaluasi aturan multi-slot dinamis via SlotRuleService
+            $slotEval = app(SlotRuleService::class)->evaluate($barber, $services, $data['name']);
+            $extraSchedules = $this->resolveMultiSlotExtraSchedules($barber, $slotEval, $data['date'], $timeStr);
 
             // --- PERBAIKAN: Menghapus 'payment_status' dari array create ---
             $booking = Booking::create([
@@ -281,15 +257,17 @@ class BookingAdminController extends Controller
 
             $schedule->update(['is_available' => false]);
 
-            if ($isChemicalCombo && $nextSchedule) {
-                $nextSchedule->update(['is_available' => false]);
-                BlockedSlot::create([
-                    'schedule_id' => $nextSchedule->id,
-                    'booking_id'  => $booking->id,
-                    'reason'      => BlockedSlot::REASON_CHEMICAL,
-                    'notes'       => 'Lanjutan pengerjaan chemical untuk ' . $data['name'],
-                    'created_by'  => auth()->id(),
-                ]);
+            if ($slotEval['requires_multi_slot'] && $extraSchedules->isNotEmpty()) {
+                foreach ($extraSchedules as $extraSchedule) {
+                    $extraSchedule->update(['is_available' => false]);
+                    BlockedSlot::create([
+                        'schedule_id' => $extraSchedule->id,
+                        'booking_id'  => $booking->id,
+                        'reason'      => $slotEval['reason'] ?? $slotEval['display_label'],
+                        'notes'       => $slotEval['notes'],
+                        'created_by'  => auth()->id(),
+                    ]);
+                }
             }
         });
 
@@ -398,35 +376,10 @@ class BookingAdminController extends Controller
             $services = Service::query()->whereIn('id', $data['service_ids'])->where('is_active', true)->get();
             abort_if($services->count() !== count($data['service_ids']), 422, 'One or more selected services are inactive.');
 
-            $hasChemical = $services->contains(fn ($s) => strtolower($s->category) === 'chemical');
-            $hasHaircut = $services->contains(fn ($s) => strtolower($s->category) === 'haircut');
-            $hasTreatment = $services->contains(fn ($s) => strtolower($s->category) === 'treatment');
-            $isChemicalCombo = $hasChemical && ($hasHaircut || $hasTreatment);
-
-            $nextSchedule = null;
-            if ($isChemicalCombo && ! $isCancelled) {
-                $timeStr = Carbon::parse($data['time'])->format('H:i:00');
-                $existingNext = Schedule::query()
-                    ->where('barber_id', $data['barber_id'])
-                    ->whereDate('date', $data['date'])
-                    ->where('slot_time', '>', $timeStr)
-                    ->orderBy('slot_time')
-                    ->lockForUpdate()
-                    ->first();
-
-                if ($existingNext) {
-                    $isSelfBlocked = $existingNext->blockedSlot && $existingNext->blockedSlot->booking_id === $booking->id;
-                    if (! $existingNext->is_available && ! $isSelfBlocked) {
-                        $nextTimeDisplay = $existingNext->slot_time instanceof \DateTimeInterface
-                            ? $existingNext->slot_time->format('H:i')
-                            : substr((string) $existingNext->slot_time, 0, 5);
-                        throw ValidationException::withMessages([
-                            'time' => "Slot jadwal berikutnya ({$nextTimeDisplay}) untuk layanan chemical sudah terisi oleh booking lain.",
-                        ]);
-                    }
-                    $nextSchedule = $existingNext;
-                }
-            }
+            $slotEval = app(SlotRuleService::class)->evaluate($barber, $services, $data['name']);
+            $extraSchedules = $isCancelled
+                ? collect()
+                : $this->resolveMultiSlotExtraSchedules($barber, $slotEval, $data['date'], $timeStr, $booking);
 
             $serviceItems = $this->snapshotServices($services, $barber);
             $total = (int) $serviceItems->sum('price');
@@ -475,25 +428,26 @@ class BookingAdminController extends Controller
                 $booking->releaseSchedules();
             } else {
                 // Lepaskan blocked slot lama jika jadwal/layanan berubah
-                $currentBlockedSlotIds = $booking->blockedSlots()->pluck('schedule_id')->all();
-                if ($nextSchedule) {
-                    $currentBlockedSlotIds = array_diff($currentBlockedSlotIds, [$nextSchedule->id]);
-                }
+                $keepScheduleIds = $extraSchedules->pluck('id')->all();
+                $currentBlockedSlotIds = array_diff($booking->blockedSlots()->pluck('schedule_id')->all(), $keepScheduleIds);
+
                 if (! empty($currentBlockedSlotIds)) {
                     Schedule::whereIn('id', $currentBlockedSlotIds)->update(['is_available' => true]);
                     BlockedSlot::whereIn('schedule_id', $currentBlockedSlotIds)->where('booking_id', $booking->id)->delete();
                 }
 
-                if ($isChemicalCombo && $nextSchedule) {
-                    $nextSchedule->update(['is_available' => false]);
-                    BlockedSlot::firstOrCreate([
-                        'schedule_id' => $nextSchedule->id,
-                        'booking_id'  => $booking->id,
-                    ], [
-                        'reason'      => BlockedSlot::REASON_CHEMICAL,
-                        'notes'       => 'Lanjutan pengerjaan chemical untuk ' . $data['name'],
-                        'created_by'  => auth()->id(),
-                    ]);
+                if ($slotEval['requires_multi_slot'] && $extraSchedules->isNotEmpty()) {
+                    foreach ($extraSchedules as $extraSchedule) {
+                        $extraSchedule->update(['is_available' => false]);
+                        BlockedSlot::updateOrCreate([
+                            'schedule_id' => $extraSchedule->id,
+                            'booking_id'  => $booking->id,
+                        ], [
+                            'reason'      => $slotEval['reason'] ?? $slotEval['display_label'],
+                            'notes'       => $slotEval['notes'],
+                            'created_by'  => auth()->id(),
+                        ]);
+                    }
                 }
             }
 
@@ -840,19 +794,122 @@ class BookingAdminController extends Controller
             'is_available' => (bool) $s->is_available,
         ])->values();
 
+        $todayDate = now()->toDateString();
+        $bookingDate = $booking?->scheduled_at?->toDateString();
+        $minTimelineDate = ($bookingDate && $bookingDate < $todayDate) ? $bookingDate : $todayDate;
+
+        $selfBlockedScheduleIds = $booking
+            ? $booking->blockedSlots()->pluck('schedule_id')->all()
+            : [];
+
+        $timelineSchedulesData = Schedule::query()
+            ->whereDate('date', '>=', $minTimelineDate)
+            ->orderBy('date')
+            ->orderBy('slot_time')
+            ->get(['id', 'barber_id', 'date', 'slot_time', 'is_available'])
+            ->map(function (Schedule $s) use ($booking, $selfBlockedScheduleIds): array {
+                $isSelfSlot = $booking && (
+                    in_array($s->id, [$booking->schedule_id, $booking->requested_schedule_id], true)
+                    || in_array($s->id, $selfBlockedScheduleIds, true)
+                );
+
+                return [
+                    'id'           => $s->id,
+                    'barber_id'    => $s->barber_id,
+                    'date'         => $s->date->format('Y-m-d'),
+                    'slot_time'    => $s->slot_time->format('H:i'),
+                    'is_available' => (bool) $s->is_available,
+                    'is_self_slot' => $isSelfSlot,
+                ];
+            })
+            ->values();
+
         return [
             'booking'           => $booking,
             'isEdit'            => $booking !== null,
             'barbers'           => Barber::query()->where('is_active', true)->orderBy('name')->get(['id', 'name', 'role']),
             'services'          => $services,
+            'servicesMeta'      => $services->map(fn (Service $s) => [
+                'id'       => $s->id,
+                'name'     => $s->name,
+                'category' => $s->category,
+            ])->values(),
             'serviceCategories' => $serviceCategories,
             'serviceCount'      => $services->count(),
             'categoryCount'     => min($serviceCategories->count(), 4),
             'statusOptions'     => self::STATUS_OPTIONS,
             'schedules'         => $schedulesData,
+            'timelineSchedules' => $timelineSchedulesData,
+            'slotRules'         => app(SlotRuleService::class)->getActiveRulesForFrontend(),
             'formUrl'           => $booking ? route('admin.bookings.update', $booking) : route('admin.bookings.store'),
             'formMethod'        => $booking ? 'PUT' : 'POST',
         ];
+    }
+
+    /**
+     * Validasi dan ambil slot jadwal tambahan berurutan berdasarkan Time Rules aktif.
+     */
+    private function resolveMultiSlotExtraSchedules(
+        Barber $barber,
+        array $slotEval,
+        string $date,
+        string $timeStr,
+        ?Booking $editingBooking = null,
+    ): Collection {
+        $extraSlots = (int) ($slotEval['extra_slots'] ?? 0);
+        if ($extraSlots <= 0) {
+            return collect();
+        }
+
+        $candidates = Schedule::query()
+            ->with('blockedSlot')
+            ->where('barber_id', $barber->id)
+            ->whereDate('date', $date)
+            ->where('slot_time', '>', $timeStr)
+            ->orderBy('slot_time')
+            ->limit($extraSlots)
+            ->lockForUpdate()
+            ->get();
+
+        $selectedTimeDisplay = substr($timeStr, 0, 5);
+        $requiredSlots = (int) ($slotEval['slots_required'] ?? ($extraSlots + 1));
+        $ruleLabel = $slotEval['display_label'] ?: 'Time Rule';
+
+        if ($candidates->count() < $extraSlots) {
+            throw ValidationException::withMessages([
+                'time' => "Bentrok Time Rule ({$ruleLabel}): membutuhkan {$requiredSlots} slot berurutan mulai {$selectedTimeDisplay} WITA (1 slot utama + {$extraSlots} slot lanjutan), tetapi slot jadwal lanjutan pada {$date} tidak mencukupi (hanya tersedia {$candidates->count()} dari {$extraSlots} slot lanjutan).",
+            ]);
+        }
+
+        $occupiedTimes = [];
+        $sequenceTimes = [$selectedTimeDisplay];
+
+        foreach ($candidates as $candidate) {
+            $candidateTime = $candidate->slot_time instanceof \DateTimeInterface
+                ? $candidate->slot_time->format('H:i')
+                : substr((string) $candidate->slot_time, 0, 5);
+            $sequenceTimes[] = $candidateTime;
+
+            $isSelfSlot = $editingBooking && (
+                in_array($candidate->id, [$editingBooking->schedule_id, $editingBooking->requested_schedule_id], true)
+                || ($candidate->blockedSlot && $candidate->blockedSlot->booking_id === $editingBooking->id)
+            );
+
+            if (! $candidate->is_available && ! $isSelfSlot) {
+                $occupiedTimes[] = $candidateTime;
+            }
+        }
+
+        if (! empty($occupiedTimes)) {
+            $occupiedText = implode(', ', $occupiedTimes);
+            $sequenceText = implode(', ', $sequenceTimes);
+
+            throw ValidationException::withMessages([
+                'time' => "Bentrok Time Rule ({$ruleLabel}): kombinasi layanan membutuhkan {$requiredSlots} slot berurutan ({$sequenceText} WITA), namun slot lanjutan ({$occupiedText} WITA) sudah terisi atau tidak tersedia. Silakan pilih jam lain atau ubah layanan.",
+            ]);
+        }
+
+        return $candidates;
     }
     
     public function destroy(Booking $booking): RedirectResponse

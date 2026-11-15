@@ -415,7 +415,12 @@ class BookingNotificationService
                             return $slotTime === $time;
                         })) {
                             $guestName = $blocked->booking ? strtolower(trim((string) $blocked->booking->name)) : '';
-                            $label = $guestName !== '' ? " [Lanjutan Chemical - {$guestName}]" : " [Lanjutan Chemical]";
+                            $ruleLabel = match ($blocked->reason) {
+                                BlockedSlot::REASON_CHEMICAL => 'Chemical',
+                                BlockedSlot::REASON_LONG_TRIM => 'Long Trim',
+                                default => $blocked->reason ?: 'Multi-Slot',
+                            };
+                            $label = $guestName !== '' ? " [Lanjutan {$ruleLabel} - {$guestName}]" : " [Lanjutan {$ruleLabel}]";
                             $lines[] = "{$time}:{$label}";
                         } else {
                             // Slot kosong diakhiri tanda titik dua ':'

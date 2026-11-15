@@ -47,6 +47,29 @@
             <span class="text-base">💳</span>
             <span>Payments</span>
         </a>
+
+        <!-- Rules Parent Menu + Submenu -->
+        <div x-data="{ rulesOpen: {{ request()->routeIs('admin.rules.*') ? 'true' : 'false' }} }" class="space-y-1.5">
+            <button type="button"
+                    @click="rulesOpen = !rulesOpen"
+                    class="flex w-full items-center justify-between rounded-xl border-2 border-gray-900 px-4 py-3 transition-all {{ request()->routeIs('admin.rules.*') ? 'bg-brand text-white shadow-[3px_3px_0px_0px_rgba(17,24,39,1)]' : 'bg-white text-gray-700 hover:-translate-x-0.5 hover:-translate-y-0.5 hover:bg-amber-50 hover:shadow-[3px_3px_0px_0px_rgba(17,24,39,1)]' }}">
+                <span class="flex items-center gap-3">
+                    <span class="text-base">⚙️</span>
+                    <span>Rules</span>
+                </span>
+                <svg class="h-4 w-4 transition-transform duration-200" :class="{ 'rotate-180': rulesOpen }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7"/>
+                </svg>
+            </button>
+
+            <div x-show="rulesOpen" x-collapse class="space-y-1.5 pl-4" style="display: {{ request()->routeIs('admin.rules.*') ? 'block' : 'none' }};">
+                <a href="{{ route('admin.rules.time.index') }}"
+                   class="flex items-center gap-2.5 rounded-xl border-2 border-gray-900 px-3.5 py-2.5 text-[11px] transition-all {{ request()->routeIs('admin.rules.time.*') ? 'bg-amber-300 text-gray-900 shadow-[2px_2px_0px_0px_rgba(17,24,39,1)]' : 'bg-white text-gray-700 hover:bg-amber-50' }}">
+                    <span class="text-sm">⏱️</span>
+                    <span>Time Rules</span>
+                </a>
+            </div>
+        </div>
     </nav>
 
     <!-- Footer Status -->
@@ -134,6 +157,29 @@
                 <span class="text-base">💳</span>
                 <span>Payments</span>
             </a>
+
+            <!-- Rules Parent Menu + Submenu (Mobile) -->
+            <div x-data="{ rulesOpen: {{ request()->routeIs('admin.rules.*') ? 'true' : 'false' }} }" class="space-y-1.5">
+                <button type="button"
+                        @click="rulesOpen = !rulesOpen"
+                        class="flex w-full items-center justify-between rounded-xl border-2 border-gray-900 px-4 py-3 transition-all {{ request()->routeIs('admin.rules.*') ? 'bg-brand text-white shadow-[3px_3px_0px_0px_rgba(17,24,39,1)]' : 'bg-white text-gray-700 active:bg-amber-50' }}">
+                    <span class="flex items-center gap-3">
+                        <span class="text-base">⚙️</span>
+                        <span>Rules</span>
+                    </span>
+                    <svg class="h-4 w-4 transition-transform duration-200" :class="{ 'rotate-180': rulesOpen }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7"/>
+                    </svg>
+                </button>
+
+                <div x-show="rulesOpen" class="space-y-1.5 pl-4" style="display: {{ request()->routeIs('admin.rules.*') ? 'block' : 'none' }};">
+                    <a href="{{ route('admin.rules.time.index') }}"
+                       class="flex items-center gap-2.5 rounded-xl border-2 border-gray-900 px-3.5 py-2.5 text-[11px] transition-all {{ request()->routeIs('admin.rules.time.*') ? 'bg-amber-300 text-gray-900 shadow-[2px_2px_0px_0px_rgba(17,24,39,1)]' : 'bg-white text-gray-700 active:bg-amber-50' }}">
+                        <span class="text-sm">⏱️</span>
+                        <span>Time Rules</span>
+                    </a>
+                </div>
+            </div>
         </nav>
 
         <!-- Footer Drawer -->

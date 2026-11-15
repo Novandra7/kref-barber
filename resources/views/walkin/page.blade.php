@@ -17,12 +17,13 @@
             'customerName'          => (string) old('name', ''),
             'customerPhone'         => (string) old('phone', ''),
             'isChemical'            => (bool) old('is_chemical', false),
+            'selectedRuleIds'       => (array) old('multi_slot_rule_ids', []),
             'scheduledPaymentType'  => (string) old('payment_type', 'dp'),
             'scheduledDpAmount'     => (int) old('dp_amount', 40000),
             'scheduledPaymentMethod'=> (string) old('dp_payment_method', 'cash'),
         ];
     @endphp
-    <div class="max-w-lg mx-auto pb-16 sm:pb-20 pt-4 sm:pt-6 px-3 sm:px-4" x-data="walkInApp(@js($availableSchedules), '{{ $selectedBarber ?? '' }}', '{{ $selectedSource ?? '' }}', @js($initialFormState))">
+    <div class="max-w-lg mx-auto pb-16 sm:pb-20 pt-4 sm:pt-6 px-3 sm:px-4" x-data="walkInApp(@js($availableSchedules), '{{ $selectedBarber ?? '' }}', '{{ $selectedSource ?? '' }}', @js($initialFormState), @js($slotRules ?? []))">
         
         <!-- Header -->
         <div class="mb-5 sm:mb-8 rounded-2xl border-2 border-gray-900 bg-brand p-3 sm:p-4 text-center shadow-[3px_3px_0px_0px_rgba(17,24,39,1)] sm:shadow-[4px_4px_0px_0px_rgba(17,24,39,1)]">
@@ -105,16 +106,34 @@
                     <input type="text" name="name" x-model="customerName" required placeholder="Ketik nama..." class="w-full rounded-xl border-2 border-gray-900 bg-[#FAF8F5] px-3.5 py-2.5 sm:px-4 sm:py-3 text-xs sm:text-sm font-bold text-gray-900 shadow-[2px_2px_0px_0px_rgba(17,24,39,1)] focus:outline-none focus:ring-0 focus:shadow-[4px_4px_0px_0px_rgba(17,24,39,1)] transition-all" autocomplete="off">
                 </div>
 
-                <!-- Toggle Layanan Chemical (Kunci 2 Slot Jam) -->
-                <div class="mb-4 sm:mb-6">
-                    <label class="flex cursor-pointer items-center gap-3 rounded-xl border-2 p-3 transition-all select-none"
-                           :class="isChemical ? 'border-gray-900 bg-amber-200 shadow-[2px_2px_0px_0px_rgba(17,24,39,1)]' : 'border-gray-300 bg-[#FAF8F5]'">
-                        <input type="checkbox" name="is_chemical" value="1" x-model="isChemical" class="size-4.5 rounded border-2 border-gray-900 text-brand focus:ring-0 cursor-pointer">
-                        <div class="flex flex-col">
-                            <span class="text-xs sm:text-sm font-black uppercase text-gray-900">Layanan Chemical (Kunci 2 Slot)</span>
-                            <span class="text-[11px] font-semibold text-gray-600">Otomatis mengunci jadwal terpilih + 1 slot berikutnya</span>
-                        </div>
-                    </label>
+                <!-- Opsi Time Rules Dinamis (Multi-Slot) -->
+                <div class="mb-4 sm:mb-6" x-show="applicableSlotRules.length > 0" x-cloak>
+                    <div class="mb-2 flex items-center justify-between">
+                        <span class="text-[11px] sm:text-xs font-bold uppercase tracking-wider text-gray-500">Time Rules / Multi-Slot</span>
+                        <span x-show="totalSelectedSlots > 1"
+                              class="rounded-md border border-gray-900 bg-amber-300 px-2 py-0.5 text-[10px] font-black uppercase text-gray-900">
+                            Total: <span x-text="totalSelectedSlots"></span> Slot
+                        </span>
+                    </div>
+                    <div class="space-y-2">
+                        <template x-for="rule in applicableSlotRules" :key="rule.id">
+                            <label class="flex cursor-pointer items-center gap-3 rounded-xl border-2 p-3 transition-all select-none"
+                                   :class="selectedRuleIds.includes(String(rule.id)) ? 'border-gray-900 bg-amber-200 shadow-[2px_2px_0px_0px_rgba(17,24,39,1)]' : 'border-gray-300 bg-[#FAF8F5]'">
+                                <input type="checkbox"
+                                       name="multi_slot_rule_ids[]"
+                                       :value="String(rule.id)"
+                                       x-model="selectedRuleIds"
+                                       class="size-4.5 rounded border-2 border-gray-900 text-brand focus:ring-0 cursor-pointer">
+                                <div class="flex flex-col">
+                                    <span class="text-xs sm:text-sm font-black uppercase text-gray-900">
+                                        <span x-text="rule.name"></span> (<span x-text="rule.slots_required"></span> Slot)
+                                    </span>
+                                    <span class="text-[11px] font-semibold text-gray-600"
+                                          x-text="rule.description || ('Otomatis mengunci ' + rule.slots_required + ' slot berurutan')"></span>
+                                </div>
+                            </label>
+                        </template>
+                    </div>
                 </div>
 
                 

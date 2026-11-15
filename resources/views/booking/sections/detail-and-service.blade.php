@@ -15,10 +15,10 @@
         <span>Harap lengkapi semua kolom yang wajib diisi dan pilih setidaknya satu layanan sebelum melanjutkan.</span>
     </div>
 
-    <!-- Alert Bentrok Jam Layanan Chemical -->
+    <!-- Alert Bentrok Jam Multi-Slot -->
     <div
         x-cloak
-        x-show="isChemicalCombo() && isNextSlotBlockedOrTaken()"
+        x-show="requiresMultiSlot() && isRequiredSlotsBlockedOrTaken()"
         role="alert"
         class="mb-5 flex items-center gap-3 rounded-xl border-2 border-red-500 bg-red-100 px-4 py-3 text-sm font-bold text-red-800 shadow-sm"
     >
@@ -26,7 +26,7 @@
             <path d="M12 9v4m0 4h.01M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
         </svg>
         <span>
-            Layanan Chemical membutuhkan 2 jam pengerjaan (slot <span x-text="currentGuest?.time"></span> &amp; <span x-text="getNextSlotTime() || 'berikutnya'"></span>). Namun jam <span x-text="getNextSlotTime() || 'berikutnya'"></span> sudah terisi oleh pelanggan lain atau tidak tersedia. Silakan kembali ke langkah sebelumnya untuk memilih jam lain.
+            Kombinasi layanan (<span x-text="getMatchedRuleLabel()"></span>) membutuhkan <span x-text="getRequiredSlots()"></span> slot berurutan. Namun slot lanjutan (<span x-text="getBlockedSlotTimes().join(', ')"></span>) sudah terisi atau tidak tersedia. Silakan kembali ke langkah sebelumnya untuk memilih jam lain.
         </span>
     </div>
 
@@ -117,17 +117,17 @@
                 PILIH LAYANAN *
             </h2>
 
-            <!-- Info Banner Chemical 2 Jam -->
+            <!-- Info Banner Multi-Slot Dinamis -->
             <div
                 x-cloak
-                x-show="isChemicalCombo() && !isNextSlotBlockedOrTaken()"
+                x-show="requiresMultiSlot() && !isRequiredSlotsBlockedOrTaken()"
                 class="mb-4 flex items-center gap-2.5 rounded-xl border border-blue-200 bg-blue-50 px-3.5 py-2.5 text-xs font-semibold text-blue-900 shadow-sm"
             >
                 <svg class="size-5 shrink-0 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
                 <span>
-                    Layanan Chemical membutuhkan 2 slot pengerjaan. Slot jam <span class="font-bold" x-text="currentGuest?.time"></span><template x-if="getNextSlotTime()"><span> &amp; <span class="font-bold" x-text="getNextSlotTime()"></span></span></template> akan otomatis terkunci untuk Anda.
+                    Kombinasi layanan (<span class="font-bold" x-text="getMatchedRuleLabel()"></span>) membutuhkan <span class="font-bold" x-text="getRequiredSlots()"></span> slot pengerjaan. Slot jam <span class="font-bold" x-text="getLockedTimesLabel()"></span> akan otomatis terkunci untuk Anda.
                 </span>
             </div>
 
@@ -281,7 +281,8 @@
         
         <button 
             type="button" 
-            class="btn btn-primary rounded-xl flex items-center justify-center gap-1.5 sm:gap-2 px-3.5 sm:px-6 py-2 sm:py-2.5 text-xs sm:text-sm font-semibold transition-all duration-200 shrink-0" 
+            class="min-h-10 rounded-xl bg-brand text-white flex items-center justify-center gap-1.5 sm:gap-2 px-3.5 sm:px-6 py-2 sm:py-2.5 text-xs sm:text-sm font-semibold transition-all duration-200 shrink-0 cursor-pointer hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:opacity-50" 
+            :disabled="requiresMultiSlot() && isRequiredSlotsBlockedOrTaken()"
             @click="validateStep2()" 
             onclick="window.scrollTo({ top: 0, behavior: 'smooth' })"
         >

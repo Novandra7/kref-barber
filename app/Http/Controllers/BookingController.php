@@ -13,6 +13,7 @@ use App\Http\Requests\CheckoutBookingRequest;
 use App\Services\DokuService;
 use App\Services\BookingNotificationService;
 use App\Services\PaymentExpirationService;
+use App\Services\SlotRuleService;
 use App\Services\WahaService;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\JsonResponse;
@@ -101,6 +102,7 @@ class BookingController extends Controller
             'barbers'        => $barbers,
             'schedules'      => $scheduleData,
             'availableDates' => $availableDates,
+            'slot_rules'     => app(SlotRuleService::class)->getActiveRulesForFrontend(),
         ]);
     }
 
@@ -149,34 +151,6 @@ class BookingController extends Controller
                     ->lockForUpdate()
                     ->firstOrFail();
 
-                // --- Deteksi jika tamu memilih kombinasi Chemical yang membutuhkan 2 slot jam ---
-                $hasChemical = !empty($guest['selectedChemical']);
-                $hasHaircut = !empty($guest['selectedHaircut']);
-                $hasTreatment = !empty($guest['selectedTreatments']) && count($guest['selectedTreatments']) > 0;
-                $isChemicalCombo = $hasChemical && ($hasHaircut || $hasTreatment);
-                $nextSchedule = null;
-
-                if ($isChemicalCombo) {
-                    $existingNextSchedule = Schedule::where('barber_id', $barber->id)
-                        ->whereDate('date', $guest['date'])
-                        ->where('slot_time', '>', $slotTime)
-                        ->orderBy('slot_time')
-                        ->lockForUpdate()
-                        ->first();
-
-                    if (!$existingNextSchedule) {
-                        abort(422, 'Layanan chemical membutuhkan 2 slot jadwal, namun tidak ada slot jadwal berikutnya yang tersedia pada hari tersebut.');
-                    }
-
-                    if (!$existingNextSchedule->is_available) {
-                        $nextTimeDisplay = $existingNextSchedule->slot_time instanceof \DateTimeInterface
-                            ? $existingNextSchedule->slot_time->format('H:i')
-                            : substr((string) $existingNextSchedule->slot_time, 0, 5);
-                        abort(422, "Slot jadwal berikutnya ({$nextTimeDisplay}) untuk pengerjaan chemical sudah terisi pelanggan lain. Silakan pilih jam lain.");
-                    }
-                    $nextSchedule = $existingNextSchedule;
-                }
-
                 // --- Kumpulkan semua service yang dipilih tamu ini ---
                 // (haircut, chemical, dan treatment tambahan)
                 $services = collect([
@@ -201,6 +175,35 @@ class BookingController extends Controller
 
                 if ($services->isEmpty()) {
                     abort(422, 'At least one service is required for every guest.');
+                }
+
+                // --- Evaluasi aturan multi-slot dinamis via SlotRuleService ---
+                $slotEval = app(SlotRuleService::class)->evaluate($barber, $services, $guest['name']);
+                $extraSchedules = collect();
+
+                if ($slotEval['extra_slots'] > 0) {
+                    $candidateSchedules = Schedule::where('barber_id', $barber->id)
+                        ->whereDate('date', $guest['date'])
+                        ->where('slot_time', '>', $slotTime)
+                        ->orderBy('slot_time')
+                        ->limit($slotEval['extra_slots'])
+                        ->lockForUpdate()
+                        ->get();
+
+                    if ($candidateSchedules->count() < $slotEval['extra_slots']) {
+                        abort(422, "Kombinasi layanan ({$slotEval['display_label']}) membutuhkan {$slotEval['slots_required']} slot jadwal berurutan, namun slot jadwal berikutnya pada hari tersebut tidak mencukupi.");
+                    }
+
+                    foreach ($candidateSchedules as $candidate) {
+                        if (!$candidate->is_available) {
+                            $nextTimeDisplay = $candidate->slot_time instanceof \DateTimeInterface
+                                ? $candidate->slot_time->format('H:i')
+                                : substr((string) $candidate->slot_time, 0, 5);
+                            abort(422, "Slot jadwal berikutnya ({$nextTimeDisplay}) untuk pengerjaan {$slotEval['display_label']} sudah terisi pelanggan lain. Silakan pilih jam lain.");
+                        }
+                    }
+
+                    $extraSchedules = $candidateSchedules;
                 }
 
                 // --- Tip untuk barber (hanya jika Full Payment) ---
@@ -242,15 +245,17 @@ class BookingController extends Controller
                 // Tandai jadwal sebagai sudah tidak tersedia
                 $schedule->update(['is_available' => false]);
 
-                // Jika kombinasi chemical, kunci juga slot jam berikutnya dan catat di BlockedSlot
-                if ($isChemicalCombo && $nextSchedule) {
-                    $nextSchedule->update(['is_available' => false]);
-                    BlockedSlot::create([
-                        'schedule_id' => $nextSchedule->id,
-                        'booking_id'  => $booking->id,
-                        'reason'      => BlockedSlot::REASON_CHEMICAL,
-                        'notes'       => 'Lanjutan pengerjaan chemical untuk ' . $guest['name'],
-                    ]);
+                // Jika membutuhkan multi-slot, kunci seluruh slot jadwal berurutan dan catat di BlockedSlot
+                if ($slotEval['requires_multi_slot'] && $extraSchedules->isNotEmpty()) {
+                    foreach ($extraSchedules as $extraSchedule) {
+                        $extraSchedule->update(['is_available' => false]);
+                        BlockedSlot::create([
+                            'schedule_id' => $extraSchedule->id,
+                            'booking_id'  => $booking->id,
+                            'reason'      => $slotEval['reason'] ?? $slotEval['display_label'],
+                            'notes'       => $slotEval['notes'],
+                        ]);
+                    }
                 }
             }
 

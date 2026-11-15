@@ -11,6 +11,8 @@ class BlockedSlot extends Model
     use HasFactory;
 
     public const REASON_CHEMICAL = 'chemical_service';
+    public const REASON_LONG_TRIM = 'long_trim_service';
+    public const REASON_CUSTOM_RULE = 'custom_rule';
     public const REASON_MANUAL = 'manual_block';
     public const REASON_BREAK = 'break_time';
     public const REASON_MAINTENANCE = 'maintenance';
