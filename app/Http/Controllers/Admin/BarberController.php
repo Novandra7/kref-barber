@@ -70,6 +70,19 @@ class BarberController extends Controller
             ->with('success', 'Barber deleted successfully.');
     }
 
+    public function toggle(Request $request, Barber $barber): RedirectResponse|\Illuminate\Http\JsonResponse
+    {
+        $barber->update([
+            'is_active' => ! $barber->is_active,
+        ]);
+
+        if ($request->expectsJson()) {
+            return response()->json(['is_active' => (bool) $barber->is_active]);
+        }
+
+        return redirect()->route('admin.barbers.index');
+    }
+
     private function validatedData(Request $request): array
     {
         return $request->validate([

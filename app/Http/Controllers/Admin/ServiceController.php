@@ -54,6 +54,19 @@ class ServiceController extends Controller
             ->with('success', 'Service deleted successfully.');
     }
 
+    public function toggle(Request $request, Service $service): RedirectResponse|\Illuminate\Http\JsonResponse
+    {
+        $service->update([
+            'is_active' => ! $service->is_active,
+        ]);
+
+        if ($request->expectsJson()) {
+            return response()->json(['is_active' => (bool) $service->is_active]);
+        }
+
+        return redirect()->route('admin.services.index');
+    }
+
     private function validatedData(Request $request, ?int $serviceId = null): array
     {
         return $request->validate([

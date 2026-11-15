@@ -151,15 +151,11 @@
                                     </span>
                                 </td>
                                 <td class="px-5 py-4">
-                                    <form action="{{ route('admin.rules.time.toggle', $rule) }}" method="POST" class="inline">
-                                        @csrf
-                                        @method('PATCH')
-                                        <button type="submit"
-                                                title="Klik untuk ubah status"
-                                                class="inline-flex cursor-pointer items-center rounded-lg border-2 border-gray-900 px-2.5 py-0.5 text-2xs font-black uppercase shadow-[1px_1px_0px_0px_rgba(17,24,39,1)] transition-transform active:translate-y-0.5 {{ $rule->is_active ? 'bg-green-300 text-gray-900 hover:bg-green-400' : 'bg-gray-200 text-gray-700 hover:bg-gray-300' }}">
-                                            {{ $rule->is_active ? 'Active' : 'Inactive' }}
-                                        </button>
-                                    </form>
+                                    @include('admin.partials.status-toggle', [
+                                        'action' => route('admin.rules.time.toggle', $rule),
+                                        'active' => (bool) $rule->is_active,
+                                        'label' => 'Toggle status ' . $rule->name,
+                                    ])
                                 </td>
                                 <td class="px-5 py-4 text-right">
                                     <div class="inline-flex items-center justify-end gap-1">

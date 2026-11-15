@@ -70,11 +70,13 @@
                                 <td class="px-6 py-4 capitalize">{{ $service->category }}</td>
                                 <td class="px-6 py-4">Rp {{ number_format($service->price, 0, ',', '.') }}</td>
                                 
-                                <!-- Badge Status Retro Neobrutalism -->
+                                <!-- Toggle Status -->
                                 <td class="px-6 py-4">
-                                    <span class="inline-flex items-center rounded-lg border-2 border-gray-900 px-2.5 py-0.5 text-2xs font-black uppercase shadow-[1px_1px_0px_0px_rgba(17,24,39,1)] {{ $service->is_active ? 'bg-green-300 text-gray-900' : 'bg-gray-200 text-gray-700' }}">
-                                        {{ $service->is_active ? 'Active' : 'Inactive' }}
-                                    </span>
+                                    @include('admin.partials.status-toggle', [
+                                        'action' => route('admin.services.toggle', $service),
+                                        'active' => (bool) $service->is_active,
+                                        'label' => 'Toggle status ' . $service->name,
+                                    ])
                                 </td>
 
                                 <td class="px-6 py-4 text-right">

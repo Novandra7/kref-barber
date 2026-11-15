@@ -83,11 +83,13 @@
                                     @endif
                                 </td>
                                 
-                                <!-- Badge Status Retro Neobrutalism -->
+                                <!-- Toggle Status -->
                                 <td class="px-6 py-4">
-                                    <span class="inline-flex items-center rounded-lg border-2 border-gray-900 px-2.5 py-0.5 text-2xs font-black uppercase tracking-wider shadow-[1px_1px_0px_0px_rgba(17,24,39,1)] {{ $barber->is_active ? 'bg-green-300 text-gray-900' : 'bg-gray-200 text-gray-700' }}">
-                                        {{ $barber->is_active ? 'Active' : 'Inactive' }}
-                                    </span>
+                                    @include('admin.partials.status-toggle', [
+                                        'action' => route('admin.barbers.toggle', $barber),
+                                        'active' => (bool) $barber->is_active,
+                                        'label' => 'Toggle status ' . $barber->name,
+                                    ])
                                 </td>
 
                                 <td class="px-6 py-4 text-right">

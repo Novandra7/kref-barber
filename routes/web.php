@@ -44,11 +44,15 @@ Route::domain('admin.' . config('app.domain', 'kref.test'))->group(function () {
         Route::resource('barbers', BarberController::class)
             ->names('admin.barbers')
             ->except(['show']);
+        Route::patch('barbers/{barber}/toggle', [BarberController::class, 'toggle'])
+            ->name('admin.barbers.toggle');
 
         // Services
         Route::resource('services', ServiceController::class)
             ->names('admin.services')
             ->except(['show']);
+        Route::patch('services/{service}/toggle', [ServiceController::class, 'toggle'])
+            ->name('admin.services.toggle');
 
         // Schedules
         Route::get('/schedules', [ScheduleController::class, 'index'])->name('admin.schedules.index');

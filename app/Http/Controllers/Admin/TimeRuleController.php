@@ -71,17 +71,17 @@ class TimeRuleController extends Controller
             ->with('success', 'Time rule updated successfully.');
     }
 
-    public function toggle(ServiceSlotRule $timeRule): RedirectResponse
+    public function toggle(Request $request, ServiceSlotRule $timeRule): RedirectResponse|\Illuminate\Http\JsonResponse
     {
         $timeRule->update([
             'is_active' => ! $timeRule->is_active,
         ]);
 
-        $statusText = $timeRule->is_active ? 'activated' : 'deactivated';
+        if ($request->expectsJson()) {
+            return response()->json(['is_active' => (bool) $timeRule->is_active]);
+        }
 
-        return redirect()
-            ->route('admin.rules.time.index')
-            ->with('success', "Time rule \"{$timeRule->name}\" {$statusText}.");
+        return redirect()->route('admin.rules.time.index');
     }
 
     public function destroy(ServiceSlotRule $timeRule): RedirectResponse
