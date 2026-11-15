@@ -4,6 +4,7 @@ use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\BarberController;
 use App\Http\Controllers\Admin\ScheduleController;
 use App\Http\Controllers\Admin\ServiceController;
+use App\Http\Controllers\Admin\TimeRuleController;
 use App\Http\Controllers\Admin\BookingAdminController;
 use App\Http\Controllers\Admin\PaymentController;
 use App\Http\Controllers\Admin\AuthController;
@@ -73,6 +74,15 @@ Route::domain('admin.' . config('app.domain', 'kref.test'))->group(function () {
 
         // Payments
         Route::get('/payments', [PaymentController::class, 'index'])->name('admin.payments.index');
+
+        // Rules
+        Route::prefix('rules')->name('admin.rules.')->group(function () {
+            Route::get('/time', [TimeRuleController::class, 'index'])->name('time.index');
+            Route::post('/time', [TimeRuleController::class, 'store'])->name('time.store');
+            Route::put('/time/{timeRule}', [TimeRuleController::class, 'update'])->name('time.update');
+            Route::patch('/time/{timeRule}/toggle', [TimeRuleController::class, 'toggle'])->name('time.toggle');
+            Route::delete('/time/{timeRule}', [TimeRuleController::class, 'destroy'])->name('time.destroy');
+        });
 
         Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
     });

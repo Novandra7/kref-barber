@@ -9,6 +9,7 @@ use App\Models\Payment;
 use App\Models\Schedule;
 use App\Models\Service;
 use App\Services\BookingNotificationService;
+use App\Services\SlotRuleService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -72,6 +73,7 @@ class WalkInPageController extends Controller
             'serviceCategories'  => $serviceCategories,
             'today'              => $today,
             'availableSchedules' => $availableSchedules,
+            'slotRules'          => app(SlotRuleService::class)->getActiveRulesForFrontend(),
             'selectedBarber'     => $request->input('barber'),
             'selectedSource'     => $request->input('source'),
         ]);
@@ -80,15 +82,17 @@ class WalkInPageController extends Controller
     public function store(Request $request, BookingNotificationService $notifications)
     {
         $data = $request->validate([
-            'barber_id'      => ['required', 'exists:barbers,id'],
-            'name'           => ['required', 'string', 'max:255'],
-            'booking_type'   => ['required', 'in:now,scheduled'],
-            'is_chemical'    => ['nullable', 'boolean'],
-            'scheduled_time' => ['nullable', 'required_if:booking_type,scheduled'],
-            'phone'          => ['nullable', 'required_if:booking_type,scheduled', 'string', 'max:20'],
-            'payment_type'   => ['nullable', 'in:full,dp'],
-            'dp_amount'          => ['nullable', 'required_if:payment_type,dp', 'numeric', 'min:1000'],
-            'dp_payment_method'  => ['nullable', 'required_if:payment_type,dp', 'in:cash,qris_static'],
+            'barber_id'              => ['required', 'exists:barbers,id'],
+            'name'                   => ['required', 'string', 'max:255'],
+            'booking_type'           => ['required', 'in:now,scheduled'],
+            'is_chemical'            => ['nullable', 'boolean'],
+            'multi_slot_rule_ids'    => ['nullable', 'array'],
+            'multi_slot_rule_ids.*'  => ['integer', 'exists:service_slot_rules,id'],
+            'scheduled_time'         => ['nullable', 'required_if:booking_type,scheduled'],
+            'phone'                  => ['nullable', 'required_if:booking_type,scheduled', 'string', 'max:20'],
+            'payment_type'           => ['nullable', 'in:full,dp'],
+            'dp_amount'              => ['nullable', 'required_if:payment_type,dp', 'numeric', 'min:1000'],
+            'dp_payment_method'      => ['nullable', 'required_if:payment_type,dp', 'in:cash,qris_static'],
         ]);
 
         if (!empty($data['phone'])) {
@@ -106,8 +110,26 @@ class WalkInPageController extends Controller
         $now   = now();
         $currentTime = $now->format('H:i:00');
         $isChemical = $request->boolean('is_chemical');
+        $selectedRuleIds = $data['multi_slot_rule_ids'] ?? [];
 
-        $booking = DB::transaction(function () use ($data, $barber, $today, $now, $currentTime, $isChemical) {
+        $slotEval = !empty($selectedRuleIds)
+            ? app(SlotRuleService::class)->evaluateByRuleIds($barber, $selectedRuleIds, 'walk-in ' . $data['name'])
+            : ($isChemical ? [
+                'requires_multi_slot' => true,
+                'slots_required'      => 2,
+                'extra_slots'         => 1,
+                'reason'              => BlockedSlot::REASON_CHEMICAL,
+                'display_label'       => 'chemical',
+                'notes'               => 'Lanjutan pengerjaan chemical untuk walk-in ' . $data['name'],
+            ] : [
+                'requires_multi_slot' => false,
+                'slots_required'      => 1,
+                'extra_slots'         => 0,
+                'display_label'       => '',
+                'notes'               => '',
+            ]);
+
+        $booking = DB::transaction(function () use ($data, $barber, $today, $now, $currentTime, $slotEval) {
             $isScheduled = $data['booking_type'] === 'scheduled';
             
             if ($isScheduled) {
@@ -181,27 +203,35 @@ class WalkInPageController extends Controller
                 ? $schedule->slot_time->format('H:i:s')
                 : $schedule->slot_time;
 
-            // Jika is_chemical, cari slot jadwal berikutnya untuk barber ini pada hari ini
-            $nextSchedule = null;
-            if ($isChemical) {
-                $existingNext = Schedule::where('barber_id', $barber->id)
+            // Jika membutuhkan multi-slot, kunci seluruh slot jadwal berikutnya secara berurutan
+            $extraSchedules = collect();
+            if ($slotEval['extra_slots'] > 0) {
+                $candidates = Schedule::where('barber_id', $barber->id)
                     ->whereDate('date', $today)
                     ->where('slot_time', '>', $slotTimeStr)
                     ->orderBy('slot_time')
+                    ->limit($slotEval['extra_slots'])
                     ->lockForUpdate()
-                    ->first();
+                    ->get();
 
-                if ($existingNext) {
-                    if (!$existingNext->is_available) {
-                        $nextTimeDisplay = $existingNext->slot_time instanceof \DateTimeInterface
-                            ? $existingNext->slot_time->format('H:i')
-                            : substr((string) $existingNext->slot_time, 0, 5);
+                if ($candidates->count() < $slotEval['extra_slots']) {
+                    throw ValidationException::withMessages([
+                        'scheduled_time' => "Aturan {$slotEval['display_label']} membutuhkan {$slotEval['slots_required']} slot berurutan, namun slot berikutnya tidak mencukupi.",
+                    ]);
+                }
+
+                foreach ($candidates as $candidate) {
+                    if (!$candidate->is_available) {
+                        $nextTimeDisplay = $candidate->slot_time instanceof \DateTimeInterface
+                            ? $candidate->slot_time->format('H:i')
+                            : substr((string) $candidate->slot_time, 0, 5);
                         throw ValidationException::withMessages([
-                            'scheduled_time' => "Slot jadwal berikutnya ({$nextTimeDisplay}) untuk layanan chemical sudah terisi. Silakan pilih jam lain."
+                            'scheduled_time' => "Slot jadwal berikutnya ({$nextTimeDisplay}) untuk layanan {$slotEval['display_label']} sudah terisi. Silakan pilih jam lain.",
                         ]);
                     }
-                    $nextSchedule = $existingNext;
                 }
+
+                $extraSchedules = $candidates;
             }
 
             $paymentType = $data['payment_type'] ?? 'full';
@@ -241,14 +271,16 @@ class WalkInPageController extends Controller
 
             $schedule->update(['is_available' => false]);
 
-            if ($isChemical && $nextSchedule) {
-                $nextSchedule->update(['is_available' => false]);
-                BlockedSlot::create([
-                    'schedule_id' => $nextSchedule->id,
-                    'booking_id'  => $booking->id,
-                    'reason'      => BlockedSlot::REASON_CHEMICAL,
-                    'notes'       => 'Lanjutan pengerjaan chemical untuk walk-in ' . $data['name'],
-                ]);
+            if ($slotEval['requires_multi_slot'] && $extraSchedules->isNotEmpty()) {
+                foreach ($extraSchedules as $extraSchedule) {
+                    $extraSchedule->update(['is_available' => false]);
+                    BlockedSlot::create([
+                        'schedule_id' => $extraSchedule->id,
+                        'booking_id'  => $booking->id,
+                        'reason'      => $slotEval['reason'] ?? $slotEval['display_label'],
+                        'notes'       => $slotEval['notes'],
+                    ]);
+                }
             }
 
             return $booking;

@@ -6,6 +6,7 @@ use App\Services\DokuService;
 use App\Http\Controllers\Api\DokuWebhookController;
 use App\Http\Controllers\Api\WahaWebhookController;
 use App\Http\Controllers\BookingController;
+use Illuminate\Support\Facades\Log;
 
 // Public Booking Initial Data
 Route::get('/booking/data', [BookingController::class, 'initData'])->name('api.booking.data');
@@ -15,6 +16,7 @@ Route::get('/user', function (Request $request) {
 })->middleware('auth:sanctum');
 
 Route::get('/testing-payment', function (Request $request) {
+    Log::info('API /testing-payment called');
     return response()->json([
         'message' => 'API endpoint for testing DOKU QRIS payment',
     ]);
@@ -28,7 +30,7 @@ Route::post('/waha/webhook', [WahaWebhookController::class, 'handle'])->name('wa
 
 
 Route::post('/doku/create-qris', function (Request $request) {
-    \Log::info('API /doku/create-qris called with payload: ' . json_encode($request->all()));
+    Log::info('API /doku/create-qris called with payload: ' . json_encode($request->all()));
     // Validasi parameter input
     $validated = $request->validate([
         'amount' => ['required', 'numeric', 'min:1000'],

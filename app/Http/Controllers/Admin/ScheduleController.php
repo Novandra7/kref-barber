@@ -4,9 +4,11 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Barber;
+use App\Models\BlockedSlot;
 use App\Models\Booking;
 use App\Models\Schedule;
 use App\Services\BookingNotificationService;
+use App\Services\SlotRuleService;
 use Carbon\Carbon;
 use Carbon\CarbonImmutable;
 use Illuminate\Contracts\View\View;
@@ -396,7 +398,7 @@ class ScheduleController extends Controller
             'notify_customer'    => ['nullable', 'boolean'],
         ]);
 
-        $booking = Booking::with(['schedule', 'barber'])->findOrFail($data['booking_id']);
+        $booking = Booking::with(['schedule', 'barber', 'items.service', 'blockedSlots.schedule'])->findOrFail($data['booking_id']);
 
         // Cari atau tentukan target schedule
         $targetSchedule = null;
@@ -410,8 +412,14 @@ class ScheduleController extends Controller
                 ->first();
         }
 
+        $selfScheduleIds = array_values(array_filter([
+            $booking->schedule_id,
+            $booking->requested_schedule_id,
+            ...$booking->blockedSlots->pluck('schedule_id')->all(),
+        ]));
+
         // Jika slot di target day sudah ada dan tidak available (sudah dibooking orang lain)
-        if ($targetSchedule && ! $targetSchedule->is_available && ! in_array($targetSchedule->id, [$booking->schedule_id, $booking->requested_schedule_id], true)) {
+        if ($targetSchedule && ! $targetSchedule->is_available && ! in_array($targetSchedule->id, $selfScheduleIds, true)) {
             return back()->with('error', 'Gagal memindahkan jadwal: Slot jam ' . $targetSchedule->slot_time->format('H:i') . ' pada tanggal tersebut sudah terisi oleh pesanan pelanggan lain.');
         }
 
@@ -419,12 +427,82 @@ class ScheduleController extends Controller
             return back()->with('info', 'Booking sudah berada di slot jadwal yang dipilih.');
         }
 
+        // Hitung kebutuhan multi-slot di jadwal target
+        $targetBarber = $targetSchedule?->barber ?? Barber::find($data['target_barber_id'] ?? $booking->barber_id);
+        $bookingServices = $booking->items->pluck('service')->filter()->values();
+        $extraSchedules = collect();
+        $extraReason = BlockedSlot::REASON_CUSTOM_RULE;
+        $extraNotes = 'Lanjutan multi-slot untuk ' . $booking->name;
+
+        if ($bookingServices->isNotEmpty()) {
+            $slotEval = app(SlotRuleService::class)->evaluate($targetBarber, $bookingServices, $booking->name);
+            $extraNeeded = $slotEval['extra_slots'];
+            if ($extraNeeded > 0) {
+                $extraReason = $slotEval['reason'] ?? $slotEval['display_label'];
+                $extraNotes = $slotEval['notes'];
+            }
+        } else {
+            // Untuk walk-in sebelum complete (belum ada booking items), pertahankan jumlah blockedSlots sebelumnya
+            $extraNeeded = $booking->blockedSlots->count();
+            $firstBlocked = $booking->blockedSlots->first();
+            if ($firstBlocked) {
+                $extraReason = $firstBlocked->reason;
+                $extraNotes = $firstBlocked->notes;
+            }
+        }
+
+        $targetDateStr = $targetSchedule
+            ? ($targetSchedule->date instanceof \DateTimeInterface ? $targetSchedule->date->format('Y-m-d') : Carbon::parse($targetSchedule->date)->format('Y-m-d'))
+            : $data['target_date'];
+        $targetTimeStr = $targetSchedule
+            ? ($targetSchedule->slot_time instanceof \DateTimeInterface ? $targetSchedule->slot_time->format('H:i:s') : Carbon::parse($targetSchedule->slot_time)->format('H:i:s'))
+            : Carbon::parse($data['target_time'])->format('H:i:s');
+        $targetBarberId = $targetSchedule?->barber_id ?? $data['target_barber_id'];
+
+        if ($extraNeeded > 0) {
+            $candidates = Schedule::query()
+                ->where('barber_id', $targetBarberId)
+                ->whereDate('date', $targetDateStr)
+                ->where('slot_time', '>', $targetTimeStr)
+                ->orderBy('slot_time')
+                ->limit($extraNeeded)
+                ->get();
+
+            if ($candidates->count() < $extraNeeded) {
+                $totalNeeded = $extraNeeded + 1;
+                return back()->with('error', "Gagal memindahkan jadwal: Booking ini membutuhkan {$totalNeeded} slot berurutan, namun slot setelah jam target tidak mencukupi.");
+            }
+
+            foreach ($candidates as $candidate) {
+                if (! $candidate->is_available && ! in_array($candidate->id, $selfScheduleIds, true)) {
+                    $cTime = $candidate->slot_time instanceof \DateTimeInterface
+                        ? $candidate->slot_time->format('H:i')
+                        : substr((string) $candidate->slot_time, 0, 5);
+                    return back()->with('error', "Gagal memindahkan jadwal: Slot lanjutan ({$cTime}) sudah terisi oleh pesanan pelanggan lain.");
+                }
+            }
+
+            $extraSchedules = $candidates;
+        }
+
         $oldScheduledAt = $booking->scheduled_at;
         $oldSchedule = $booking->schedule;
 
-        DB::transaction(function () use ($booking, &$targetSchedule, $oldSchedule, $data): void {
+        DB::transaction(function () use ($booking, &$targetSchedule, $oldSchedule, $data, $extraSchedules, $extraReason, $extraNotes): void {
+            $keepIds = $extraSchedules->pluck('id')->all();
+
+            // 0. Bebaskan blockedSlots lama milik booking ini yang tidak lagi terpakai
+            foreach ($booking->blockedSlots()->with('schedule')->get() as $oldBlocked) {
+                if (! in_array($oldBlocked->schedule_id, $keepIds, true)) {
+                    if ($oldBlocked->schedule && $oldBlocked->schedule_id !== ($targetSchedule?->id)) {
+                        $oldBlocked->schedule->update(['is_available' => true]);
+                    }
+                    $oldBlocked->delete();
+                }
+            }
+
             // 1. Tangani slot jadwal lama
-            if ($oldSchedule) {
+            if ($oldSchedule && ! in_array($oldSchedule->id, $keepIds, true)) {
                 if ($data['release_old_slot'] ?? true) {
                     $oldSchedule->update(['is_available' => true]);
                 } else {
@@ -433,7 +511,7 @@ class ScheduleController extends Controller
             }
 
             // 1b. Jika ada slot yang sedang di-hold untuk reschedule namun tidak jadi dipakai, bebaskan kembali
-            if ($booking->requested_schedule_id && (! $targetSchedule || $booking->requested_schedule_id !== $targetSchedule->id)) {
+            if ($booking->requested_schedule_id && (! $targetSchedule || $booking->requested_schedule_id !== $targetSchedule->id) && ! in_array($booking->requested_schedule_id, $keepIds, true)) {
                 Schedule::whereKey($booking->requested_schedule_id)->update(['is_available' => true]);
             }
 
@@ -448,6 +526,19 @@ class ScheduleController extends Controller
                     'is_available' => false,
                 ]);
                 $targetSchedule->load('barber');
+            }
+
+            // 2b. Kunci slot lanjutan yang dibutuhkan
+            foreach ($extraSchedules as $extraSchedule) {
+                $extraSchedule->update(['is_available' => false]);
+                BlockedSlot::updateOrCreate([
+                    'schedule_id' => $extraSchedule->id,
+                    'booking_id'  => $booking->id,
+                ], [
+                    'reason'     => $extraReason,
+                    'notes'      => $extraNotes,
+                    'created_by' => auth()->id(),
+                ]);
             }
 
             // 3. Pindahkan booking ke jadwal dan barber baru

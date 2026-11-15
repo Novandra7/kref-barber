@@ -7,6 +7,7 @@ use App\Models\BlockedSlot;
 use App\Models\Booking;
 use App\Models\Schedule;
 use App\Models\Service;
+use App\Models\ServiceSlotRule;
 use App\Services\BookingNotificationService;
 use App\Services\DokuService;
 use Carbon\Carbon;
@@ -62,6 +63,17 @@ class OnlineBookingChemicalTest extends TestCase
             'price'     => 150000,
             'category'  => 'Chemical',
             'is_active' => true,
+        ]);
+
+        $chemicalHaircutRule = ServiceSlotRule::create([
+            'name'           => 'Kombinasi Chemical + Haircut (Semua Barber)',
+            'barber_id'      => null,
+            'slots_required' => 2,
+            'is_active'      => true,
+        ]);
+        $chemicalHaircutRule->items()->createMany([
+            ['service_id' => null, 'category' => 'Chemical'],
+            ['service_id' => null, 'category' => 'Haircut'],
         ]);
 
         $this->futureDate = Carbon::tomorrow()->toDateString();

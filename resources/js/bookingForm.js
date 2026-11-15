@@ -1,21 +1,17 @@
 import Datepicker from 'flowbite-datepicker/Datepicker';
 import QRCode from 'qrcode';
 
-export default (
-    initialServices = [],
-    initialBarbers = [],
-    initialDate = "",
-    initialSchedules = [],
-    initialAvailableDates = [],
-) => ({
+export default () => ({
     currentStep: 1,
     guests: [],
     currentGuest: null,
+    editingIndex: null,
 
-    services: initialServices,
-    barbers: initialBarbers,
-    schedules: initialSchedules,
-    availableDates: initialAvailableDates,
+    services: [],
+    barbers: [],
+    schedules: [],
+    availableDates: [],
+    slotRules: [],
     isLoadingData: false,
 
     paymentType: "",
@@ -258,93 +254,164 @@ export default (
         return this.guests.some((guest, index) => {
             if (index === this.editingIndex) return false;
             if (guest.barber != schedule.barber_id || guest.date !== schedule.date) return false;
-            const guestTime = (guest.time || '').substring(0, 5);
-            if (guestTime === schedTime) return true;
-            if (this.isChemicalCombo(guest)) {
-                const nextTime = this.getNextSlotTime(guest.time, guest);
-                if (nextTime && nextTime === schedTime) {
-                    return true;
-                }
-            }
-            return false;
+            const lockedTimes = this.getLockedSlotTimes(guest);
+            return lockedTimes.includes(schedTime);
         });
     },
 
-    isChemicalCombo(guest = this.currentGuest) {
-        if (!guest) return false;
-        const hasChemical = Boolean(guest.selectedChemical);
-        const hasHaircut = Boolean(guest.selectedHaircut);
-        const hasTreatment = Array.isArray(guest.selectedTreatments) && guest.selectedTreatments.length > 0;
-        return hasChemical && (hasHaircut || hasTreatment);
+    getGuestSelectedServiceObjects(guest = this.currentGuest) {
+        if (!guest) return [];
+        const names = [
+            guest.selectedHaircut || null,
+            guest.selectedChemical || null,
+            ...(Array.isArray(guest.selectedTreatments) ? guest.selectedTreatments : []),
+        ].filter(Boolean);
+
+        return names
+            .map((name) => this.services.find((s) => s.name === name))
+            .filter(Boolean);
     },
 
-    getNextSchedule(guest = this.currentGuest) {
-        if (!guest?.barber || !guest?.date || !guest?.time) return null;
-        const barber = (Array.isArray(this.barbers) ? this.barbers : []).find(b => b.id == guest.barber || b.name === guest.barber);
-        const barberId = barber?.id || guest.barber;
-        const daySchedules = this.schedules
-            .filter(s => (s.barber_id == barberId || s.barber_id == guest.barber) && s.date === guest.date)
-            .sort((a, b) => a.slot_time.localeCompare(b.slot_time));
+    getMatchedRules(guest = this.currentGuest) {
+        if (!guest || !Array.isArray(this.slotRules) || this.slotRules.length === 0) {
+            return [];
+        }
 
+        const selectedServices = this.getGuestSelectedServiceObjects(guest);
+        if (selectedServices.length === 0) return [];
+
+        const barber = (Array.isArray(this.barbers) ? this.barbers : []).find(
+            (b) => b.id == guest.barber || b.name === guest.barber
+        );
+        const barberId = barber?.id || guest.barber || null;
+
+        return this.slotRules.filter((rule) => {
+            if (rule.barber_id !== null && rule.barber_id !== undefined && String(rule.barber_id) !== String(barberId)) {
+                return false;
+            }
+
+            const items = Array.isArray(rule.items) ? rule.items : [];
+            if (items.length === 0) return false;
+
+            const sortedItems = [...items].sort((a, b) => (b.service_id ? 1 : 0) - (a.service_id ? 1 : 0));
+            const remaining = [...selectedServices];
+
+            for (const item of sortedItems) {
+                const matchIdx = remaining.findIndex((svc) => {
+                    if (item.service_id !== null && item.service_id !== undefined) {
+                        return String(svc.id) === String(item.service_id);
+                    }
+                    if (item.category) {
+                        return String(svc.category || '').toLowerCase() === String(item.category).toLowerCase();
+                    }
+                    return false;
+                });
+
+                if (matchIdx === -1) return false;
+                remaining.splice(matchIdx, 1);
+            }
+
+            return true;
+        });
+    },
+
+    getRequiredSlots(guest = this.currentGuest) {
+        const matched = this.getMatchedRules(guest);
+        if (matched.length === 0) return 1;
+        return Math.max(1, matched.reduce((sum, rule) => sum + Number(rule.slots_required || 1), 0));
+    },
+
+    requiresMultiSlot(guest = this.currentGuest) {
+        return this.getRequiredSlots(guest) > 1;
+    },
+
+    getMatchedRuleLabel(guest = this.currentGuest) {
+        const matched = this.getMatchedRules(guest);
+        if (matched.length === 0) return '';
+        return matched.map((r) => r.name).join(' + ');
+    },
+
+    getDaySchedulesForGuest(guest = this.currentGuest) {
+        if (!guest?.barber || !guest?.date) return [];
+        const barber = (Array.isArray(this.barbers) ? this.barbers : []).find(
+            (b) => b.id == guest.barber || b.name === guest.barber
+        );
+        const barberId = barber?.id || guest.barber;
+
+        return this.schedules
+            .filter((s) => (s.barber_id == barberId || s.barber_id == guest.barber) && s.date === guest.date)
+            .sort((a, b) => a.slot_time.localeCompare(b.slot_time));
+    },
+
+    getExtraSchedules(guest = this.currentGuest, extraCount = null) {
+        if (!guest?.barber || !guest?.date || !guest?.time) return [];
+        const count = extraCount !== null ? extraCount : Math.max(0, this.getRequiredSlots(guest) - 1);
+        if (count <= 0) return [];
+
+        const daySchedules = this.getDaySchedulesForGuest(guest);
         const targetTime = guest.time.substring(0, 5);
-        const currentIndex = daySchedules.findIndex(s => 
-            s.slot_time.substring(0, 5) === targetTime
-        );
-        if (currentIndex === -1 || currentIndex >= daySchedules.length - 1) return null;
-        return daySchedules[currentIndex + 1];
+        const currentIndex = daySchedules.findIndex((s) => s.slot_time.substring(0, 5) === targetTime);
+
+        if (currentIndex === -1) return [];
+        return daySchedules.slice(currentIndex + 1, currentIndex + 1 + count);
     },
 
-    getNextSlotTime(timeStr = this.currentGuest?.time, guest = this.currentGuest) {
-        if (!guest?.barber || !guest?.date) return null;
-        const target = (timeStr || guest.time || '').substring(0, 5);
-        if (!target) return null;
+    getLockedSlotTimes(guest = this.currentGuest) {
+        if (!guest || !guest.time) return [];
+        const baseTime = guest.time.substring(0, 5);
+        const required = this.getRequiredSlots(guest);
+        if (required <= 1) return [baseTime];
 
-        const barber = (Array.isArray(this.barbers) ? this.barbers : []).find(b => b.id == guest.barber || b.name === guest.barber);
-        const barberId = barber?.id || guest.barber;
-        const daySchedules = this.schedules
-            .filter(s => (s.barber_id == barberId || s.barber_id == guest.barber) && s.date === guest.date)
-            .sort((a, b) => a.slot_time.localeCompare(b.slot_time));
+        const extra = this.getExtraSchedules(guest, required - 1);
+        return [baseTime, ...extra.map((s) => s.slot_time.substring(0, 5))];
+    },
 
-        const currentIndex = daySchedules.findIndex(s => 
-            s.slot_time.substring(0, 5) === target
-        );
-        if (currentIndex === -1 || currentIndex >= daySchedules.length - 1) return null;
-        return daySchedules[currentIndex + 1].slot_time.substring(0, 5);
+    getLockedTimesLabel(guest = this.currentGuest) {
+        const times = this.getLockedSlotTimes(guest);
+        if (times.length === 0) return guest?.time || '-';
+        if (times.length === 2) return `${times[0]} & ${times[1]}`;
+        return times.join(', ');
     },
 
     getGuestTimeDisplay(guest = this.currentGuest) {
         if (!guest || !guest.time) return '-';
-        if (this.isChemicalCombo(guest)) {
-            const nextTime = this.getNextSlotTime(guest.time, guest);
-            if (nextTime) {
-                return `${guest.time} & ${nextTime}`;
-            }
-        }
-        return guest.time;
+        return this.getLockedTimesLabel(guest);
     },
 
-    isNextSlotBlockedOrTaken(guest = this.currentGuest) {
-        if (!guest?.barber || !guest?.date || !guest?.time) return false;
-        const nextSchedule = this.getNextSchedule(guest);
-        // Jika tidak ada slot berikutnya sama sekali pada hari itu (misal slot terakhir), maka combo chemical tidak bisa dipesan
-        if (!nextSchedule) return true;
+    getBlockedSlotTimes(guest = this.currentGuest) {
+        if (!guest?.barber || !guest?.date || !guest?.time) return [];
+        const extraNeeded = Math.max(0, this.getRequiredSlots(guest) - 1);
+        if (extraNeeded === 0) return [];
 
-        const isAvailable = nextSchedule.is_available === true || nextSchedule.is_available === 1 || nextSchedule.is_available === '1';
-        if (!isAvailable) return true;
-        if (this.isScheduleTaken(nextSchedule)) return true;
-        if (this.isTimePassed(nextSchedule.slot_time)) return true;
+        const extraSchedules = this.getExtraSchedules(guest, extraNeeded);
+        if (extraSchedules.length < extraNeeded) {
+            return ['slot berikutnya tidak tersedia'];
+        }
 
-        const nextTime = nextSchedule.slot_time.substring(0, 5);
         const barberId = this.selectedBarberObj()?.id || guest.barber;
-        const takenByOtherGuest = this.guests.some((g, index) =>
-            index !== this.editingIndex &&
-            (g.barber == barberId || g.barber == guest.barber) &&
-            g.date === guest.date &&
-            (g.time || '').substring(0, 5) === nextTime
-        );
-        if (takenByOtherGuest) return true;
+        const blocked = [];
 
-        return false;
+        for (const sched of extraSchedules) {
+            const timeStr = sched.slot_time.substring(0, 5);
+            const isAvailable = sched.is_available === true || sched.is_available === 1 || sched.is_available === '1';
+            const takenByOtherGuest = this.guests.some((g, index) =>
+                index !== this.editingIndex &&
+                (g.barber == barberId || g.barber == guest.barber) &&
+                g.date === guest.date &&
+                this.getLockedSlotTimes(g).includes(timeStr)
+            );
+
+            if (!isAvailable || this.isTimePassed(sched.slot_time) || takenByOtherGuest) {
+                blocked.push(timeStr);
+            }
+        }
+
+        return blocked;
+    },
+
+    isRequiredSlotsBlockedOrTaken(guest = this.currentGuest) {
+        if (!this.requiresMultiSlot(guest)) return false;
+        return this.getBlockedSlotTimes(guest).length > 0;
     },
 
     isAdditionalGuest() {
@@ -402,6 +469,9 @@ export default (
                 this.barbers = data.barbers || [];
                 this.schedules = data.schedules || [];
                 this.availableDates = data.availableDates || [];
+                if (Array.isArray(data.slot_rules)) {
+                    this.slotRules = data.slot_rules;
+                }
 
                 // Jika user sudah memilih barber sebelum data selesai diambil, perbarui datepicker & jam otomatis
                 if (this.currentGuest?.barber) {
@@ -428,6 +498,7 @@ export default (
     },
 
     startNewGuest() {
+        this.editingIndex = null;
         this.currentGuest = this.createGuest();
         this.validationAttempted = false;
     },
@@ -464,6 +535,7 @@ export default (
     },
 
     addGuest() {
+        this.editingIndex = null;
         this.currentGuest = this.createGuest();
         this.validationAttempted = false;
         this.currentStep = 1;
@@ -665,9 +737,9 @@ export default (
             (Array.isArray(this.currentGuest?.selectedTreatments) && this.currentGuest.selectedTreatments.length > 0)
         );
 
-        const isChemicalClash = this.isChemicalCombo() && this.isNextSlotBlockedOrTaken();
+        const isMultiSlotClash = this.requiresMultiSlot() && this.isRequiredSlotsBlockedOrTaken();
 
-        if (!hasName || !hasPhone || !hasService || isChemicalClash) {
+        if (!hasName || !hasPhone || !hasService || isMultiSlotClash) {
             this.validationAttempted = true;
             return;
         }
