@@ -54,10 +54,12 @@ class BookingNotificationService
 
         $barberName = $booking->barber?->name ?? '-';
         $customerName = $booking->name ?: 'Pelanggan';
+        $isWalkInUnpaid = $booking->source === 'walk_in' && (! $booking->payment || $booking->payment->status !== 'paid');
+        $headerTitle = $isWalkInUnpaid ? 'Reservasi Terkonfirmasi ✅' : 'Pembayaran Terkonfirmasi ✅';
 
         $message = implode("\n", [
             '💈 KREF BARBER',
-            'Pembayaran Terkonfirmasi ✅',
+            $headerTitle,
             '',
             "Halo, {$customerName}! 🎉",
             'Reservasi kamu sudah TERKONFIRMASI.',

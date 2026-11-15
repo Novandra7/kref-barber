@@ -32,6 +32,7 @@ class WalkInTest extends TestCase
         $this->mock(BookingNotificationService::class, function ($mock) {
             $mock->shouldReceive('sendDailyRecapToOpsGroup')->zeroOrMoreTimes();
             $mock->shouldReceive('bookingReminder')->zeroOrMoreTimes();
+            $mock->shouldReceive('paymentSucceeded')->zeroOrMoreTimes();
         });
 
         $this->today = Carbon::today()->toDateString();
@@ -592,6 +593,7 @@ class WalkInTest extends TestCase
     {
         $mock = $this->mock(BookingNotificationService::class);
         $mock->shouldReceive('bookingReminder')->zeroOrMoreTimes();
+        $mock->shouldReceive('paymentSucceeded')->once();
         $mock->shouldReceive('sendDailyRecapToOpsGroup')
             ->with($this->today)
             ->once();
@@ -1003,6 +1005,220 @@ class WalkInTest extends TestCase
         $this->assertStringContainsString('(catatan: Minta potong rapi | barber: Grooming selesai)', $capturedMessage);
         // Booking 2 TIDAK memuat catatan
         $this->assertStringNotContainsString('budi no note (catatan:', strtolower($capturedMessage));
+    }
+
+    public function test_scheduled_walkin_without_dp_sends_confirmation_notification_and_ereceipt_works(): void
+    {
+        Schedule::create([
+            'barber_id' => $this->barber1->id,
+            'date' => $this->today,
+            'slot_time' => '15:00:00',
+            'is_available' => true,
+        ]);
+
+        $sentMessages = [];
+        $wahaMock = $this->mock(\App\Services\WahaService::class);
+        $wahaMock->shouldReceive('sendMessage')
+            ->atLeast()->twice() // customer notification, ops group recap (+ reminder if sync queue & future slot)
+            ->andReturnUsing(function ($recipient, $message) use (&$sentMessages) {
+                $sentMessages[] = ['recipient' => $recipient, 'message' => $message];
+            });
+
+        $this->app->forgetInstance(BookingNotificationService::class);
+
+        $response = $this->post(route('walkin.store'), [
+            'barber_id' => $this->barber1->id,
+            'name' => 'Andi Jadwalkan',
+            'booking_type' => 'scheduled',
+            'scheduled_time' => '15:00',
+            'phone' => '081234567890',
+            'payment_type' => 'full',
+        ]);
+
+        $response->assertRedirect(route('walkin.index'));
+        $response->assertSessionHas('success');
+
+        $booking = Booking::where('name', 'Andi Jadwalkan')->firstOrFail();
+        $expectedRef = 'BK-' . $booking->id;
+        $expectedUrl = route('booking.payment.detail', ['reference' => $expectedRef]);
+
+        $customerNotif = collect($sentMessages)->first(fn ($m) => str_contains($m['message'], 'Andi Jadwalkan') && str_contains($m['message'], 'E-Receipt'));
+        $this->assertNotNull($customerNotif);
+        $this->assertStringContainsString('Reservasi Terkonfirmasi ✅', $customerNotif['message']);
+        $this->assertStringContainsString($expectedRef, $customerNotif['message']);
+        $this->assertStringContainsString($expectedUrl, $customerNotif['message']);
+
+        // Pastikan halaman E-Receipt dapat dibuka (tidak 404)
+        $receiptResponse = $this->get($expectedUrl);
+        $receiptResponse->assertOk();
+        $receiptResponse->assertSee('Andi Jadwalkan');
+        $receiptResponse->assertSee($expectedRef);
+        $receiptResponse->assertSee('Unpaid');
+    }
+
+    public function test_scheduled_walkin_with_dp_sends_payment_confirmed_notification_and_ereceipt_works(): void
+    {
+        Schedule::create([
+            'barber_id' => $this->barber1->id,
+            'date' => $this->today,
+            'slot_time' => '16:00:00',
+            'is_available' => true,
+        ]);
+
+        $sentMessages = [];
+        $wahaMock = $this->mock(\App\Services\WahaService::class);
+        $wahaMock->shouldReceive('sendMessage')
+            ->atLeast()->twice()
+            ->andReturnUsing(function ($recipient, $message) use (&$sentMessages) {
+                $sentMessages[] = ['recipient' => $recipient, 'message' => $message];
+            });
+
+        $this->app->forgetInstance(BookingNotificationService::class);
+
+        $response = $this->post(route('walkin.store'), [
+            'barber_id' => $this->barber1->id,
+            'name' => 'Budi DP',
+            'booking_type' => 'scheduled',
+            'scheduled_time' => '16:00',
+            'phone' => '081234567891',
+            'payment_type' => 'dp',
+            'dp_amount' => 25000,
+            'dp_payment_method' => 'cash',
+        ]);
+
+        $response->assertRedirect(route('walkin.index'));
+
+        $booking = Booking::where('name', 'Budi DP')->firstOrFail();
+        $expectedRef = 'BK-' . $booking->id;
+
+        $customerNotif = collect($sentMessages)->first(fn ($m) => str_contains($m['message'], 'Budi DP') && str_contains($m['message'], 'E-Receipt'));
+        $this->assertNotNull($customerNotif);
+        $this->assertStringContainsString('Pembayaran Terkonfirmasi ✅', $customerNotif['message']);
+        $this->assertStringContainsString($expectedRef, $customerNotif['message']);
+
+        $receiptResponse = $this->get(route('booking.payment.detail', ['reference' => $expectedRef]));
+        $receiptResponse->assertOk();
+        $receiptResponse->assertSee('Budi DP');
+        $receiptResponse->assertSee('Paid');
+    }
+
+    public function test_now_walkin_does_not_send_customer_notification(): void
+    {
+        $notifMock = $this->mock(BookingNotificationService::class);
+        $notifMock->shouldReceive('sendDailyRecapToOpsGroup')->once();
+        $notifMock->shouldNotReceive('paymentSucceeded');
+
+        $response = $this->post(route('walkin.store'), [
+            'barber_id' => $this->barber1->id,
+            'name' => 'Cici Sekarang',
+            'booking_type' => 'now',
+            'phone' => '081234567892',
+        ]);
+
+        $response->assertRedirect(route('walkin.index'));
+    }
+
+    public function test_walkin_ereceipt_supports_reschedule_and_cancel(): void
+    {
+        $futureDate = now()->addDay()->toDateString();
+        $oldSched = Schedule::create([
+            'barber_id' => $this->barber1->id,
+            'date' => $futureDate,
+            'slot_time' => '10:00:00',
+            'is_available' => false,
+        ]);
+        $newSched = Schedule::create([
+            'barber_id' => $this->barber1->id,
+            'date' => $futureDate,
+            'slot_time' => '11:00:00',
+            'is_available' => true,
+        ]);
+
+        $booking = Booking::create([
+            'schedule_id' => $oldSched->id,
+            'barber_id' => $this->barber1->id,
+            'name' => 'Dedi Reschedule',
+            'phone' => '81234567893',
+            'source' => 'walk_in',
+            'status' => 'confirmed',
+            'payment_type' => 'full',
+            'scheduled_at' => $futureDate . ' 10:00:00',
+        ]);
+
+        $ref = 'BK-' . $booking->id;
+
+        $rescheduleResponse = $this->post(route('booking.reschedule', ['reference' => $ref]), [
+            'booking_id' => $booking->id,
+            'schedule_id' => $newSched->id,
+        ]);
+        $rescheduleResponse->assertRedirect(route('booking.payment.detail', ['reference' => $ref]));
+        $rescheduleResponse->assertSessionHas('success');
+
+        $booking->refresh();
+        $this->assertEquals('reschedule_requested', $booking->status);
+        $this->assertEquals($newSched->id, $booking->requested_schedule_id);
+
+        $cancelResponse = $this->post(route('booking.cancel', ['reference' => $ref]), [
+            'booking_id' => $booking->id,
+        ]);
+        $cancelResponse->assertRedirect(route('booking.payment.detail', ['reference' => $ref]));
+        $cancelResponse->assertSessionHas('success');
+
+        $booking->refresh();
+        $this->assertEquals('cancelled', $booking->status);
+    }
+
+    public function test_admin_approve_walkin_dp_cancel_sets_clear_manual_refund_reason(): void
+    {
+        $admin = \App\Models\User::factory()->create(['role' => 'admin']);
+
+        $sched = Schedule::create([
+            'barber_id' => $this->barber1->id,
+            'date' => $this->today,
+            'slot_time' => '17:00:00',
+            'is_available' => false,
+        ]);
+
+        $payment = Payment::create([
+            'amount' => 25000,
+            'method' => 'cash',
+            'provider' => 'manual',
+            'purpose' => 'dp',
+            'status' => 'paid',
+        ]);
+
+        $booking = Booking::create([
+            'schedule_id' => $sched->id,
+            'barber_id' => $this->barber1->id,
+            'payment_id' => $payment->id,
+            'name' => 'Eko DP Refund',
+            'phone' => '81234567894',
+            'source' => 'walk_in',
+            'status' => 'cancel_requested',
+            'payment_type' => 'dp',
+            'total_amount' => 25000,
+            'outstanding_amount' => 1,
+            'scheduled_at' => $this->today . ' 17:00:00',
+        ]);
+
+        $notifMock = $this->mock(BookingNotificationService::class);
+        $notifMock->shouldReceive('bookingRefunded')->once();
+        $notifMock->shouldReceive('sendDailyRecapToOpsGroup')->zeroOrMoreTimes();
+
+        $response = $this->actingAs($admin)->patch(route('admin.bookings.update-status', $booking), [
+            'status' => 'cancelled',
+            'with_refund' => true,
+        ]);
+
+        $response->assertRedirect();
+
+        $this->assertDatabaseHas('refunds', [
+            'booking_id' => $booking->id,
+            'payment_id' => $payment->id,
+            'type' => 'manual',
+            'status' => 'pending',
+            'reason' => 'Manual Payment Refund (cash)',
+        ]);
     }
 }
 

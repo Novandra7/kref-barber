@@ -624,8 +624,12 @@ class BookingAdminController extends Controller
 
                                 $payment->update(['status' => $newPaymentStatus]);
                             } else {
-                                // Manual Refund: Sumber pembayaran belum didukung oleh DOKU auto-refund API
+                                // Manual Refund: Pembayaran manual (walk-in) atau sumber pembayaran belum didukung DOKU auto-refund API
                                 // Status 'pending' sampai admin konfirmasi transfer manual
+                                $manualReason = $payment->provider === 'manual'
+                                    ? 'Manual Payment Refund (' . ($payment->method ?? 'manual') . ')'
+                                    : 'Issuer not supported by DOKU API (' . ($payment->payment_source ?? 'unknown') . ')';
+
                                 Refund::create([
                                     'payment_id'        => $payment->id,
                                     'booking_id'        => $booking->id,
@@ -633,7 +637,7 @@ class BookingAdminController extends Controller
                                     'amount'            => $refundAmount,
                                     'type'              => 'manual',
                                     'status'            => 'pending',
-                                    'reason'            => 'Issuer not supported by DOKU API (' . ($payment->payment_source ?? 'unknown') . ')',
+                                    'reason'            => $manualReason,
                                     'recorded_by'       => auth()->id(),
                                 ]);
 

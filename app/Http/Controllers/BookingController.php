@@ -361,7 +361,44 @@ class BookingController extends Controller
             })
             ->get();
 
-        abort_if($payments->isEmpty(), 404, 'Payment not found.');
+        if ($payments->isEmpty()) {
+            if (preg_match('/^BK-(\d+)$/i', $reference, $matches)) {
+                $walkInBooking = Booking::with([
+                    'barber',
+                    'schedule',
+                    'requestedSchedule',
+                    'payment',
+                    'items' => fn ($query) => $query
+                        ->where('item_type', 'service')
+                        ->orderBy('id'),
+                ])
+                    ->where('source', 'walk_in')
+                    ->find((int) $matches[1]);
+
+                abort_if(! $walkInBooking, 404, 'Payment not found.');
+
+                $availableSchedules = Schedule::with('barber')
+                    ->where('barber_id', $walkInBooking->barber_id)
+                    ->where('is_available', true)
+                    ->upcoming()
+                    ->orderBy('date')
+                    ->orderBy('slot_time')
+                    ->get();
+
+                return view('booking.payment-status', [
+                    'reference'          => strtoupper($reference),
+                    'paymentStatus'      => $walkInBooking->payment?->status ?? 'unpaid',
+                    'bookingStatus'      => $walkInBooking->status ?? 'confirmed',
+                    'qrContent'          => null,
+                    'paymentAmount'      => (int) ($walkInBooking->payment?->amount ?? 0),
+                    'bookings'           => collect([$walkInBooking]),
+                    'expiresAt'          => null,
+                    'availableSchedules' => $availableSchedules,
+                ]);
+            }
+
+            abort(404, 'Payment not found.');
+        }
 
         // On-demand expiry check: jika ada pembayaran pending yang sudah lewat batas waktu
         foreach ($payments as $payment) {
@@ -421,10 +458,7 @@ class BookingController extends Controller
         $booking = Booking::with(['payment', 'schedule'])->find($request->input('booking_id'));
         $payment = $booking?->payment;
 
-        $validReference = $payment && (
-            $payment->partner_reference_no === $reference ||
-            data_get($payment->provider_payload, 'partnerReferenceNo') === $reference
-        );
+        $validReference = $booking && $this->isValidBookingReference($booking, $reference);
 
         if (! $booking || ! $validReference) {
             return $this->cancelFailed($reference, $booking ? 'Booking tidak terkait dengan transaksi ini.': 'Booking tidak ditemukan.');
@@ -545,16 +579,13 @@ class BookingController extends Controller
         $booking = Booking::with('payment')->find($data['booking_id']);
         $payment = $booking?->payment;
 
-        $validReference = $payment && (
-            $payment->partner_reference_no === $reference ||
-            data_get($payment->provider_payload, 'partnerReferenceNo') === $reference
-        );
+        $validReference = $booking && $this->isValidBookingReference($booking, $reference);
 
         if (! $booking || ! $validReference) {
             return $this->rescheduleFailed($reference, $booking ? 'Booking tidak terkait dengan transaksi ini.' : 'Booking tidak ditemukan.');
         }
 
-        if ($payment->status !== 'paid' || in_array($booking->status, ['pending', 'cancelled', 'cancel_requested', 'completed'], true)) {
+        if (($payment && $payment->status !== 'paid') || in_array($booking->status, ['pending', 'cancelled', 'cancel_requested', 'completed'], true)) {
             return $this->rescheduleFailed($reference, 'Booking ini sudah tidak dapat dijadwalkan ulang.');
         }
 
@@ -646,6 +677,20 @@ class BookingController extends Controller
                 'status'     => $payment->status,
             ]),
         ]);
+    }
+
+    private function isValidBookingReference(Booking $booking, string $reference): bool
+    {
+        $payment = $booking->payment;
+
+        if ($payment && (
+            $payment->partner_reference_no === $reference ||
+            data_get($payment->provider_payload, 'partnerReferenceNo') === $reference
+        )) {
+            return true;
+        }
+
+        return $booking->source === 'walk_in' && strtoupper($reference) === 'BK-' . $booking->id;
     }
 
 }

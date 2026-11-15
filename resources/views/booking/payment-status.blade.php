@@ -167,9 +167,13 @@
                 <!-- Action Buttons -->
                 @php
                     $cancelableBookings    = $bookings->filter(fn($b) => !in_array(strtolower((string)$b->status), ['cancelled', 'cancel_requested']));
-                    $reschedulableBookings = strtolower($paymentStatus) === 'paid'
-                        ? $bookings->filter(fn($b) => !in_array(strtolower((string)$b->status), ['pending', 'cancelled', 'cancel_requested', 'reschedule_requested', 'completed']))
-                        : collect();
+                    $reschedulableBookings = $bookings->filter(function ($b) use ($paymentStatus) {
+                        $isPaid = strtolower($paymentStatus) === 'paid';
+                        $isConfirmedWalkIn = $b->source === 'walk_in' && strtolower((string) $b->status) === 'confirmed';
+
+                        return ($isPaid || $isConfirmedWalkIn)
+                            && !in_array(strtolower((string) $b->status), ['pending', 'cancelled', 'cancel_requested', 'reschedule_requested', 'completed']);
+                    });
 
                     $allCancelled          = $cancelableBookings->isEmpty();
                     $allRequested          = $bookings->isNotEmpty() && $bookings->every(fn($b) => strtolower((string)$b->status) === 'cancel_requested');
